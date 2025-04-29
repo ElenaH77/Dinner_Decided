@@ -25,18 +25,6 @@ export default function ChatOnboarding() {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Chat state
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome-' + Date.now(),
-      role: 'assistant',
-      content: ONBOARDING_RESPONSES.welcome
-    }
-  ]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [inputValue, setInputValue] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
-  
   // User data state
   const [household, setHousehold] = useState('');
   const [dietary, setDietary] = useState('');
@@ -45,38 +33,50 @@ export default function ChatOnboarding() {
   const [location, setLocation] = useState('');
   const [challenges, setChallenges] = useState('');
   
+  // Messages state - with a unique welcome message ID
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: `welcome-${Date.now()}`,
+      role: 'assistant',
+      content: ONBOARDING_RESPONSES.welcome
+    }
+  ]);
+  
+  // Track which step we're on and if onboarding is complete
+  const [currentStep, setCurrentStep] = useState(0);
+  const [inputValue, setInputValue] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+  
   // Scroll to the bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  // Function to display the next question
-  const askNextQuestion = () => {
-    // Safety check - don't process if we're already at the end
-    if (currentQuestion >= ONBOARDING_QUESTIONS.length) {
-      // We're done with all questions
-      setMessages(prev => [...prev, {
-        id: 'complete-' + Date.now(),
-        role: 'assistant',
-        content: ONBOARDING_RESPONSES.complete
-      }]);
-      setIsComplete(true);
-      return;
-    }
+  // Display the first question on initial load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (currentStep === 0) {
+        addQuestion(0);
+      }
+    }, 1000);
     
-    // Get the question based on the CURRENT question index
-    // This is important to ensure we're showing the right question
-    const question = ONBOARDING_QUESTIONS[currentQuestion];
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Function to add a specific question to the chat
+  const addQuestion = (questionIndex: number) => {
+    if (questionIndex >= ONBOARDING_QUESTIONS.length) return;
     
-    // Add the next question from the assistant with a unique timestamp ID
+    const question = ONBOARDING_QUESTIONS[questionIndex];
     const timestamp = Date.now();
+    
     const newMessage: Message = {
-      id: `question-${question.id}-${timestamp}`, // Ensure ID is unique with timestamp
+      id: `question-${question.id}-${timestamp}`,
       role: 'assistant',
       content: `${question.question}\n${question.hint ? question.hint : ''}`
     };
     
-    // If it's the equipment question, add checkboxes
+    // Add checkboxes for equipment question
     if (question.id === 'equipment') {
       newMessage.checkboxes = KITCHEN_APPLIANCES.map(item => ({
         id: item.id,
@@ -85,37 +85,56 @@ export default function ChatOnboarding() {
       }));
     }
     
-    // If it's the skill question, add options
+    // Add options for skill question
     if (question.id === 'skill' && question.options) {
       newMessage.options = question.options;
     }
     
-    // Add the message to the chat
-    setMessages(prevMessages => [...prevMessages, newMessage]);
+    setMessages(prev => [...prev, newMessage]);
   };
   
-  // Initial welcome and first question
-  useEffect(() => {
-    // Wait a moment before showing the first question
-    const timer = setTimeout(() => {
-      askNextQuestion();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+  // Add a user message to the chat
+  const addUserMessage = (content: string) => {
+    const userMessageId = `user-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: userMessageId,
+      role: 'user',
+      content
+    }]);
+  };
   
-  // Handle user submission
+  // Add an assistant response to the chat
+  const addAssistantResponse = (content: string) => {
+    const responseId = `response-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: responseId,
+      role: 'assistant',
+      content
+    }]);
+  };
+  
+  // Add the completion message to the chat
+  const addCompletionMessage = () => {
+    const completeId = `complete-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: completeId,
+      role: 'assistant',
+      content: ONBOARDING_RESPONSES.complete
+    }]);
+    setIsComplete(true);
+  };
+  
+  // Process user input and move to next step
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Safety check - don't process if we're already at the end
-    if (currentQuestion >= ONBOARDING_QUESTIONS.length) {
+    if (currentStep >= ONBOARDING_QUESTIONS.length) {
       return;
     }
     
-    // Ignore empty submissions
-    if (currentQuestion === 3 && !skillLevel) {
-      // For skill level, we need a selection
+    // Validate input based on question type
+    if (currentStep === 3 && !skillLevel) {
       toast({
         title: "Please select an option",
         description: "Please choose one of the options before continuing.",
@@ -124,15 +143,14 @@ export default function ChatOnboarding() {
       return;
     }
     
-    if (currentQuestion !== 3 && currentQuestion !== 2 && !inputValue.trim()) {
+    if (currentStep !== 3 && currentStep !== 2 && !inputValue.trim()) {
       return;
     }
     
-    const question = ONBOARDING_QUESTIONS[currentQuestion];
-    
-    // Process different types of answers
+    const question = ONBOARDING_QUESTIONS[currentStep];
     let userResponse = '';
     
+    // Store the user's response based on question type
     switch (question.id) {
       case 'household':
         userResponse = inputValue;
@@ -158,114 +176,97 @@ export default function ChatOnboarding() {
         break;
       default:
         userResponse = inputValue;
-        break;
     }
     
-    // Add user's message to the chat
+    // Add the user's message to the chat
     if (userResponse) {
-      const userMessageId = `user-${Date.now()}`;
-      setMessages(prev => [...prev, {
-        id: userMessageId,
-        role: 'user',
-        content: userResponse
-      }]);
+      addUserMessage(userResponse);
     }
     
-    // Clear input after submission (except for checkboxes and options)
+    // Clear input for text questions
     if (question.id !== 'equipment' && question.id !== 'skill') {
       setInputValue('');
     }
     
-    // Increment to the next question BEFORE adding responses
-    const questionIndex = currentQuestion;
-    setCurrentQuestion(questionIndex + 1);
+    // Get appropriate response content
+    let responseContent = '';
+    switch (question.id) {
+      case 'household':
+        responseContent = ONBOARDING_RESPONSES.household_response(household);
+        break;
+      case 'dietary':
+        responseContent = ONBOARDING_RESPONSES.dietary_response(dietary);
+        break;
+      case 'equipment':
+        responseContent = ONBOARDING_RESPONSES.equipment_response(equipment);
+        break;
+      case 'skill':
+        responseContent = ONBOARDING_RESPONSES.skill_response(skillLevel);
+        break;
+      case 'location':
+        responseContent = ONBOARDING_RESPONSES.location_response(location);
+        break;
+      case 'challenges':
+        responseContent = ONBOARDING_RESPONSES.challenges_response(challenges);
+        break;
+      default:
+        responseContent = "Thank you for that information!";
+    }
     
-    // Add assistant's response to the user's answer
+    // Store the current step before incrementing
+    const currentStepBeforeIncrement = currentStep;
+    
+    // Increment the step
+    setCurrentStep(currentStepBeforeIncrement + 1);
+    
+    // Add the assistant's response after a brief delay
     setTimeout(() => {
-      let responseContent = '';
-      
-      switch (question.id) {
-        case 'household':
-          responseContent = ONBOARDING_RESPONSES.household_response(household);
-          break;
-        case 'dietary':
-          responseContent = ONBOARDING_RESPONSES.dietary_response(dietary);
-          break;
-        case 'equipment':
-          responseContent = ONBOARDING_RESPONSES.equipment_response(equipment);
-          break;
-        case 'skill':
-          responseContent = ONBOARDING_RESPONSES.skill_response(skillLevel);
-          break;
-        case 'location':
-          responseContent = ONBOARDING_RESPONSES.location_response(location);
-          break;
-        case 'challenges':
-          responseContent = ONBOARDING_RESPONSES.challenges_response(challenges);
-          break;
-        default:
-          responseContent = "Thank you for that information!";
-          break;
-      }
-      
+      // Add the response to the current question
       if (responseContent) {
-        const responseId = `response-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: responseId,
-          role: 'assistant',
-          content: responseContent
-        }]);
+        addAssistantResponse(responseContent);
       }
       
-      // If we're not at the end, ask the next question
-      if (questionIndex < ONBOARDING_QUESTIONS.length - 1) {
-        // Ask the next question with a slight delay
+      // If we're not at the last question, add the next question
+      if (currentStepBeforeIncrement < ONBOARDING_QUESTIONS.length - 1) {
         setTimeout(() => {
-          askNextQuestion();
+          addQuestion(currentStepBeforeIncrement + 1);
         }, 1000);
       } else {
-        // We're at the end, show completion message
+        // We're at the last question, show completion message
         setTimeout(() => {
-          setMessages(prev => [...prev, {
-            id: `complete-${Date.now()}`,
-            role: 'assistant',
-            content: ONBOARDING_RESPONSES.complete
-          }]);
-          setIsComplete(true);
-        }, 1000);
-        
-        // Save the household data
-        try {
-          // Create the main household member
-          apiRequest('POST', '/api/household', {
-            name: "My Household",
-            members: [
-              { id: "1", name: household, age: "adult" }
-            ],
-            cookingSkill: skillLevel === "Give me a cooking project!" ? 5 : 
-                          skillLevel === "I enjoy it when I have time" ? 3 : 
-                          skillLevel === "I can follow a recipe" ? 2 : 1,
-            preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
-            appliances: equipment
-          })
-          .then(() => {
-            // Update API cache
-            queryClient.invalidateQueries({ queryKey: ['/api/household'] });
-          })
-          .catch((error) => {
+          addCompletionMessage();
+          
+          // Save the household data
+          try {
+            apiRequest('POST', '/api/household', {
+              name: "My Household",
+              members: [
+                { id: "1", name: household, age: "adult" }
+              ],
+              cookingSkill: skillLevel === "Give me a cooking project!" ? 5 : 
+                            skillLevel === "I enjoy it when I have time" ? 3 : 
+                            skillLevel === "I can follow a recipe" ? 2 : 1,
+              preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
+              appliances: equipment
+            })
+            .then(() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+            })
+            .catch((error) => {
+              toast({
+                title: "Error",
+                description: "Failed to save household information. Please try again.",
+                variant: "destructive"
+              });
+            });
+          } catch (error) {
             toast({
               title: "Error",
               description: "Failed to save household information. Please try again.",
               variant: "destructive"
             });
-          });
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to save household information. Please try again.",
-            variant: "destructive"
-          });
-        }
+          }
+        }, 1000);
       }
     }, 500);
   };
@@ -282,7 +283,7 @@ export default function ChatOnboarding() {
   // Handle skill level selection
   const handleSkillSelection = (option: string) => {
     setSkillLevel(option);
-    // Auto-submit after a brief delay
+    // Auto-submit after selection
     setTimeout(() => {
       handleSubmit({ preventDefault: () => {} } as React.FormEvent);
     }, 500);
@@ -383,18 +384,20 @@ export default function ChatOnboarding() {
                 placeholder="Type your answer here..."
                 className="flex-grow"
                 disabled={
-                  currentQuestion >= ONBOARDING_QUESTIONS.length || 
-                  ONBOARDING_QUESTIONS[currentQuestion]?.id === 'equipment' ||
-                  ONBOARDING_QUESTIONS[currentQuestion]?.id === 'skill'
+                  currentStep >= ONBOARDING_QUESTIONS.length || 
+                  (currentStep < ONBOARDING_QUESTIONS.length && 
+                   (ONBOARDING_QUESTIONS[currentStep]?.id === 'equipment' ||
+                    ONBOARDING_QUESTIONS[currentStep]?.id === 'skill'))
                 }
               />
               <Button 
                 type="submit" 
                 className="ml-2 bg-[#21706D] hover:bg-[#195957] aspect-square p-2"
                 disabled={
-                  currentQuestion >= ONBOARDING_QUESTIONS.length ||
-                  ONBOARDING_QUESTIONS[currentQuestion]?.id === 'equipment' ||
-                  ONBOARDING_QUESTIONS[currentQuestion]?.id === 'skill' ||
+                  currentStep >= ONBOARDING_QUESTIONS.length ||
+                  (currentStep < ONBOARDING_QUESTIONS.length && 
+                   (ONBOARDING_QUESTIONS[currentStep]?.id === 'equipment' ||
+                    ONBOARDING_QUESTIONS[currentStep]?.id === 'skill')) ||
                   !inputValue.trim()
                 }
               >
