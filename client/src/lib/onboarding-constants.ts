@@ -51,7 +51,7 @@ export const ONBOARDING_RESPONSES = {
     `Got it! I'll plan meals appropriate for ${details || 'your household'}. This helps me suggest the right portion sizes and kid-friendly options when needed.`,
   
   dietary_response: (restrictions: string) => 
-    `Thanks for letting me know about ${restrictions || 'your dietary preferences'}. I'll make sure to keep these preferences in mind when suggesting meals.`,
+    `Thanks for letting me know! I'll make sure to keep these preferences in mind when suggesting meals.`,
   
   equipment_response: (equipment: string[]) => 
     equipment && equipment.length > 0 
