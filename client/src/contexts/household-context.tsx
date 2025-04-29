@@ -80,15 +80,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 }
 
 export function useHousehold() {
-  try {
-    const context = useContext(HouseholdContext);
-    if (context === undefined) {
-      throw new Error('useHousehold must be used within a HouseholdProvider');
-    }
-    return context;
-  } catch (error) {
-    // Provide a default context if the provider is not found
-    console.error("HouseholdContext error:", error);
+  const context = useContext(HouseholdContext);
+  if (context === undefined) {
+    console.error('useHousehold must be used within a HouseholdProvider');
     // Return a default context with empty values
     return {
       members: [],
@@ -101,4 +95,5 @@ export function useHousehold() {
       refreshHouseholdData: async () => {}
     };
   }
+  return context;
 }
