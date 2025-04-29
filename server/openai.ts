@@ -236,11 +236,24 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       return generateDummyGroceryList();
     }
     
+    // Extract the most important info from each meal, making sure to use the latest modified data
     const meals = mealPlan.meals.map((meal: any) => {
+      // Get main ingredients - prefer meal.mainIngredients if available (from modified recipes)
+      const ingredients = meal.mainIngredients || meal.ingredients || [];
+      
+      // Include modification details in name if available
+      const mealName = meal.modifiedFrom ? 
+        `${meal.name} (modified from ${meal.modifiedFrom})` : 
+        meal.name;
+        
       return {
         id: meal.id,
-        name: meal.name,
-        ingredients: meal.ingredients || []
+        name: mealName,
+        ingredients: ingredients,
+        // Include modification request if available
+        modificationRequest: meal.modificationRequest || '',
+        // Include replaced info if available
+        replacedFrom: meal.replacedFrom || ''
       };
     });
     
@@ -252,11 +265,21 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       messages: [
         {
           role: "system" as const,
-          content: "You are a helpful meal planning assistant that creates organized grocery lists based on meal plans."
+          content: `You are a helpful meal planning assistant that creates organized grocery lists based on meal plans.
+          
+          IMPORTANT: Pay careful attention to meal modifications and use the ingredients listed in each meal's 'ingredients' field.
+          If a meal has been modified (contains modifiedFrom or replacedFrom), make sure to use the NEW ingredients, not the original ones.
+          For example, if "Ground Chicken Tacos" was modified from "Rotisserie Chicken Tacos", use ground chicken in the grocery list, not rotisserie chicken.`
         },
         {
           role: "user" as const,
           content: `Create a grocery list for the following meals: ${JSON.stringify(meals)}. 
+          
+          Important instructions:
+          1. Pay special attention to any modified or replaced recipes - always use the ingredients from the CURRENT version.
+          2. When a meal has a modificationRequest like "use ground chicken instead of rotisserie chicken", make sure to ONLY include ground chicken in the grocery list, not rotisserie chicken.
+          3. For meals with replacedFrom field, these are completely different recipes, so you should ONLY use the current ingredients.
+          
           Organize items by store section (Produce, Meat & Seafood, Dairy, etc.) and include quantities when possible.
           Return the list as a JSON object with sections array, where each section has a name and items array.
           Each item should have an id, name, and optional quantity and mealId (to track which meal it's for).`
