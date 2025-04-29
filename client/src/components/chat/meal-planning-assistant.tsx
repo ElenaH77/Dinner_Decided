@@ -67,29 +67,27 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Context with fallbacks
-  let members = [];
-  let equipment = [];
-  let preferences = null;
-  let currentPlan = null;
-  let setCurrentPlan = () => {};
+  // We'll directly call the API instead of relying on context
+  const [householdData, setHouseholdData] = useState<any>(null);
   
-  try {
-    const householdData = useHousehold();
-    members = householdData.members || [];
-    equipment = householdData.equipment || [];
-    preferences = householdData.preferences || null;
-  } catch (error) {
-    console.error("Error accessing household context:", error);
-  }
-  
-  try {
-    const mealPlanContext = useMealPlan();
-    currentPlan = mealPlanContext?.currentPlan || null;
-    setCurrentPlan = mealPlanContext?.setCurrentPlan || (() => {});
-  } catch (error) {
-    console.error("Error accessing meal plan context:", error);
-  }
+  // Fetch household data on mount
+  useEffect(() => {
+    async function fetchHouseholdData() {
+      try {
+        const response = await fetch('/api/household');
+        if (response.ok) {
+          const data = await response.json();
+          setHouseholdData(data);
+        } else {
+          console.error("Failed to fetch household data");
+        }
+      } catch (error) {
+        console.error("Error fetching household data:", error);
+      }
+    }
+    
+    fetchHouseholdData();
+  }, []);
   
   // State
   const [step, setStep] = useState<'intro' | 'special' | 'meals' | 'generating'>('intro');
@@ -178,8 +176,8 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         
         clearTimeout(timeoutId);
         return response.json();
-      } catch (error) {
-        if (error.name === 'AbortError') {
+      } catch (error: any) {
+        if (error?.name === 'AbortError') {
           throw new Error('Request took too long. The AI might be busy creating your perfect meal plan!');
         }
         throw error;
@@ -187,7 +185,8 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
     },
     onSuccess: (data) => {
       if (data && data.meals && data.meals.length > 0) {
-        setCurrentPlan(data);
+        // Just invalidate the queries to refresh any components that fetch meal plans
+        queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
         toast({
@@ -206,11 +205,11 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         setStep('meals');
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error generating meal plan:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to generate your meal plan. Please try again.",
+        description: error?.message || "Failed to generate your meal plan. Please try again.",
         variant: "destructive",
       });
       setIsGenerating(false);
