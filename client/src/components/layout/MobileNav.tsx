@@ -15,10 +15,10 @@ export default function MobileNav({ activeTab }: MobileNavProps) {
         </a>
       </Link>
       
-      <Link href="/meals">
+      <Link href="/this-week">
         <a className="flex flex-col items-center">
           <Utensils className={`text-lg ${activeTab === 'meals' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`} />
-          <span className={`text-xs mt-1 ${activeTab === 'meals' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`}>Meals</span>
+          <span className={`text-xs mt-1 ${activeTab === 'meals' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`}>This Week</span>
         </a>
       </Link>
       
