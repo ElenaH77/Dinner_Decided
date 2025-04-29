@@ -247,7 +247,7 @@ export default function MealPlan() {
         <div className="bg-white rounded-full shadow-md px-4 py-2 flex gap-3">
           <Button
             onClick={() => {
-              window.location.href = '/grocery-list';
+              window.location.href = '/grocery';
             }}
             className="bg-teal-primary hover:bg-teal-dark text-white"
             size="sm"
@@ -354,7 +354,7 @@ export default function MealPlan() {
                 <Button
                   onClick={() => {
                     // Navigate to grocery list page
-                    window.location.href = '/grocery-list';
+                    window.location.href = '/grocery';
                   }}
                   className="bg-teal-primary hover:bg-teal-dark text-white"
                 >
