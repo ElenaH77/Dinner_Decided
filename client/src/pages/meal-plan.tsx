@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import ChatInterface from '@/components/chat/chat-interface';
+import MealPlanningAssistant from '@/components/chat/meal-planning-assistant';
 import MealCard from '@/components/meals/meal-card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -229,16 +230,13 @@ export default function MealPlan() {
               </div>
             </>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-              <h3 className="text-xl font-semibold mb-4">No Meal Plan Yet</h3>
-              <p className="mb-6">You haven't created a meal plan for this week. Let's get started!</p>
-              <Button 
-                onClick={generateMealPlan} 
-                disabled={isGenerating}
-                className="bg-teal-primary hover:bg-teal-light text-white"
-              >
-                {isGenerating ? "Generating..." : "Generate Meal Plan"}
-              </Button>
+            <div className="bg-white rounded-xl shadow-sm">
+              {/* Import at the top of the file: import MealPlanningAssistant from '@/components/chat/meal-planning-assistant'; */}
+              <MealPlanningAssistant onComplete={() => {
+                // Reload meal plan data after completion
+                queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
+              }} />
             </div>
           )}
         </TabsContent>
