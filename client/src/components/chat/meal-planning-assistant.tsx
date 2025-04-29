@@ -213,10 +213,18 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
+        
+        // Force window refresh to show the new meal plan
         toast({
           title: "Success!",
-          description: "Your meal plan has been created.",
+          description: "Your meal plan has been created. Refreshing to show your plan...",
         });
+        
+        // Add a small delay before reloading to ensure the toast is visible
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        
         onComplete();
       } else {
         console.error("Received empty meal plan data:", data);
