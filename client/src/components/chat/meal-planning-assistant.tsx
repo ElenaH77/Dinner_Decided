@@ -89,7 +89,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
     fetchHouseholdData();
   }, []);
   
-  // State
+  // State - always start with the intro step
   const [step, setStep] = useState<'intro' | 'special' | 'meals' | 'generating'>('intro');
   const [specialNotes, setSpecialNotes] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<Record<string, number>>({});
@@ -238,7 +238,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
       <div className="flex-grow overflow-y-auto p-4 conversation-container">
         {/* Intro Step */}
         {step === 'intro' && (
-          <div className="ai-bubble conversation-bubble mb-4">
+          <div className="ai-bubble conversation-bubble mb-4 bg-gray-50 p-6 rounded-lg border border-gray-100 shadow-sm">
             <h3 className="text-xl font-semibold mb-3">Let's create your meal plan!</h3>
             <p className="mb-4">
               I'll help you put together a customized plan for this week's dinners. 
@@ -246,7 +246,8 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
             </p>
             <Button 
               onClick={() => setStep('special')} 
-              className="bg-teal-primary hover:bg-teal-light text-white"
+              className="bg-teal-primary hover:bg-teal-light text-white font-semibold py-2 px-6 rounded-md text-lg shadow-md"
+              size="lg"
             >
               Let's Get Started
             </Button>
@@ -255,7 +256,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
 
         {/* Special Notes Step */}
         {step === 'special' && (
-          <div className="ai-bubble conversation-bubble mb-4">
+          <div className="ai-bubble conversation-bubble mb-4 bg-gray-50 p-6 rounded-lg border border-gray-100 shadow-sm">
             <h3 className="text-xl font-semibold mb-3">Anything special happening this week?</h3>
             <p className="mb-4">
               Let me know if there's anything I should take into account:
@@ -276,7 +277,8 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
               />
               <Button 
                 type="submit" 
-                className="bg-teal-primary hover:bg-teal-light text-white"
+                className="bg-teal-primary hover:bg-teal-light text-white font-semibold py-2 px-6 rounded-md shadow-md"
+                size="lg"
               >
                 Continue
               </Button>
@@ -286,7 +288,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
 
         {/* Meal Selection */}
         {step === 'meals' && (
-          <div className="ai-bubble conversation-bubble">
+          <div className="ai-bubble conversation-bubble bg-gray-50 p-6 rounded-lg border border-gray-100 shadow-sm">
             <h3 className="text-xl font-semibold mb-3">Choose meals for each day</h3>
             <p className="mb-4">
               Select the type of meal you want for each day of the week. You can leave days empty if you plan to eat out or use leftovers.
@@ -343,7 +345,8 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
             <div className="mt-4">
               <Button 
                 onClick={handleGenerateMealPlan}
-                className="bg-teal-primary hover:bg-teal-light text-white"
+                className="bg-teal-primary hover:bg-teal-light text-white font-semibold py-2 px-6 rounded-md shadow-md"
+                size="lg"
                 disabled={Object.keys(mealsByDay).length === 0}
               >
                 Generate My Meal Plan
@@ -354,7 +357,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
 
         {/* Generating Step */}
         {step === 'generating' && (
-          <div className="ai-bubble conversation-bubble">
+          <div className="ai-bubble conversation-bubble bg-gray-50 p-6 rounded-lg border border-gray-100 shadow-sm">
             <h3 className="text-xl font-semibold mb-3">Creating your meal plan...</h3>
             <p className="mb-4">
               I'm putting together your customized meal plan based on your preferences and schedule.
