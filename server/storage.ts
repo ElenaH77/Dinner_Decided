@@ -400,7 +400,14 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getHousehold(): Promise<Household | undefined> {
-    const [household] = await db.select().from(households).limit(1);
+    // Get the most recently created household (highest ID)
+    const [household] = await db
+      .select()
+      .from(households)
+      .orderBy(households.id, 'desc')
+      .limit(1);
+    
+    console.log('[DATABASE] Retrieved household with ID:', household?.id);
     return household;
   }
 
