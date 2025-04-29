@@ -343,6 +343,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return groceryList;
   }
+  
+  // Test routes for error handling - for development only
+  app.get("/api/test/errors/:errorType", (req, res) => {
+    const { errorType } = req.params;
+    
+    switch(errorType) {
+      case 'quota':
+        res.status(500).json({ 
+          message: "OpenAI API quota exceeded. Please update your API key or try again later.",
+          helpText: "You need to upgrade your OpenAI API plan or wait until your quota refreshes."
+        });
+        break;
+      case 'ratelimit':
+        res.status(500).json({ 
+          message: "OpenAI API rate limit exceeded. Please try again in a few minutes.",
+          helpText: "Please wait a few minutes before trying again."
+        });
+        break;
+      case 'auth':
+        res.status(500).json({ 
+          message: "OpenAI API authentication error. Please check your API key.",
+          helpText: "You need to provide a valid OpenAI API key in the environment variables."
+        });
+        break;
+      default:
+        res.status(500).json({ message: "Generic error message" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

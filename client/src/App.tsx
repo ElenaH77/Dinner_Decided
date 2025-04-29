@@ -6,6 +6,7 @@ import GroceryList from "@/pages/grocery-list";
 import Profile from "@/pages/household-profile";
 import Onboarding from "@/pages/onboarding";
 import ChatOnboarding from "@/pages/chat-onboarding";
+import TestErrorHandling from "@/pages/test-error-handling";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -35,6 +36,7 @@ function App() {
             <Route path="/meals" component={MealPlan} /> {/* Alias for backward compatibility */}
             <Route path="/grocery" component={GroceryList} />
             <Route path="/profile" component={Profile} />
+            <Route path="/test-errors" component={TestErrorHandling} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
