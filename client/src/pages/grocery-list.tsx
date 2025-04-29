@@ -289,9 +289,11 @@ export default function GroceryList() {
   };
 
   // Filter displayed departments based on search and department filter
+  // Also filter out checked items from the main list
   const filteredDepartments = departments.map(dept => {
     const filteredItems = dept.items.filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      !item.isChecked // Only show unchecked items
     );
     return { ...dept, items: filteredItems };
   }).filter(dept => 
@@ -407,8 +409,35 @@ export default function GroceryList() {
                 <ul className="space-y-2">
                   {recentlyCheckedItems.map((item, index) => (
                     <li key={`${item.id}-${index}`} className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">•</span>
-                      <span>{item.name}</span>
+                      <Checkbox 
+                        id={`checked-item-${item.id}-${index}`}
+                        checked={true}
+                        onCheckedChange={() => {
+                          // Uncheck this item by finding it in the main list and toggling it
+                          const updatedDepts = departments.map(dept => {
+                            if (dept.name === item.department) {
+                              const deptItems = dept.items.map(i => 
+                                i.id === item.id ? { ...i, isChecked: false } : i
+                              );
+                              return { ...dept, items: deptItems };
+                            }
+                            return dept;
+                          });
+                          setDepartments(updatedDepts);
+                          
+                          // Also update backend
+                          apiRequest('PUT', `/api/grocery-items/${item.id}`, {
+                            isChecked: false
+                          }).catch(error => {
+                            console.error("Error updating grocery item:", error);
+                          });
+                          
+                          // Remove from recently checked
+                          handleItemCheck(item, false);
+                        }}
+                        className="mt-0.5 mr-2"
+                      />
+                      <span className="line-through">{item.name}</span>
                       <span className="text-xs text-gray-400 ml-2">({item.department})</span>
                     </li>
                   ))}
