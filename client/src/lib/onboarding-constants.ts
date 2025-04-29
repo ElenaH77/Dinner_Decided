@@ -55,7 +55,7 @@ export const ONBOARDING_RESPONSES = {
   
   equipment_response: (equipment: string[]) => 
     equipment && equipment.length > 0 
-      ? `Great! I'll suggest recipes that work with your ${equipment.join(', ')}. This helps me recommend meals you can actually make with what you have.`
+      ? `Great! This helps me recommend meals you can actually make with what you have.`
       : `Thanks for letting me know about your kitchen setup. I'll focus on simple recipes that don't require specialized equipment.`,
   
   skill_response: (level: string) => 
