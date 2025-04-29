@@ -246,7 +246,9 @@ export default function ChatOnboarding() {
               cookingSkill: skillLevel === "Give me a cooking project!" ? 5 : 
                             skillLevel === "I enjoy it when I have time" ? 3 : 
                             skillLevel === "I can follow a recipe" ? 2 : 1,
-              preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
+              preferences: dietary || "No special dietary preferences",
+              challenges: challenges || "None specified",
+              location: location || "Unknown",
               appliances: equipment
             };
             

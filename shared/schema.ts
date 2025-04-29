@@ -9,6 +9,8 @@ export const households = pgTable("households", {
   members: jsonb("members").notNull().$type<{ id: string; name: string; age: string; dietaryRestrictions?: string[] }[]>(),
   cookingSkill: integer("cooking_skill").notNull(),
   preferences: text("preferences"),
+  challenges: text("challenges"),
+  location: text("location"),
   appliances: jsonb("appliances").notNull().$type<string[]>(),
 });
 
