@@ -221,6 +221,12 @@ export class MemStorage implements IStorage {
       throw new Error("No household exists");
     }
     
+    // Handle special case for members to avoid new household creation
+    if (data.id && data.id !== this.household.id) {
+      console.log('[HOUSEHOLD] Keeping existing household ID instead of creating new one');
+      data.id = this.household.id;
+    }
+    
     this.household = {
       ...this.household,
       ...data
@@ -404,18 +410,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateHousehold(data: Partial<Household>): Promise<Household> {
-    if (!data.id) {
-      const household = await this.getHousehold();
-      if (!household) {
-        throw new Error("No household found to update");
-      }
-      data.id = household.id;
+    // Always use the existing household ID to prevent creating new households
+    const household = await this.getHousehold();
+    if (!household) {
+      throw new Error("No household found to update");
     }
-
+    
+    // Force the ID to be the same as the existing household
+    const updateData = { ...data, id: household.id };
+    
+    console.log('[DATABASE] Updating household with ID:', household.id);
+    
     const [updatedHousehold] = await db
       .update(households)
-      .set(data)
-      .where(eq(households.id, data.id))
+      .set(updateData)
+      .where(eq(households.id, household.id))
       .returning();
     
     return updatedHousehold;
