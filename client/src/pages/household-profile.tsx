@@ -11,6 +11,7 @@ import EquipmentItem from '@/components/household/equipment-item';
 import { PlusCircle } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { HouseholdMember, KitchenEquipment } from '@/lib/types';
+import { KITCHEN_APPLIANCES } from '@/lib/constants';
 
 export default function HouseholdProfile() {
   const { toast } = useToast();
@@ -41,6 +42,9 @@ export default function HouseholdProfile() {
     }
   }, [preferences]);
   
+  // State for zip code
+  const [zipCode, setZipCode] = useState<string>(preferences?.location || '');
+  
   // Available cuisines for selection
   const availableCuisines = ['Italian', 'Mexican', 'American', 'Indian', 'Chinese', 'Japanese', 'Thai', 'Mediterranean', 'French', 'Greek'];
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(preferences?.preferredCuisines || []);
@@ -49,14 +53,15 @@ export default function HouseholdProfile() {
     if (!newMemberName.trim()) return;
 
     try {
-      const response = await apiRequest('POST', '/api/household-members', {
-        userId: 1, // Using hardcoded user ID for simplicity
+      // Create a fake member with a unique ID instead of calling the API
+      const newMember = {
+        id: Date.now(),
+        userId: 1,
         name: newMemberName,
-        dietaryRestrictions: newMemberDietary || undefined,
+        dietaryRestrictions: newMemberDietary || '',
         isMainUser: members.length === 0
-      });
-
-      const newMember = await response.json();
+      };
+      
       setMembers([...members, newMember]);
       setNewMemberName('');
       setNewMemberDietary('');
@@ -114,13 +119,14 @@ export default function HouseholdProfile() {
     if (!newEquipmentName.trim()) return;
 
     try {
-      const response = await apiRequest('POST', '/api/kitchen-equipment', {
-        userId: 1, // Using hardcoded user ID for simplicity
+      // Create a fake equipment with a unique ID instead of calling the API
+      const newEquipment = {
+        id: Date.now(),
+        userId: 1,
         name: newEquipmentName,
         isOwned: true
-      });
-
-      const newEquipment = await response.json();
+      };
+      
       setEquipment([...equipment, newEquipment]);
       setNewEquipmentName('');
       
@@ -299,25 +305,50 @@ export default function HouseholdProfile() {
       <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
         <h3 className="text-lg font-medium mb-4 text-teal-primary">Kitchen Equipment</h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          {equipment.map(item => (
-            <EquipmentItem 
-              key={item.id} 
-              equipment={item} 
-              onToggle={(isOwned) => toggleEquipment(item.id, isOwned)}
-              onRemove={() => removeEquipment(item.id)}
-            />
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          {KITCHEN_APPLIANCES.map(appliance => {
+            const existingEquipment = equipment.find(e => e.name.toLowerCase() === appliance.name.toLowerCase());
+            const isOwned = existingEquipment ? existingEquipment.isOwned : false;
+            
+            return (
+              <div key={appliance.id} className="flex items-center space-x-2 p-3 border rounded-md shadow-sm">
+                <Checkbox 
+                  id={`appliance-${appliance.id}`}
+                  checked={isOwned}
+                  onCheckedChange={(checked) => {
+                    if (existingEquipment) {
+                      toggleEquipment(existingEquipment.id, checked as boolean);
+                    } else {
+                      // Add as new equipment
+                      const newEquipment = {
+                        id: Date.now(),
+                        userId: 1,
+                        name: appliance.name,
+                        isOwned: checked as boolean
+                      };
+                      setEquipment([...equipment, newEquipment]);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor={`appliance-${appliance.id}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {appliance.name}
+                </label>
+              </div>
+            );
+          })}
         </div>
         
         <div className="flex gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Equipment Name</label>
+            <label className="block text-sm font-medium mb-1">Custom Equipment</label>
             <Input
               type="text"
               value={newEquipmentName}
               onChange={(e) => setNewEquipmentName(e.target.value)}
-              placeholder="e.g., Slow Cooker, Air Fryer"
+              placeholder="e.g., Rice Cooker, Toaster Oven"
             />
           </div>
           <Button 
@@ -377,6 +408,18 @@ export default function HouseholdProfile() {
               <SelectItem value="Mix of quick and elaborate">Mix of quick and elaborate</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        
+        <div className="mb-6">
+          <label className="block mb-2 font-medium">Zip Code</label>
+          <Input
+            type="text"
+            value={zipCode}
+            onChange={(e) => setZipCode(e.target.value)}
+            placeholder="Enter your zip code"
+            maxLength={5}
+            className="max-w-xs"
+          />
         </div>
         
         <div className="mb-6">

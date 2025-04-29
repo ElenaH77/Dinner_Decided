@@ -48,6 +48,7 @@ export const KITCHEN_APPLIANCES = [
   { id: "ovenStovetop", name: "Oven/Stovetop" },
   { id: "microwave", name: "Microwave" },
   { id: "grill", name: "Grill" },
+  { id: "sousvide", name: "Sous Vide" },
 ];
 
 // Cooking skill levels
