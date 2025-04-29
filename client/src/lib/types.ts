@@ -1,9 +1,10 @@
 export type HouseholdMember = {
-  id: number;
-  userId: number;
+  id: string | number;
+  userId?: number;
   name: string;
   dietaryRestrictions?: string;
-  isMainUser: boolean;
+  age?: string;
+  isMainUser?: boolean;
 };
 
 export type KitchenEquipment = {

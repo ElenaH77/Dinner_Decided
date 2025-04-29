@@ -117,15 +117,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.put("/api/household-members/:id", async (req, res) => {
     try {
-      const memberId = parseInt(req.params.id, 10);
+      // Support both numeric and string IDs
+      const rawMemberId = req.params.id;
       const household = await storage.getHousehold();
       
       if (!household || !household.members) {
         return res.status(404).json({ message: "Household or members not found" });
       }
       
-      // Find the member to update
-      const memberIndex = household.members.findIndex(member => member.id === memberId);
+      // Find the member to update, comparing as string to handle all ID formats
+      const memberIndex = household.members.findIndex(
+        member => String(member.id) === String(rawMemberId)
+      );
       
       if (memberIndex === -1) {
         return res.status(404).json({ message: "Member not found" });
@@ -151,15 +154,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/household-members/:id", async (req, res) => {
     try {
-      const memberId = parseInt(req.params.id, 10);
+      // Support both numeric and string IDs
+      const rawMemberId = req.params.id;
       const household = await storage.getHousehold();
       
       if (!household || !household.members) {
         return res.status(404).json({ message: "Household or members not found" });
       }
       
-      // Filter out the member to be removed
-      const updatedMembers = household.members.filter(member => member.id !== memberId);
+      // Filter out the member to be removed, comparing as string to handle all ID formats
+      const updatedMembers = household.members.filter(
+        member => String(member.id) !== String(rawMemberId)
+      );
       
       // Update the household without this member
       const updatedHousehold = await storage.updateHousehold({
