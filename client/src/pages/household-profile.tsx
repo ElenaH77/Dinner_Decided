@@ -70,7 +70,7 @@ export default function HouseholdProfile() {
       console.log('Server response:', savedMember);
       
       // Update local state with the server response
-      setMembers(currentMembers => [...currentMembers, savedMember]);
+      setMembers([...members, savedMember]);
       
       // Clear form fields
       setNewMemberName('');

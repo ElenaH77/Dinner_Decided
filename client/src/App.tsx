@@ -10,6 +10,8 @@ import TestErrorHandling from "@/pages/test-error-handling";
 import NotFound from "@/pages/not-found";
 import ShowMealPlan from "@/pages/show-meal-plan";
 import { useEffect } from "react";
+import { HouseholdProvider } from "@/contexts/household-context";
+import { MealPlanProvider } from "@/contexts/meal-plan-context";
 
 function App() {
   const [location, setLocation] = useLocation();
@@ -23,27 +25,31 @@ function App() {
   }, [location, setLocation]);
   
   return (
-    <Switch>
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/chat-onboarding" component={ChatOnboarding} />
-      
-      <Route>
-        {/* All other routes use the AppLayout */}
-        <AppLayout>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/this-week" component={MealPlan} />
-            <Route path="/meal-plan" component={MealPlan} /> {/* Alias for backward compatibility */}
-            <Route path="/meals" component={MealPlan} /> {/* Alias for backward compatibility */}
-            <Route path="/grocery" component={GroceryList} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/test-errors" component={TestErrorHandling} />
-            <Route path="/show-meal-plan" component={ShowMealPlan} />
-            <Route component={NotFound} />
-          </Switch>
-        </AppLayout>
-      </Route>
-    </Switch>
+    <HouseholdProvider>
+      <MealPlanProvider>
+        <Switch>
+          <Route path="/onboarding" component={Onboarding} />
+          <Route path="/chat-onboarding" component={ChatOnboarding} />
+          
+          <Route>
+            {/* All other routes use the AppLayout */}
+            <AppLayout>
+              <Switch>
+                <Route path="/" component={Home} />
+                <Route path="/this-week" component={MealPlan} />
+                <Route path="/meal-plan" component={MealPlan} /> {/* Alias for backward compatibility */}
+                <Route path="/meals" component={MealPlan} /> {/* Alias for backward compatibility */}
+                <Route path="/grocery" component={GroceryList} />
+                <Route path="/profile" component={Profile} />
+                <Route path="/test-errors" component={TestErrorHandling} />
+                <Route path="/show-meal-plan" component={ShowMealPlan} />
+                <Route component={NotFound} />
+              </Switch>
+            </AppLayout>
+          </Route>
+        </Switch>
+      </MealPlanProvider>
+    </HouseholdProvider>
   );
 }
 
