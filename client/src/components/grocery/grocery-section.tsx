@@ -16,6 +16,11 @@ interface GrocerySectionProps {
 
 export default function GrocerySection({ department }: GrocerySectionProps) {
   const [items, setItems] = useState(department.items);
+  
+  // Update items when department changes
+  React.useEffect(() => {
+    setItems(department.items);
+  }, [department.items]);
 
   const handleToggleItem = async (item: GroceryItem, checked: boolean) => {
     try {

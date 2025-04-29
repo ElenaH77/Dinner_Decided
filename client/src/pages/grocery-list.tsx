@@ -149,40 +149,50 @@ export default function GroceryList() {
       return;
     }
 
-    // Add item directly to our local state
-    const newItemId = crypto.randomUUID();
-    const newItem = {
-      id: newItemId,
-      name: newItemName,
-      isChecked: false,
-      department: 'Other',
-    };
-    
-    // Check if we already have an "Other" department
-    const otherDept = departments.find(dept => dept.name === 'Other');
-    
-    if (otherDept) {
-      // Add to existing Other department
-      const updatedDepartments = departments.map(dept => 
-        dept.name === 'Other' 
-          ? { ...dept, items: [...dept.items, newItem] }
-          : dept
-      );
-      setDepartments(updatedDepartments);
-    } else {
-      // Create new Other department
-      setDepartments([
-        ...departments, 
-        { name: 'Other', items: [newItem] }
-      ]);
+    try {
+      // Add item directly to our local state
+      const newItemId = crypto.randomUUID();
+      const newItem = {
+        id: newItemId,
+        name: newItemName.trim(),
+        isChecked: false,
+        department: 'Other',
+      };
+      
+      // Check if we already have an "Other" department
+      const otherDept = departments.find(dept => dept.name === 'Other');
+      
+      if (otherDept) {
+        // Add to existing Other department
+        const updatedDepartments = departments.map(dept => 
+          dept.name === 'Other' 
+            ? { ...dept, items: [...dept.items, newItem] }
+            : dept
+        );
+        setDepartments(updatedDepartments);
+      } else {
+        // Create new Other department
+        setDepartments([
+          ...departments, 
+          { name: 'Other', items: [newItem] }
+        ]);
+      }
+      
+      // Clear input field
+      setNewItemName('');
+      
+      toast({
+        title: "Item added",
+        description: "Your item has been added to the grocery list.",
+      });
+    } catch (error) {
+      console.error("Error adding grocery item:", error);
+      toast({
+        title: "Could not add item",
+        description: "There was an error adding your item. Please try again.",
+        variant: "destructive"
+      });
     }
-    
-    setNewItemName('');
-    
-    toast({
-      title: "Item added",
-      description: "Your item has been added to the grocery list.",
-    });
   };
 
   // Filter displayed departments based on search and department filter
