@@ -37,7 +37,7 @@ export const ONBOARDING_QUESTIONS = [
   },
   {
     id: 'challenges',
-    question: "😓 What makes dinner hard at your house?",
+    question: "😓 Last question: What makes dinner hard at your house?",
     hint: "(Anything goes—picky eaters, decision fatigue, no time, just tired. We get it.)",
     icon: '😓'
   }
@@ -63,8 +63,8 @@ export const ONBOARDING_RESPONSES = {
   
   location_response: (zipCode: string) => 
     zipCode
-      ? `Thanks! I'll consider seasonal ingredients and weather patterns in your area (${zipCode}) when planning your meals.`
-      : `Thanks! I'll consider seasonal ingredients when planning your meals.`,
+      ? `Thanks! This helps me consider your local weather when we plan - no one wants soup when it's hot!`
+      : `Thanks! This helps me consider your local weather when we plan - no one wants soup when it's hot!`,
   
   challenges_response: (challenges: string) => 
     challenges
