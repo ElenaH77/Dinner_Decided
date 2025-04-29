@@ -427,12 +427,12 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
             <div className="mb-6">
               <h4 className="font-semibold mb-2">Anything else I need to know?</h4>
               <p className="text-sm text-gray-600 mb-2">
-                Optional: Add any special considerations like dietary needs, ingredients to use up, or days you'll be out.
+                Optional: Add any special considerations like temporary dietary needs, additional guests, or ingredients to use up.
               </p>
               <Input
                 value={specialNotes}
                 onChange={(e) => setSpecialNotes(e.target.value)}
-                placeholder="E.g., We have asparagus to use up, no cooking Tuesday..."
+                placeholder="E.g., We have asparagus to use up, sister visiting on Saturday..."
                 className="mb-3"
               />
             </div>
