@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateChatResponse, generateMealPlan, generateGroceryList } from "./openai";
+import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal } from "./openai";
 import { z } from "zod";
 import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
 import { v4 as uuidv4 } from "uuid";
@@ -344,6 +344,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return groceryList;
   }
   
+  // AI-powered meal modification endpoints
+  app.post("/api/meal/modify", async (req, res) => {
+    try {
+      const { meal, modificationRequest } = req.body;
+      
+      if (!meal || !modificationRequest) {
+        return res.status(400).json({ error: 'Meal data and modification request are required' });
+      }
+      
+      console.log(`[MEAL] Modifying meal: ${meal.name} with request: ${modificationRequest}`);
+      
+      // Use OpenAI to modify the meal
+      const modifiedMeal = await modifyMeal(meal, modificationRequest);
+      
+      res.status(200).json(modifiedMeal);
+    } catch (error) {
+      console.error('Error modifying meal:', error);
+      
+      // Handle specific OpenAI errors
+      if (error.message && typeof error.message === 'string') {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('api key') || errorMsg.includes('authentication')) {
+          res.status(500).json({ 
+            error: 'Authentication error', 
+            message: 'OpenAI API authentication error. Please check your API key.' 
+          });
+        } else {
+          res.status(500).json({ error: 'Failed to modify meal', message: error.message });
+        }
+      } else {
+        res.status(500).json({ error: 'Failed to modify meal' });
+      }
+    }
+  });
+
+  // AI-powered meal replacement endpoint
+  app.post("/api/meal/replace", async (req, res) => {
+    try {
+      const { meal } = req.body;
+      
+      if (!meal) {
+        return res.status(400).json({ error: 'Meal data is required' });
+      }
+      
+      console.log(`[MEAL] Replacing meal: ${meal.name}`);
+      
+      // Use OpenAI to generate a replacement meal
+      const replacementMeal = await replaceMeal(meal);
+      
+      res.status(200).json(replacementMeal);
+    } catch (error) {
+      console.error('Error replacing meal:', error);
+      
+      // Handle specific OpenAI errors
+      if (error.message && typeof error.message === 'string') {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('api key') || errorMsg.includes('authentication')) {
+          res.status(500).json({ 
+            error: 'Authentication error', 
+            message: 'OpenAI API authentication error. Please check your API key.' 
+          });
+        } else {
+          res.status(500).json({ error: 'Failed to replace meal', message: error.message });
+        }
+      } else {
+        res.status(500).json({ error: 'Failed to replace meal' });
+      }
+    }
+  });
+
   // Test routes for error handling - for development only
   app.get("/api/test/errors/:errorType", (req, res) => {
     const { errorType } = req.params;
