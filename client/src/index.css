@@ -4,69 +4,59 @@
 
 :root {
   --background: 0 0% 98%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
+  --foreground: 0 0% 13%;
+  --muted: 0 0% 89%;
+  --muted-foreground: 0 0% 54%;
   --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
+  --popover-foreground: 0 0% 13%;
   --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 176 55% 28%;  /* #21706D - Deep Teal */
+  --card-foreground: 0 0% 13%;
+  --border: 0 0% 89%;
+  --input: 0 0% 89%;
+  --primary: 177 54% 28%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 60 4.8% 95.9%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 24 96% 48%;  /* #F25C05 - Vibrant Orange */
+  --secondary: 0 0% 89%;
+  --secondary-foreground: 0 0% 13%;
+  --accent: 23 96% 48%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 176 55% 28%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 177 54% 28%;
   --radius: 0.5rem;
 
-  /* Custom color variables */
-  --teal-primary: 176 55% 28%;
-  --teal-light: 176 55% 35%;
-  --teal-dark: 176 55% 22%;
-  
-  --orange-accent: 24 96% 48%;
-  --orange-light: 24 96% 58%;
-  --orange-dark: 24 96% 42%;
-  
-  --neutral-background: 0 0% 98%;
+  /* Custom colors */
+  --teal-primary: 177 54% 28%;
+  --teal-light: 177 54% 36%;
+  --teal-dark: 177 54% 22%;
+  --orange-accent: 23 96% 48%;
+  --orange-light: 23 96% 58%;
+  --orange-dark: 23 96% 38%;
+  --neutral-bg: 0 0% 98%;
   --neutral-text: 0 0% 13%;
-  --neutral-gray: 0 0% 89%;
-  --neutral-lightGray: 0 0% 95%;
-
-  /* Chart colors */
-  --chart-1: 176 55% 28%;
-  --chart-2: 24 96% 48%;
-  --chart-3: 200 55% 45%;
-  --chart-4: 120 40% 50%;
-  --chart-5: 280 50% 60%;
+  --neutral-secondary: 0 0% 89%;
+  --neutral-muted: 0 0% 54%;
 }
 
 .dark {
-  --background: 240 10% 3.9%;
+  --background: 0 0% 13%;
   --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
+  --muted: 0 0% 24%;
+  --muted-foreground: 0 0% 54%;
+  --popover: 0 0% 13%;
   --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
+  --card: 0 0% 13%;
   --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 176 55% 35%;
+  --border: 0 0% 24%;
+  --input: 0 0% 24%;
+  --primary: 177 54% 28%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 240 3.7% 15.9%;
+  --secondary: 0 0% 24%;
   --secondary-foreground: 0 0% 98%;
-  --accent: 24 96% 58%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 23 96% 48%;
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --ring: 176 55% 35%;
-  --radius: 0.5rem;
+  --ring: 177 54% 28%;
 }
 
 @layer base {
@@ -75,43 +65,32 @@
   }
 
   body {
-    @apply font-sans antialiased bg-neutral-background text-neutral-text;
+    font-family: 'Inter', sans-serif;
+    @apply bg-[#F9F9F9] text-[#212121] antialiased;
   }
 }
 
 /* Custom utility classes */
-.conversation-bubble {
-  max-width: 80%;
-  border-radius: 1.25rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.75rem;
-  line-height: 1.5;
+.chat-bubble-user {
+  @apply rounded-[18px] rounded-br-[4px];
 }
 
-.user-bubble {
-  background-color: hsl(var(--neutral-gray));
-  margin-left: auto;
-  border-bottom-right-radius: 0.25rem;
+.chat-bubble-assistant {
+  @apply rounded-[18px] rounded-bl-[4px];
 }
 
-.ai-bubble {
-  background-color: white;
-  border: 1px solid hsl(var(--neutral-gray));
-  margin-right: auto;
-  border-bottom-left-radius: 0.25rem;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.meal-tag {
-  font-size: 0.75rem;
-  border-radius: 1rem;
-  padding: 0.25rem 0.75rem;
-  display: inline-block;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-[#F9F9F9];
 }
 
-@media (max-width: 640px) {
-  .conversation-bubble {
-    max-width: 85%;
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-[#E2E2E2] rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-[#D1D1D1];
 }

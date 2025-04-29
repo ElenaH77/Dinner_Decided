@@ -1,13 +1,16 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { HouseholdProvider } from "./contexts/household-context";
-import { MealPlanProvider } from "./contexts/meal-plan-context";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
 
 createRoot(document.getElementById("root")!).render(
-  <HouseholdProvider>
-    <MealPlanProvider>
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
       <App />
-    </MealPlanProvider>
-  </HouseholdProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
 );

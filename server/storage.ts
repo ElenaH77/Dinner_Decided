@@ -1,335 +1,385 @@
-import {
-  User,
-  InsertUser,
-  HouseholdMember,
-  InsertHouseholdMember,
-  KitchenEquipment,
-  InsertKitchenEquipment,
-  CookingPreference,
-  InsertCookingPreference,
-  Meal,
-  InsertMeal,
+import { 
+  InsertHousehold, 
+  Household, 
+  Message, 
   MealPlan,
   InsertMealPlan,
-  GroceryItem,
-  InsertGroceryItem,
-  ChatMessage,
-  InsertChatMessage
+  GroceryList,
+  InsertGroceryList
 } from "@shared/schema";
 
 export interface IStorage {
-  // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-
-  // Household member operations
-  getHouseholdMembers(userId: number): Promise<HouseholdMember[]>;
-  getHouseholdMember(id: number): Promise<HouseholdMember | undefined>;
-  createHouseholdMember(member: InsertHouseholdMember): Promise<HouseholdMember>;
-  updateHouseholdMember(id: number, member: Partial<InsertHouseholdMember>): Promise<HouseholdMember | undefined>;
-  deleteHouseholdMember(id: number): Promise<boolean>;
-
-  // Kitchen equipment operations
-  getKitchenEquipment(userId: number): Promise<KitchenEquipment[]>;
-  createKitchenEquipment(equipment: InsertKitchenEquipment): Promise<KitchenEquipment>;
-  updateKitchenEquipment(id: number, equipment: Partial<InsertKitchenEquipment>): Promise<KitchenEquipment | undefined>;
-  deleteKitchenEquipment(id: number): Promise<boolean>;
-
-  // Cooking preferences operations
-  getCookingPreferences(userId: number): Promise<CookingPreference | undefined>;
-  createCookingPreferences(preferences: InsertCookingPreference): Promise<CookingPreference>;
-  updateCookingPreferences(id: number, preferences: Partial<InsertCookingPreference>): Promise<CookingPreference | undefined>;
-
-  // Meal operations
-  getMeals(userId: number): Promise<Meal[]>;
-  getMeal(id: number): Promise<Meal | undefined>;
-  createMeal(meal: InsertMeal): Promise<Meal>;
-  updateMeal(id: number, meal: Partial<InsertMeal>): Promise<Meal | undefined>;
-  deleteMeal(id: number): Promise<boolean>;
-
-  // Meal plan operations
-  getMealPlans(userId: number): Promise<MealPlan[]>;
-  getCurrentMealPlan(userId: number): Promise<MealPlan | undefined>;
+  // Household methods
+  getHousehold(): Promise<Household | undefined>;
+  createHousehold(data: InsertHousehold): Promise<Household>;
+  updateHousehold(data: Partial<Household>): Promise<Household>;
+  
+  // Message methods
+  getMessages(): Promise<Message[]>;
+  saveMessage(message: Message): Promise<Message>;
+  
+  // MealPlan methods
   getMealPlan(id: number): Promise<MealPlan | undefined>;
-  createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan>;
-  updateMealPlan(id: number, mealPlan: Partial<InsertMealPlan>): Promise<MealPlan | undefined>;
-  deleteMealPlan(id: number): Promise<boolean>;
-
-  // Grocery item operations
-  getGroceryItems(mealPlanId: number): Promise<GroceryItem[]>;
-  createGroceryItem(item: InsertGroceryItem): Promise<GroceryItem>;
-  updateGroceryItem(id: number, item: Partial<InsertGroceryItem>): Promise<GroceryItem | undefined>;
-  deleteGroceryItem(id: number): Promise<boolean>;
-  toggleGroceryItem(id: number): Promise<GroceryItem | undefined>;
-
-  // Chat message operations
-  getChatMessages(userId: number, mealPlanId?: number): Promise<ChatMessage[]>;
-  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getCurrentMealPlan(): Promise<MealPlan | undefined>;
+  createMealPlan(data: InsertMealPlan): Promise<MealPlan>;
+  updateMealPlan(id: number, data: Partial<MealPlan>): Promise<MealPlan>;
+  
+  // GroceryList methods
+  getGroceryList(id: number): Promise<GroceryList | undefined>;
+  getGroceryListByMealPlanId(mealPlanId: number): Promise<GroceryList | undefined>;
+  getCurrentGroceryList(): Promise<GroceryList | undefined>;
+  createGroceryList(data: InsertGroceryList): Promise<GroceryList>;
+  updateGroceryList(id: number, data: Partial<GroceryList>): Promise<GroceryList>;
+  ensureMealInGroceryList(groceryListId: number, meal: any): Promise<GroceryList>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private householdMembers: Map<number, HouseholdMember>;
-  private kitchenEquipment: Map<number, KitchenEquipment>;
-  private cookingPreferences: Map<number, CookingPreference>;
-  private meals: Map<number, Meal>;
-  private mealPlans: Map<number, MealPlan>;
-  private groceryItems: Map<number, GroceryItem>;
-  private chatMessages: Map<number, ChatMessage>;
-  
-  private userIdCounter: number;
-  private householdMemberIdCounter: number;
-  private kitchenEquipmentIdCounter: number;
-  private cookingPreferencesIdCounter: number;
-  private mealIdCounter: number;
-  private mealPlanIdCounter: number;
-  private groceryItemIdCounter: number;
-  private chatMessageIdCounter: number;
+  private household: Household | undefined;
+  private messages: Message[] = [];
+  private mealPlans: Map<number, MealPlan> = new Map();
+  private groceryLists: Map<number, GroceryList> = new Map();
+  private currentMealPlanId: number | undefined;
+  private mealPlanCounter: number = 1;
+  private groceryListCounter: number = 1;
 
   constructor() {
-    this.users = new Map();
-    this.householdMembers = new Map();
-    this.kitchenEquipment = new Map();
-    this.cookingPreferences = new Map();
-    this.meals = new Map();
-    this.mealPlans = new Map();
-    this.groceryItems = new Map();
-    this.chatMessages = new Map();
+    // Initialize with demo data
+    this.initializeDemoData();
+  }
+
+  private initializeDemoData() {
+    // Create demo household
+    this.household = {
+      id: 1,
+      name: "Demo Family",
+      members: [
+        { id: "1", name: "Parent 1", age: "35" },
+        { id: "2", name: "Parent 2", age: "33" },
+        { id: "3", name: "Child", age: "8" }
+      ],
+      cookingSkill: 3,
+      preferences: "We try to have 2 vegetarian meals each week. Kids don't like spicy food. Everyone loves pasta and Mexican dishes.",
+      appliances: ["slowCooker", "instantPot", "ovenStovetop"]
+    };
+
+    // Create sample messages
+    this.messages = [
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "Welcome to Dinner, Decided! I'm your personal meal planning assistant. I'll help you create a flexible, personalized weekly dinner plan tailored to your family's needs.\n\nLet's get started with a few questions about your household. How many people are you cooking for?",
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    // Create sample meal plan
+    const mealPlan: MealPlan = {
+      id: 1,
+      name: "Weekly Meal Plan",
+      householdId: 1,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+      meals: [
+        {
+          id: "meal1",
+          name: "Sheet Pan Chicken Fajitas",
+          description: "Perfect for a busy weeknight. Mexican-inspired, as your family enjoys, and can be prepared quickly on a sheet pan.",
+          categories: ["quick", "mexican", "kid-friendly"],
+          prepTime: 25,
+          servings: 4,
+          ingredients: [
+            "1.5 lbs chicken breast, sliced",
+            "2 bell peppers (red and green), sliced",
+            "1 large onion, sliced",
+            "2 tbsp olive oil",
+            "1 packet fajita seasoning",
+            "8 flour tortillas",
+            "Toppings: sour cream, avocado, salsa"
+          ]
+        },
+        {
+          id: "meal2",
+          name: "Creamy Vegetable Pasta",
+          description: "A vegetarian pasta dish that satisfies your family's love for pasta while incorporating seasonal vegetables.",
+          categories: ["vegetarian", "family favorite"],
+          prepTime: 30,
+          servings: 4,
+          ingredients: [
+            "1 lb pasta (penne or fusilli)",
+            "2 cups mixed vegetables (broccoli, carrots, peas)",
+            "1 cup heavy cream",
+            "1/2 cup grated parmesan cheese",
+            "2 cloves garlic, minced",
+            "2 tbsp olive oil",
+            "Salt and pepper to taste"
+          ]
+        },
+        {
+          id: "meal3",
+          name: "Instant Pot Beef Stew",
+          description: "Perfect for a busy day - quick to prepare in the Instant Pot. Mild flavor for the kids.",
+          categories: ["instantPot", "make ahead"],
+          prepTime: 45,
+          servings: 6,
+          ingredients: [
+            "1.5 lbs beef stew meat",
+            "4 carrots, chopped",
+            "2 potatoes, diced",
+            "1 onion, diced",
+            "2 cloves garlic, minced",
+            "2 cups beef broth",
+            "2 tbsp tomato paste",
+            "1 tsp thyme",
+            "Salt and pepper to taste"
+          ]
+        }
+      ]
+    };
     
-    this.userIdCounter = 1;
-    this.householdMemberIdCounter = 1;
-    this.kitchenEquipmentIdCounter = 1;
-    this.cookingPreferencesIdCounter = 1;
-    this.mealIdCounter = 1;
-    this.mealPlanIdCounter = 1;
-    this.groceryItemIdCounter = 1;
-    this.chatMessageIdCounter = 1;
+    this.mealPlans.set(mealPlan.id, mealPlan);
+    this.currentMealPlanId = mealPlan.id;
+    this.mealPlanCounter = 2;
+
+    // Create sample grocery list
+    const groceryList: GroceryList = {
+      id: 1,
+      mealPlanId: 1,
+      householdId: 1,
+      createdAt: new Date().toISOString(),
+      sections: [
+        {
+          name: "Produce",
+          items: [
+            { id: "item1", name: "Bell peppers (red and green)", quantity: "4" },
+            { id: "item2", name: "Onions, yellow", quantity: "3" },
+            { id: "item3", name: "Carrots", quantity: "1 lb" },
+            { id: "item4", name: "Broccoli", quantity: "1 head" },
+            { id: "item5", name: "Potatoes", quantity: "2 large" },
+            { id: "item6", name: "Garlic", quantity: "1 head" }
+          ]
+        },
+        {
+          name: "Meat & Seafood",
+          items: [
+            { id: "item7", name: "Chicken breast", quantity: "1.5 lbs", mealId: "meal1" },
+            { id: "item8", name: "Beef stew meat", quantity: "1.5 lbs", mealId: "meal3" }
+          ]
+        },
+        {
+          name: "Dairy & Eggs",
+          items: [
+            { id: "item9", name: "Heavy cream", quantity: "1 cup", mealId: "meal2" },
+            { id: "item10", name: "Parmesan cheese", quantity: "8 oz", mealId: "meal2" },
+            { id: "item11", name: "Sour cream", quantity: "8 oz", mealId: "meal1" }
+          ]
+        },
+        {
+          name: "Pantry Staples",
+          items: [
+            { id: "item12", name: "Pasta (penne or fusilli)", quantity: "1 lb", mealId: "meal2" },
+            { id: "item13", name: "Olive oil", quantity: "1 bottle" },
+            { id: "item14", name: "Fajita seasoning", quantity: "1 packet", mealId: "meal1" },
+            { id: "item15", name: "Beef broth", quantity: "2 cups", mealId: "meal3" },
+            { id: "item16", name: "Tomato paste", quantity: "1 small can", mealId: "meal3" }
+          ]
+        },
+        {
+          name: "Bakery",
+          items: [
+            { id: "item17", name: "Flour tortillas", quantity: "1 package", mealId: "meal1" }
+          ]
+        }
+      ]
+    };
+    
+    this.groceryLists.set(groceryList.id, groceryList);
+    this.groceryListCounter = 2;
   }
 
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  // Household methods
+  async getHousehold(): Promise<Household | undefined> {
+    return this.household;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username
-    );
+  async createHousehold(data: InsertHousehold): Promise<Household> {
+    this.household = {
+      id: 1,
+      ...data
+    };
+    return this.household;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async updateHousehold(data: Partial<Household>): Promise<Household> {
+    if (!this.household) {
+      throw new Error("No household exists");
+    }
+    
+    this.household = {
+      ...this.household,
+      ...data
+    };
+    
+    return this.household;
   }
 
-  // Household member operations
-  async getHouseholdMembers(userId: number): Promise<HouseholdMember[]> {
-    return Array.from(this.householdMembers.values()).filter(
-      (member) => member.userId === userId
-    );
+  // Message methods
+  async getMessages(): Promise<Message[]> {
+    return this.messages;
   }
 
-  async getHouseholdMember(id: number): Promise<HouseholdMember | undefined> {
-    return this.householdMembers.get(id);
+  async saveMessage(message: Message): Promise<Message> {
+    this.messages.push(message);
+    return message;
   }
 
-  async createHouseholdMember(member: InsertHouseholdMember): Promise<HouseholdMember> {
-    const id = this.householdMemberIdCounter++;
-    const householdMember: HouseholdMember = { ...member, id };
-    this.householdMembers.set(id, householdMember);
-    return householdMember;
-  }
-
-  async updateHouseholdMember(id: number, member: Partial<InsertHouseholdMember>): Promise<HouseholdMember | undefined> {
-    const existingMember = this.householdMembers.get(id);
-    if (!existingMember) return undefined;
-
-    const updatedMember = { ...existingMember, ...member };
-    this.householdMembers.set(id, updatedMember);
-    return updatedMember;
-  }
-
-  async deleteHouseholdMember(id: number): Promise<boolean> {
-    return this.householdMembers.delete(id);
-  }
-
-  // Kitchen equipment operations
-  async getKitchenEquipment(userId: number): Promise<KitchenEquipment[]> {
-    return Array.from(this.kitchenEquipment.values()).filter(
-      (equipment) => equipment.userId === userId
-    );
-  }
-
-  async createKitchenEquipment(equipment: InsertKitchenEquipment): Promise<KitchenEquipment> {
-    const id = this.kitchenEquipmentIdCounter++;
-    const kitchenEquip: KitchenEquipment = { ...equipment, id };
-    this.kitchenEquipment.set(id, kitchenEquip);
-    return kitchenEquip;
-  }
-
-  async updateKitchenEquipment(id: number, equipment: Partial<InsertKitchenEquipment>): Promise<KitchenEquipment | undefined> {
-    const existingEquipment = this.kitchenEquipment.get(id);
-    if (!existingEquipment) return undefined;
-
-    const updatedEquipment = { ...existingEquipment, ...equipment };
-    this.kitchenEquipment.set(id, updatedEquipment);
-    return updatedEquipment;
-  }
-
-  async deleteKitchenEquipment(id: number): Promise<boolean> {
-    return this.kitchenEquipment.delete(id);
-  }
-
-  // Cooking preferences operations
-  async getCookingPreferences(userId: number): Promise<CookingPreference | undefined> {
-    return Array.from(this.cookingPreferences.values()).find(
-      (prefs) => prefs.userId === userId
-    );
-  }
-
-  async createCookingPreferences(preferences: InsertCookingPreference): Promise<CookingPreference> {
-    const id = this.cookingPreferencesIdCounter++;
-    const cookingPrefs: CookingPreference = { ...preferences, id };
-    this.cookingPreferences.set(id, cookingPrefs);
-    return cookingPrefs;
-  }
-
-  async updateCookingPreferences(id: number, preferences: Partial<InsertCookingPreference>): Promise<CookingPreference | undefined> {
-    const existingPreferences = this.cookingPreferences.get(id);
-    if (!existingPreferences) return undefined;
-
-    const updatedPreferences = { ...existingPreferences, ...preferences };
-    this.cookingPreferences.set(id, updatedPreferences);
-    return updatedPreferences;
-  }
-
-  // Meal operations
-  async getMeals(userId: number): Promise<Meal[]> {
-    return Array.from(this.meals.values()).filter(
-      (meal) => meal.userId === userId
-    );
-  }
-
-  async getMeal(id: number): Promise<Meal | undefined> {
-    return this.meals.get(id);
-  }
-
-  async createMeal(meal: InsertMeal): Promise<Meal> {
-    const id = this.mealIdCounter++;
-    const newMeal: Meal = { ...meal, id };
-    this.meals.set(id, newMeal);
-    return newMeal;
-  }
-
-  async updateMeal(id: number, meal: Partial<InsertMeal>): Promise<Meal | undefined> {
-    const existingMeal = this.meals.get(id);
-    if (!existingMeal) return undefined;
-
-    const updatedMeal = { ...existingMeal, ...meal };
-    this.meals.set(id, updatedMeal);
-    return updatedMeal;
-  }
-
-  async deleteMeal(id: number): Promise<boolean> {
-    return this.meals.delete(id);
-  }
-
-  // Meal plan operations
-  async getMealPlans(userId: number): Promise<MealPlan[]> {
-    return Array.from(this.mealPlans.values()).filter(
-      (plan) => plan.userId === userId
-    );
-  }
-
-  async getCurrentMealPlan(userId: number): Promise<MealPlan | undefined> {
-    const today = new Date();
-    return Array.from(this.mealPlans.values()).find(
-      (plan) => 
-        plan.userId === userId && 
-        new Date(plan.weekStartDate) <= today && 
-        new Date(plan.weekEndDate) >= today
-    );
-  }
-
+  // MealPlan methods
   async getMealPlan(id: number): Promise<MealPlan | undefined> {
     return this.mealPlans.get(id);
   }
 
-  async createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan> {
-    const id = this.mealPlanIdCounter++;
-    const newMealPlan: MealPlan = { ...mealPlan, id };
-    this.mealPlans.set(id, newMealPlan);
-    return newMealPlan;
+  async getCurrentMealPlan(): Promise<MealPlan | undefined> {
+    if (!this.currentMealPlanId) return undefined;
+    return this.mealPlans.get(this.currentMealPlanId);
   }
 
-  async updateMealPlan(id: number, mealPlan: Partial<InsertMealPlan>): Promise<MealPlan | undefined> {
-    const existingMealPlan = this.mealPlans.get(id);
-    if (!existingMealPlan) return undefined;
-
-    const updatedMealPlan = { ...existingMealPlan, ...mealPlan };
-    this.mealPlans.set(id, updatedMealPlan);
-    return updatedMealPlan;
+  async createMealPlan(data: InsertMealPlan): Promise<MealPlan> {
+    const id = this.mealPlanCounter++;
+    
+    // Deactivate all other meal plans
+    for (const [planId, plan] of this.mealPlans.entries()) {
+      if (plan.isActive) {
+        this.mealPlans.set(planId, { ...plan, isActive: false });
+      }
+    }
+    
+    const mealPlan: MealPlan = {
+      id,
+      ...data
+    };
+    
+    this.mealPlans.set(id, mealPlan);
+    this.currentMealPlanId = id;
+    
+    return mealPlan;
   }
 
-  async deleteMealPlan(id: number): Promise<boolean> {
-    return this.mealPlans.delete(id);
+  async updateMealPlan(id: number, data: Partial<MealPlan>): Promise<MealPlan> {
+    const existingPlan = this.mealPlans.get(id);
+    
+    if (!existingPlan) {
+      throw new Error(`Meal plan with id ${id} not found`);
+    }
+    
+    const updatedPlan = {
+      ...existingPlan,
+      ...data
+    };
+    
+    this.mealPlans.set(id, updatedPlan);
+    
+    return updatedPlan;
   }
 
-  // Grocery item operations
-  async getGroceryItems(mealPlanId: number): Promise<GroceryItem[]> {
-    return Array.from(this.groceryItems.values()).filter(
-      (item) => item.mealPlanId === mealPlanId
-    );
+  // GroceryList methods
+  async getGroceryList(id: number): Promise<GroceryList | undefined> {
+    return this.groceryLists.get(id);
   }
 
-  async createGroceryItem(item: InsertGroceryItem): Promise<GroceryItem> {
-    const id = this.groceryItemIdCounter++;
-    const groceryItem: GroceryItem = { ...item, id };
-    this.groceryItems.set(id, groceryItem);
-    return groceryItem;
+  async getGroceryListByMealPlanId(mealPlanId: number): Promise<GroceryList | undefined> {
+    for (const list of this.groceryLists.values()) {
+      if (list.mealPlanId === mealPlanId) {
+        return list;
+      }
+    }
+    return undefined;
   }
 
-  async updateGroceryItem(id: number, item: Partial<InsertGroceryItem>): Promise<GroceryItem | undefined> {
-    const existingItem = this.groceryItems.get(id);
-    if (!existingItem) return undefined;
-
-    const updatedItem = { ...existingItem, ...item };
-    this.groceryItems.set(id, updatedItem);
-    return updatedItem;
+  async getCurrentGroceryList(): Promise<GroceryList | undefined> {
+    if (!this.currentMealPlanId) return undefined;
+    
+    return this.getGroceryListByMealPlanId(this.currentMealPlanId);
   }
 
-  async deleteGroceryItem(id: number): Promise<boolean> {
-    return this.groceryItems.delete(id);
+  async createGroceryList(data: InsertGroceryList): Promise<GroceryList> {
+    const id = this.groceryListCounter++;
+    
+    const groceryList: GroceryList = {
+      id,
+      ...data
+    };
+    
+    this.groceryLists.set(id, groceryList);
+    
+    return groceryList;
   }
 
-  async toggleGroceryItem(id: number): Promise<GroceryItem | undefined> {
-    const item = this.groceryItems.get(id);
-    if (!item) return undefined;
-
-    const updatedItem = { ...item, isChecked: !item.isChecked };
-    this.groceryItems.set(id, updatedItem);
-    return updatedItem;
+  async updateGroceryList(id: number, data: Partial<GroceryList>): Promise<GroceryList> {
+    const existingList = this.groceryLists.get(id);
+    
+    if (!existingList) {
+      throw new Error(`Grocery list with id ${id} not found`);
+    }
+    
+    const updatedList = {
+      ...existingList,
+      ...data
+    };
+    
+    this.groceryLists.set(id, updatedList);
+    
+    return updatedList;
   }
 
-  // Chat message operations
-  async getChatMessages(userId: number, mealPlanId?: number): Promise<ChatMessage[]> {
-    return Array.from(this.chatMessages.values())
-      .filter((message) => {
-        if (message.userId !== userId) return false;
-        if (mealPlanId && message.mealPlanId !== mealPlanId) return false;
-        return true;
-      })
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }
-
-  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const id = this.chatMessageIdCounter++;
-    const chatMessage: ChatMessage = { ...message, id };
-    this.chatMessages.set(id, chatMessage);
-    return chatMessage;
+  async ensureMealInGroceryList(groceryListId: number, meal: any): Promise<GroceryList> {
+    const groceryList = await this.getGroceryList(groceryListId);
+    
+    if (!groceryList) {
+      throw new Error(`Grocery list with id ${groceryListId} not found`);
+    }
+    
+    // Simple implementation - just ensuring there's a section that mentions the meal
+    // A more complex implementation would handle individual ingredients
+    
+    // Check if the meal is already represented
+    let mealAlreadyIncluded = false;
+    
+    for (const section of groceryList.sections) {
+      if (section.items.some(item => item.mealId === meal.id)) {
+        mealAlreadyIncluded = true;
+        break;
+      }
+    }
+    
+    if (mealAlreadyIncluded) {
+      return groceryList;
+    }
+    
+    // If the meal is not included, add its ingredients to the list
+    // This is a simplified version - a real implementation would be more sophisticated
+    if (meal.ingredients && meal.ingredients.length > 0) {
+      const updatedSections = [...groceryList.sections];
+      
+      // Add to pantry staples section as a fallback
+      let pantrySection = updatedSections.find(s => s.name === "Pantry Staples");
+      
+      if (!pantrySection) {
+        pantrySection = { name: "Pantry Staples", items: [] };
+        updatedSections.push(pantrySection);
+      }
+      
+      // Add each ingredient as an item
+      for (let i = 0; i < meal.ingredients.length; i++) {
+        pantrySection.items.push({
+          id: `added-${meal.id}-${i}`,
+          name: meal.ingredients[i],
+          mealId: meal.id
+        });
+      }
+      
+      return this.updateGroceryList(groceryListId, { sections: updatedSections });
+    }
+    
+    return groceryList;
   }
 }
 

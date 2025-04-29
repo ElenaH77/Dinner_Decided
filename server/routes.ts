@@ -1,400 +1,289 @@
-import type { Express, Request, Response } from "express";
+import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateMealSuggestions, generateGroceryList, handleMealPlanningQuery } from "./openai";
-import { 
-  insertUserSchema, 
-  insertHouseholdMemberSchema, 
-  insertKitchenEquipmentSchema,
-  insertCookingPreferencesSchema,
-  insertMealPlanSchema,
-  insertChatMessageSchema
-} from "@shared/schema";
+import { generateChatResponse, generateMealPlan, generateGroceryList } from "./openai";
 import { z } from "zod";
+import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
+import { v4 as uuidv4 } from "uuid";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // ----- User Routes -----
-  app.post("/api/users", async (req: Request, res: Response) => {
+  // Chat routes
+  app.get("/api/chat/messages", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByUsername(userData.username);
-      
-      if (existingUser) {
-        return res.status(409).json({ message: "Username already exists" });
-      }
-      
-      const user = await storage.createUser(userData);
-      res.status(201).json({ id: user.id, username: user.username });
+      const messages = await storage.getMessages();
+      res.json(messages);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create user" });
+      res.status(500).json({ message: "Failed to get messages" });
     }
   });
 
-  app.get("/api/users/:id", async (req: Request, res: Response) => {
+  app.post("/api/chat", async (req, res) => {
     try {
-      const userId = parseInt(req.params.id);
-      const user = await storage.getUser(userId);
+      const messageSchema = z.array(z.object({
+        id: z.string(),
+        role: z.enum(["user", "assistant", "system"]),
+        content: z.string(),
+        timestamp: z.string()
+      }));
       
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      const messages = messageSchema.parse(req.body.messages);
+      
+      // Get response from OpenAI
+      const aiResponse = await generateChatResponse(messages);
+      
+      // Save the message to storage
+      if (aiResponse) {
+        const newMessage = {
+          id: uuidv4(),
+          role: "assistant",
+          content: aiResponse,
+          timestamp: new Date().toISOString()
+        };
+        
+        await storage.saveMessage(newMessage);
+        res.json(newMessage);
+      } else {
+        res.status(500).json({ message: "Failed to generate response" });
+      }
+    } catch (error) {
+      console.error("Error in /api/chat:", error);
+      res.status(500).json({ message: "Failed to process message" });
+    }
+  });
+
+  // Household routes
+  app.get("/api/household", async (req, res) => {
+    try {
+      const household = await storage.getHousehold();
+      res.json(household);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get household" });
+    }
+  });
+
+  app.post("/api/household", async (req, res) => {
+    try {
+      const data = insertHouseholdSchema.parse(req.body);
+      const household = await storage.createHousehold(data);
+      res.json(household);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create household" });
+    }
+  });
+
+  app.patch("/api/household", async (req, res) => {
+    try {
+      const household = await storage.updateHousehold(req.body);
+      res.json(household);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update household" });
+    }
+  });
+
+  // Meal plan routes
+  app.get("/api/meal-plan/current", async (req, res) => {
+    try {
+      const mealPlan = await storage.getCurrentMealPlan();
+      res.json(mealPlan);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get current meal plan" });
+    }
+  });
+
+  app.post("/api/meal-plan/generate", async (req, res) => {
+    try {
+      const household = await storage.getHousehold();
+      
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
       }
       
-      res.json({ id: user.id, username: user.username });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // ----- Household Member Routes -----
-  app.get("/api/users/:userId/household-members", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const members = await storage.getHouseholdMembers(userId);
-      res.json(members);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch household members" });
-    }
-  });
-
-  app.post("/api/household-members", async (req: Request, res: Response) => {
-    try {
-      const memberData = insertHouseholdMemberSchema.parse(req.body);
-      const member = await storage.createHouseholdMember(memberData);
-      res.status(201).json(member);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid member data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create household member" });
-    }
-  });
-
-  app.put("/api/household-members/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const memberData = insertHouseholdMemberSchema.partial().parse(req.body);
-      const member = await storage.updateHouseholdMember(id, memberData);
+      // Get meal plan from OpenAI
+      const generatedMeals = await generateMealPlan(household, req.body.preferences || {});
       
-      if (!member) {
-        return res.status(404).json({ message: "Household member not found" });
+      if (!generatedMeals || !generatedMeals.length) {
+        return res.status(500).json({ message: "Failed to generate meal plan" });
       }
       
-      res.json(member);
+      // Create meal plan in storage
+      const mealPlan = await storage.createMealPlan({
+        name: "Weekly Meal Plan",
+        householdId: household.id,
+        createdAt: new Date().toISOString(),
+        isActive: true,
+        meals: generatedMeals,
+      });
+      
+      // Generate grocery list from meal plan
+      await generateAndSaveGroceryList(mealPlan.id, household.id);
+      
+      res.json(mealPlan);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid member data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update household member" });
+      console.error("Error generating meal plan:", error);
+      res.status(500).json({ message: "Failed to generate meal plan" });
     }
   });
 
-  app.delete("/api/household-members/:id", async (req: Request, res: Response) => {
+  app.post("/api/meal-plan/replace-meal/:mealId", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteHouseholdMember(id);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Household member not found" });
-      }
-      
-      res.status(204).end();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete household member" });
-    }
-  });
-
-  // ----- Kitchen Equipment Routes -----
-  app.get("/api/users/:userId/kitchen-equipment", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const equipment = await storage.getKitchenEquipment(userId);
-      res.json(equipment);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch kitchen equipment" });
-    }
-  });
-
-  app.post("/api/kitchen-equipment", async (req: Request, res: Response) => {
-    try {
-      const equipmentData = insertKitchenEquipmentSchema.parse(req.body);
-      const equipment = await storage.createKitchenEquipment(equipmentData);
-      res.status(201).json(equipment);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid equipment data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create kitchen equipment" });
-    }
-  });
-
-  app.put("/api/kitchen-equipment/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const equipmentData = insertKitchenEquipmentSchema.partial().parse(req.body);
-      const equipment = await storage.updateKitchenEquipment(id, equipmentData);
-      
-      if (!equipment) {
-        return res.status(404).json({ message: "Kitchen equipment not found" });
-      }
-      
-      res.json(equipment);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid equipment data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update kitchen equipment" });
-    }
-  });
-
-  app.delete("/api/kitchen-equipment/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteKitchenEquipment(id);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Kitchen equipment not found" });
-      }
-      
-      res.status(204).end();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete kitchen equipment" });
-    }
-  });
-
-  // ----- Cooking Preferences Routes -----
-  app.get("/api/users/:userId/cooking-preferences", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const preferences = await storage.getCookingPreferences(userId);
-      
-      if (!preferences) {
-        return res.status(404).json({ message: "Cooking preferences not found" });
-      }
-      
-      res.json(preferences);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch cooking preferences" });
-    }
-  });
-
-  app.post("/api/cooking-preferences", async (req: Request, res: Response) => {
-    try {
-      const preferencesData = insertCookingPreferencesSchema.parse(req.body);
-      const preferences = await storage.createCookingPreferences(preferencesData);
-      res.status(201).json(preferences);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid preferences data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create cooking preferences" });
-    }
-  });
-
-  app.put("/api/cooking-preferences/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const preferencesData = insertCookingPreferencesSchema.partial().parse(req.body);
-      const preferences = await storage.updateCookingPreferences(id, preferencesData);
-      
-      if (!preferences) {
-        return res.status(404).json({ message: "Cooking preferences not found" });
-      }
-      
-      res.json(preferences);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid preferences data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update cooking preferences" });
-    }
-  });
-
-  // ----- Meal Routes -----
-  app.get("/api/users/:userId/meals", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const meals = await storage.getMeals(userId);
-      res.json(meals);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch meals" });
-    }
-  });
-
-  app.get("/api/meals/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const meal = await storage.getMeal(id);
-      
-      if (!meal) {
-        return res.status(404).json({ message: "Meal not found" });
-      }
-      
-      res.json(meal);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch meal" });
-    }
-  });
-
-  // ----- Meal Plan Routes -----
-  app.get("/api/users/:userId/meal-plans", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const mealPlans = await storage.getMealPlans(userId);
-      res.json(mealPlans);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch meal plans" });
-    }
-  });
-
-  app.get("/api/users/:userId/meal-plans/current", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const currentPlan = await storage.getCurrentMealPlan(userId);
+      const { mealId } = req.params;
+      const currentPlan = await storage.getCurrentMealPlan();
+      const household = await storage.getHousehold();
       
       if (!currentPlan) {
-        return res.status(404).json({ message: "No current meal plan found" });
+        return res.status(404).json({ message: "No active meal plan found" });
       }
       
-      res.json(currentPlan);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch current meal plan" });
-    }
-  });
-
-  app.post("/api/meal-plans", async (req: Request, res: Response) => {
-    try {
-      const mealPlanData = insertMealPlanSchema.parse(req.body);
-      const mealPlan = await storage.createMealPlan(mealPlanData);
-      res.status(201).json(mealPlan);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid meal plan data", errors: error.errors });
+      // Find the meal to replace
+      const mealIndex = currentPlan.meals.findIndex(meal => meal.id === mealId);
+      
+      if (mealIndex === -1) {
+        return res.status(404).json({ message: "Meal not found in current plan" });
       }
-      res.status(500).json({ message: "Failed to create meal plan" });
+      
+      // Get meal categories to maintain consistency
+      const mealToReplace = currentPlan.meals[mealIndex];
+      
+      // Generate a replacement meal with OpenAI
+      const replacementMeals = await generateMealPlan(household, { 
+        replaceMeal: true, 
+        categories: mealToReplace.categories,
+        mealName: mealToReplace.name 
+      });
+      
+      if (!replacementMeals || !replacementMeals.length) {
+        return res.status(500).json({ message: "Failed to generate replacement meal" });
+      }
+      
+      // Update the meal plan
+      const updatedMeals = [...currentPlan.meals];
+      updatedMeals[mealIndex] = replacementMeals[0];
+      
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
+        ...currentPlan, 
+        meals: updatedMeals 
+      });
+      
+      // Update grocery list
+      await generateAndSaveGroceryList(currentPlan.id, household.id);
+      
+      res.json(updatedPlan);
+    } catch (error) {
+      console.error("Error replacing meal:", error);
+      res.status(500).json({ message: "Failed to replace meal" });
     }
   });
 
-  app.put("/api/meal-plans/:id", async (req: Request, res: Response) => {
+  // Grocery list routes
+  app.get("/api/grocery-list/current", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const mealPlanData = insertMealPlanSchema.partial().parse(req.body);
-      const mealPlan = await storage.updateMealPlan(id, mealPlanData);
+      const groceryList = await storage.getCurrentGroceryList();
+      res.json(groceryList);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get current grocery list" });
+    }
+  });
+
+  app.post("/api/grocery-list/generate", async (req, res) => {
+    try {
+      const { mealPlanId } = req.body;
+      const mealPlan = await storage.getMealPlan(mealPlanId);
+      const household = await storage.getHousehold();
       
       if (!mealPlan) {
         return res.status(404).json({ message: "Meal plan not found" });
       }
       
-      res.json(mealPlan);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid meal plan data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update meal plan" });
-    }
-  });
-
-  // ----- Grocery Item Routes -----
-  app.get("/api/meal-plans/:mealPlanId/grocery-items", async (req: Request, res: Response) => {
-    try {
-      const mealPlanId = parseInt(req.params.mealPlanId);
-      const groceryItems = await storage.getGroceryItems(mealPlanId);
-      res.json(groceryItems);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch grocery items" });
-    }
-  });
-
-  app.put("/api/grocery-items/:id/toggle", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const item = await storage.toggleGroceryItem(id);
+      // Generate grocery list
+      const groceryList = await generateAndSaveGroceryList(mealPlanId, household.id);
       
-      if (!item) {
-        return res.status(404).json({ message: "Grocery item not found" });
-      }
-      
-      res.json(item);
+      res.json(groceryList);
     } catch (error) {
-      res.status(500).json({ message: "Failed to toggle grocery item" });
-    }
-  });
-
-  // ----- Chat Message Routes -----
-  app.get("/api/users/:userId/chat-messages", async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const mealPlanId = req.query.mealPlanId ? parseInt(req.query.mealPlanId as string) : undefined;
-      const messages = await storage.getChatMessages(userId, mealPlanId);
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch chat messages" });
-    }
-  });
-
-  app.post("/api/chat-messages", async (req: Request, res: Response) => {
-    try {
-      const messageData = insertChatMessageSchema.parse(req.body);
-      const message = await storage.createChatMessage(messageData);
-      res.status(201).json(message);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid message data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create chat message" });
-    }
-  });
-
-  // ----- AI Generation Routes -----
-  app.post("/api/generate-meals", async (req: Request, res: Response) => {
-    try {
-      const { 
-        numberOfMeals, 
-        specialRequests, 
-        dietaryRestrictions, 
-        cookingEquipment,
-        confidenceLevel,
-        cookingTime,
-        preferredCuisines
-      } = req.body;
-      
-      const meals = await generateMealSuggestions(
-        numberOfMeals,
-        specialRequests,
-        dietaryRestrictions,
-        cookingEquipment,
-        confidenceLevel,
-        cookingTime,
-        preferredCuisines
-      );
-      
-      res.json({ meals });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to generate meal suggestions" });
-    }
-  });
-
-  app.post("/api/generate-grocery-list", async (req: Request, res: Response) => {
-    try {
-      const { meals } = req.body;
-      const groceryList = await generateGroceryList(meals);
-      res.json({ groceryItems: groceryList });
-    } catch (error) {
+      console.error("Error generating grocery list:", error);
       res.status(500).json({ message: "Failed to generate grocery list" });
     }
   });
 
-  app.post("/api/chat", async (req: Request, res: Response) => {
+  app.post("/api/grocery-list/regenerate", async (req, res) => {
     try {
-      const { query, chatHistory, currentMeals } = req.body;
-      const response = await handleMealPlanningQuery(query, chatHistory, currentMeals);
-      res.json({ response });
+      const currentPlan = await storage.getCurrentMealPlan();
+      const household = await storage.getHousehold();
+      
+      if (!currentPlan) {
+        return res.status(404).json({ message: "No active meal plan found" });
+      }
+      
+      // Generate fresh grocery list
+      const groceryList = await generateAndSaveGroceryList(currentPlan.id, household.id);
+      
+      res.json(groceryList);
     } catch (error) {
-      res.status(500).json({ message: "Failed to process chat query" });
+      console.error("Error regenerating grocery list:", error);
+      res.status(500).json({ message: "Failed to regenerate grocery list" });
     }
   });
+
+  app.post("/api/grocery-list/add-meal", async (req, res) => {
+    try {
+      const { mealId } = req.body;
+      const currentPlan = await storage.getCurrentMealPlan();
+      const currentList = await storage.getCurrentGroceryList();
+      
+      if (!currentPlan || !currentList) {
+        return res.status(404).json({ message: "No active meal plan or grocery list found" });
+      }
+      
+      // Find the meal
+      const meal = currentPlan.meals.find(m => m.id === mealId);
+      
+      if (!meal) {
+        return res.status(404).json({ message: "Meal not found in current plan" });
+      }
+      
+      // Get current grocery list and ensure the meal's ingredients are included
+      // This is a simple implementation - in real application, it would need to update
+      // based on specific ingredients
+      const groceryList = await storage.ensureMealInGroceryList(currentList.id, meal);
+      
+      res.json(groceryList);
+    } catch (error) {
+      console.error("Error adding meal to grocery list:", error);
+      res.status(500).json({ message: "Failed to add meal to grocery list" });
+    }
+  });
+
+  // Helper function to generate and save grocery list
+  async function generateAndSaveGroceryList(mealPlanId: number, householdId: number) {
+    const mealPlan = await storage.getMealPlan(mealPlanId);
+    
+    if (!mealPlan) {
+      throw new Error("Meal plan not found");
+    }
+    
+    // Generate grocery list with OpenAI
+    const generatedList = await generateGroceryList(mealPlan);
+    
+    // Get existing list or create new one
+    let groceryList = await storage.getGroceryListByMealPlanId(mealPlanId);
+    
+    if (groceryList) {
+      // Update existing list
+      groceryList = await storage.updateGroceryList(groceryList.id, {
+        ...groceryList,
+        sections: generatedList
+      });
+    } else {
+      // Create new grocery list
+      groceryList = await storage.createGroceryList({
+        mealPlanId,
+        householdId,
+        createdAt: new Date().toISOString(),
+        sections: generatedList
+      });
+    }
+    
+    return groceryList;
+  }
 
   const httpServer = createServer(app);
   return httpServer;
