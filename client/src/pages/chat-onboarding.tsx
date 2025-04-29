@@ -247,7 +247,7 @@ export default function ChatOnboarding() {
                             skillLevel === "I enjoy it when I have time" ? 3 : 
                             skillLevel === "I can follow a recipe" ? 2 : 1,
               preferences: dietary || "No special dietary preferences",
-              challenges: challenges || "None specified",
+              challenges: challenges === "" ? "None specified" : challenges,
               location: location || "Unknown",
               appliances: equipment
             };
