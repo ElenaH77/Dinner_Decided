@@ -3,16 +3,20 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, Users, CookingPot, ListChecks } from 'lucide-react';
-import { useMealPlan } from '@/contexts/meal-plan-context';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const { currentMealPlan } = useMealPlan();
+  
+  // Get active meal plan from API instead of context
+  const { data: currentMealPlan } = useQuery({
+    queryKey: ['/api/meal-plan/current'],
+  });
 
   // If there's an active meal plan, redirect to it
   useEffect(() => {
     if (currentMealPlan) {
-      navigate('/meal-plan');
+      navigate('/meals');
     }
   }, [currentMealPlan, navigate]);
 
@@ -26,7 +30,7 @@ export default function Home() {
         <Button 
           size="lg" 
           className="bg-teal-primary hover:bg-teal-light text-white"
-          onClick={() => navigate('/meal-plan')}
+          onClick={() => navigate('/meals')}
         >
           Start Planning This Week's Meals
         </Button>

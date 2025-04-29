@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { useHousehold } from '@/contexts/household-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,11 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { OnboardingStep } from '@/lib/types';
 import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Onboarding() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { setMembers, setEquipment, setPreferences } = useHousehold();
+  const queryClient = useQueryClient();
   
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   
@@ -86,7 +86,8 @@ export default function Onboarding() {
           });
           
           const member = await response.json();
-          setMembers([member]);
+          // Update API cache instead of using context
+          queryClient.invalidateQueries({ queryKey: ['/api/household'] });
           setCurrentStep('equipment');
         } catch (error) {
           toast({
@@ -101,19 +102,16 @@ export default function Onboarding() {
         try {
           // Save all owned equipment
           const ownedEquipment = equipmentItems.filter(item => item.isOwned);
-          const savedEquipment = [];
-          
           for (const item of ownedEquipment) {
-            const response = await apiRequest('POST', '/api/kitchen-equipment', {
+            await apiRequest('POST', '/api/kitchen-equipment', {
               userId: 1,
               name: item.name,
               isOwned: true
             });
-            
-            savedEquipment.push(await response.json());
           }
           
-          setEquipment(savedEquipment);
+          // Update API cache
+          queryClient.invalidateQueries({ queryKey: ['/api/kitchen-equipment'] });
           setCurrentStep('preferences');
         } catch (error) {
           toast({

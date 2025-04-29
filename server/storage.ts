@@ -5,8 +5,15 @@ import {
   MealPlan,
   InsertMealPlan,
   GroceryList,
-  InsertGroceryList
+  InsertGroceryList,
+  households,
+  messages,
+  mealPlans,
+  groceryLists
 } from "@shared/schema";
+import { db } from './db';
+import { eq } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
   // Household methods
@@ -383,4 +390,185 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database implementation
+
+export class DatabaseStorage implements IStorage {
+  async getHousehold(): Promise<Household | undefined> {
+    const [household] = await db.select().from(households).limit(1);
+    return household;
+  }
+
+  async createHousehold(data: InsertHousehold): Promise<Household> {
+    const [household] = await db.insert(households).values(data).returning();
+    return household;
+  }
+
+  async updateHousehold(data: Partial<Household>): Promise<Household> {
+    if (!data.id) {
+      const household = await this.getHousehold();
+      if (!household) {
+        throw new Error("No household found to update");
+      }
+      data.id = household.id;
+    }
+
+    const [updatedHousehold] = await db
+      .update(households)
+      .set(data)
+      .where(eq(households.id, data.id))
+      .returning();
+    
+    return updatedHousehold;
+  }
+
+  async getMessages(): Promise<Message[]> {
+    return db.select().from(messages).orderBy(messages.timestamp);
+  }
+
+  async saveMessage(message: Message): Promise<Message> {
+    const [savedMessage] = await db.insert(messages).values(message).returning();
+    return savedMessage;
+  }
+
+  async getMealPlan(id: number): Promise<MealPlan | undefined> {
+    const [mealPlan] = await db
+      .select()
+      .from(mealPlans)
+      .where(eq(mealPlans.id, id));
+    
+    return mealPlan;
+  }
+
+  async getCurrentMealPlan(): Promise<MealPlan | undefined> {
+    const [mealPlan] = await db
+      .select()
+      .from(mealPlans)
+      .where(eq(mealPlans.isActive, true))
+      .orderBy(mealPlans.createdAt, 'desc')
+      .limit(1);
+    
+    return mealPlan;
+  }
+
+  async createMealPlan(data: InsertMealPlan): Promise<MealPlan> {
+    // If this is set as active, deactivate all other meal plans
+    if (data.isActive) {
+      await db
+        .update(mealPlans)
+        .set({ isActive: false })
+        .where(eq(mealPlans.isActive, true));
+    }
+
+    const [mealPlan] = await db.insert(mealPlans).values(data).returning();
+    return mealPlan;
+  }
+
+  async updateMealPlan(id: number, data: Partial<MealPlan>): Promise<MealPlan> {
+    // If this is set as active, deactivate all other meal plans
+    if (data.isActive) {
+      await db
+        .update(mealPlans)
+        .set({ isActive: false })
+        .where(eq(mealPlans.isActive, true));
+    }
+
+    const [updatedMealPlan] = await db
+      .update(mealPlans)
+      .set(data)
+      .where(eq(mealPlans.id, id))
+      .returning();
+    
+    return updatedMealPlan;
+  }
+
+  async getGroceryList(id: number): Promise<GroceryList | undefined> {
+    const [groceryList] = await db
+      .select()
+      .from(groceryLists)
+      .where(eq(groceryLists.id, id));
+    
+    return groceryList;
+  }
+
+  async getGroceryListByMealPlanId(mealPlanId: number): Promise<GroceryList | undefined> {
+    const [groceryList] = await db
+      .select()
+      .from(groceryLists)
+      .where(eq(groceryLists.mealPlanId, mealPlanId))
+      .orderBy(groceryLists.createdAt, 'desc')
+      .limit(1);
+    
+    return groceryList;
+  }
+
+  async getCurrentGroceryList(): Promise<GroceryList | undefined> {
+    const currentMealPlan = await this.getCurrentMealPlan();
+    if (!currentMealPlan) return undefined;
+    
+    return this.getGroceryListByMealPlanId(currentMealPlan.id);
+  }
+
+  async createGroceryList(data: InsertGroceryList): Promise<GroceryList> {
+    const [groceryList] = await db.insert(groceryLists).values(data).returning();
+    return groceryList;
+  }
+
+  async updateGroceryList(id: number, data: Partial<GroceryList>): Promise<GroceryList> {
+    const [updatedGroceryList] = await db
+      .update(groceryLists)
+      .set(data)
+      .where(eq(groceryLists.id, id))
+      .returning();
+    
+    return updatedGroceryList;
+  }
+
+  async ensureMealInGroceryList(groceryListId: number, meal: any): Promise<GroceryList> {
+    const groceryList = await this.getGroceryList(groceryListId);
+    if (!groceryList) {
+      throw new Error(`Grocery list with ID ${groceryListId} not found`);
+    }
+
+    // Get the meal's ingredients and add them to the grocery list if not already there
+    if (!meal.ingredients || !meal.ingredients.length) {
+      return groceryList;
+    }
+
+    const updatedSections = [...groceryList.sections];
+
+    // Process each ingredient and add it to the appropriate section
+    for (const ingredient of meal.ingredients) {
+      // Simple logic to determine the section; in a real app this would be more sophisticated
+      const sectionName = ingredient.toLowerCase().includes('meat') ? 'Meat & Seafood' :
+                         ingredient.toLowerCase().includes('vegetable') ? 'Produce' :
+                         ingredient.toLowerCase().includes('bread') ? 'Bakery' :
+                         'Other';
+      
+      // Find the section or create it
+      let section = updatedSections.find(s => s.name === sectionName);
+      if (!section) {
+        section = { name: sectionName, items: [] };
+        updatedSections.push(section);
+      }
+
+      // Add the ingredient if not already present
+      const itemExists = section.items.some(item => 
+        item.name.toLowerCase() === ingredient.toLowerCase() && item.mealId === meal.id
+      );
+
+      if (!itemExists) {
+        section.items.push({
+          id: uuidv4(),
+          name: ingredient,
+          mealId: meal.id
+        });
+      }
+    }
+
+    // Update the grocery list with the new sections
+    return this.updateGroceryList(groceryListId, { sections: updatedSections });
+  }
+}
+
+// Use database storage
+export const storage = new DatabaseStorage();
