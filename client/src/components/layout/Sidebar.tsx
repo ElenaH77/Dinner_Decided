@@ -30,10 +30,10 @@ export default function Sidebar({ activeTab }: SidebarProps) {
             </Link>
           </li>
           <li className="mb-1">
-            <Link href="/meals">
+            <Link href="/this-week">
               <a className={`flex items-center p-3 rounded-lg ${activeTab === 'meals' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
                 <Calendar className="w-5 h-5 mr-2" />
-                <span>Meal Plans</span>
+                <span>This Week</span>
               </a>
             </Link>
           </li>

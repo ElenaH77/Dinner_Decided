@@ -13,7 +13,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Determine active tab based on current location
   const getActiveTab = () => {
     if (location === "/") return "chat";
-    if (location === "/meals") return "meals";
+    if (location === "/this-week" || location === "/meals" || location === "/meal-plan") return "meals";
     if (location === "/grocery") return "grocery";
     if (location === "/profile") return "profile";
     return "chat";
