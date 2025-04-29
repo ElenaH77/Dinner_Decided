@@ -238,7 +238,7 @@ export default function ChatOnboarding() {
           
           // Save the household data
           try {
-            apiRequest('POST', '/api/household', {
+            const householdData = {
               name: "My Household",
               members: [
                 { id: "1", name: household, age: "adult" }
@@ -248,7 +248,12 @@ export default function ChatOnboarding() {
                             skillLevel === "I can follow a recipe" ? 2 : 1,
               preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
               appliances: equipment
-            })
+            };
+            
+            // Log what's being saved
+            console.log('Saving household data:', JSON.stringify(householdData, null, 2));
+            
+            apiRequest('POST', '/api/household', householdData)
             .then(() => {
               queryClient.invalidateQueries({ queryKey: ['/api/household'] });
             })

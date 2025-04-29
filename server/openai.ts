@@ -14,13 +14,13 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
     
     // Map messages to OpenAI format
     const openaiMessages = messages.map(msg => ({
-      role: msg.role,
+      role: msg.role as 'user' | 'assistant' | 'system',
       content: msg.content
     }));
     
     // Add system message to give context
     openaiMessages.unshift({
-      role: "system",
+      role: "system" as const,
       content: `You are a helpful meal planning assistant called "Dinner, Decided" that creates personalized meal plans for busy families.
       Your goal is to understand the family's needs, preferences, and constraints, and then provide personalized meal suggestions with rationales.
       Always be warm, encouraging, and practical. Suggest accessible recipes that match the family's cooking skill level.
@@ -29,9 +29,12 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
       Don't assign meals to specific days unless the user asks for that structure.`
     });
     
+    // Log the messages being sent to OpenAI
+    console.log('[CHAT] Sending messages to OpenAI:', JSON.stringify(openaiMessages, null, 2));
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: openaiMessages,
+      messages: openaiMessages as any, // Type assertion to fix TypeScript error
       temperature: 0.7,
       max_tokens: 1000,
     });
@@ -49,6 +52,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
   try {
     // For demo purposes with no API key, return canned meal suggestions
     if (!process.env.OPENAI_API_KEY) {
+      console.log('[MEAL PLAN] Using mock data due to missing API key');
+      console.log('[MEAL PLAN] Household:', JSON.stringify(household, null, 2));
+      console.log('[MEAL PLAN] Preferences:', JSON.stringify(preferences, null, 2));
       return generateDummyMeals(preferences);
     }
     
@@ -62,18 +68,23 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         
         Generate unique, practical dinner ideas that this family would enjoy. For each meal, include a name, brief description explaining why it's a good fit for this family, categories (e.g., "quick", "vegetarian"), approximate prep time, and serving size.`;
     
+    // Log the prompt being sent to OpenAI
+    console.log('[MEAL PLAN] Sending prompt to OpenAI:');
+    console.log(promptContent);
+    console.log('[MEAL PLAN] Household data:', JSON.stringify(household, null, 2));
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
-          role: "system",
+          role: "system" as const,
           content: "You are a meal planning assistant that creates personalized meal suggestions based on family preferences."
         },
         {
-          role: "user",
+          role: "user" as const,
           content: promptContent
         }
-      ],
+      ] as any, // Type assertion to fix TypeScript error
       response_format: { type: "json_object" },
       temperature: 0.7,
     });
@@ -107,21 +118,24 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       };
     });
     
+    // Log grocery list generation
+    console.log('[GROCERY] Generating grocery list for meals:', JSON.stringify(meals, null, 2));
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
-          role: "system",
+          role: "system" as const,
           content: "You are a helpful meal planning assistant that creates organized grocery lists based on meal plans."
         },
         {
-          role: "user",
+          role: "user" as const,
           content: `Create a grocery list for the following meals: ${JSON.stringify(meals)}. 
           Organize items by store section (Produce, Meat & Seafood, Dairy, etc.) and include quantities when possible.
           Return the list as a JSON object with sections array, where each section has a name and items array.
           Each item should have an id, name, and optional quantity and mealId (to track which meal it's for).`
         }
-      ],
+      ] as any, // Type assertion to fix TypeScript error
       response_format: { type: "json_object" },
       temperature: 0.3,
     });

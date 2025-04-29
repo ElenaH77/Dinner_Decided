@@ -63,10 +63,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/household", async (req, res) => {
     try {
+      console.log('[HOUSEHOLD] Creating household with data:', JSON.stringify(req.body, null, 2));
       const data = insertHouseholdSchema.parse(req.body);
       const household = await storage.createHousehold(data);
+      console.log('[HOUSEHOLD] Created household:', JSON.stringify(household, null, 2));
       res.json(household);
     } catch (error) {
+      console.error('[HOUSEHOLD] Error creating household:', error);
       res.status(500).json({ message: "Failed to create household" });
     }
   });
@@ -92,18 +95,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meal-plan/generate", async (req, res) => {
     try {
+      console.log('[MEAL PLAN] Generating meal plan with preferences:', JSON.stringify(req.body.preferences || {}, null, 2));
       const household = await storage.getHousehold();
       
       if (!household) {
+        console.log('[MEAL PLAN] No household found to generate meal plan');
         return res.status(404).json({ message: "Household not found" });
       }
+      
+      console.log('[MEAL PLAN] Using household:', JSON.stringify(household, null, 2));
       
       // Get meal plan from OpenAI
       const generatedMeals = await generateMealPlan(household, req.body.preferences || {});
       
       if (!generatedMeals || !generatedMeals.length) {
+        console.log('[MEAL PLAN] No meals generated from OpenAI');
         return res.status(500).json({ message: "Failed to generate meal plan" });
       }
+      
+      console.log('[MEAL PLAN] Generated meals:', JSON.stringify(generatedMeals, null, 2));
       
       // Create meal plan in storage
       const mealPlan = await storage.createMealPlan({
@@ -119,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(mealPlan);
     } catch (error) {
-      console.error("Error generating meal plan:", error);
+      console.error("[MEAL PLAN] Error generating meal plan:", error);
       res.status(500).json({ message: "Failed to generate meal plan" });
     }
   });
