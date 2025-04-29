@@ -11,7 +11,7 @@ import { useHousehold } from '@/contexts/household-context';
 import { useMealPlan } from '@/contexts/meal-plan-context';
 import { Meal } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ShoppingCart, FileText } from 'lucide-react';
 
 export default function MealPlan() {
   const { toast } = useToast();
@@ -323,6 +323,28 @@ export default function MealPlan() {
               {/* Show chat interface at the top for existing meal plans */}
               <div className="mb-8">
                 <ChatInterface standalone={false} />
+              </div>
+              
+              {/* Action buttons */}
+              <div className="mb-6 flex flex-wrap gap-3">
+                <Button
+                  onClick={() => {
+                    // Navigate to grocery list page
+                    window.location.href = '/grocery-list';
+                  }}
+                  className="bg-teal-primary hover:bg-teal-dark text-white"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    // Navigate to show-meal-plan page for full recipe details
+                    window.location.href = '/show-meal-plan';
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" /> View Full Recipes
+                </Button>
               </div>
               
               {/* Meal cards */}
