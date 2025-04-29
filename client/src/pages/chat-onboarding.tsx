@@ -28,7 +28,7 @@ export default function ChatOnboarding() {
   // Chat state
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: 'welcome',
+      id: 'welcome-' + Date.now(),
       role: 'assistant',
       content: ONBOARDING_RESPONSES.welcome
     }
@@ -55,7 +55,7 @@ export default function ChatOnboarding() {
     if (currentQuestion >= ONBOARDING_QUESTIONS.length) {
       // We're done with all questions
       setMessages(prev => [...prev, {
-        id: 'complete',
+        id: 'complete-' + Date.now(),
         role: 'assistant',
         content: ONBOARDING_RESPONSES.complete
       }]);
@@ -67,7 +67,7 @@ export default function ChatOnboarding() {
     
     // Add the next question from the assistant
     const newMessage: Message = {
-      id: question.id,
+      id: question.id + '-' + Date.now(), // Add timestamp to make the ID unique
       role: 'assistant',
       content: `${question.question}\n${question.hint ? question.hint : ''}`
     };
