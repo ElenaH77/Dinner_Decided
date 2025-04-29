@@ -233,9 +233,7 @@ export default function MealPlan() {
             <div className="bg-white rounded-xl shadow-sm">
               {/* Import at the top of the file: import MealPlanningAssistant from '@/components/chat/meal-planning-assistant'; */}
               <MealPlanningAssistant onComplete={() => {
-                // Reload meal plan data after completion
-                queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
+                // No need to invalidate queries here as the component handles it
               }} />
             </div>
           )}

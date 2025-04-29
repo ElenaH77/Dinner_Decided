@@ -8,15 +8,56 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
+  url: string,
+  options?: {
+    method?: string,
+    body?: any,
+    headers?: Record<string, string>,
+    signal?: AbortSignal
+  } | undefined,
+): Promise<Response>;
+
+export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options?: { signal?: AbortSignal } | undefined,
+): Promise<Response>;
+
+export async function apiRequest(
+  methodOrUrl: string,
+  urlOrOptions?: string | object | undefined,
+  data?: unknown | undefined,
+  extraOptions?: object | undefined,
 ): Promise<Response> {
+  // Handle the newer function signature
+  if (typeof urlOrOptions === 'object' || urlOrOptions === undefined) {
+    const url = methodOrUrl;
+    const options = urlOrOptions as { method?: string, body?: any, headers?: Record<string, string>, signal?: AbortSignal } || {};
+    
+    const res = await fetch(url, {
+      method: options.method || 'GET',
+      headers: options.body ? { 'Content-Type': 'application/json', ...options.headers || {} } : options.headers || {},
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      credentials: 'include',
+      signal: options.signal
+    });
+    
+    await throwIfResNotOk(res);
+    return res;
+  }
+  
+  // Handle the older function signature
+  const method = methodOrUrl;
+  const url = urlOrOptions as string;
+  const options = extraOptions as { signal?: AbortSignal } || {};
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: data ? { 'Content-Type': 'application/json' } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: 'include',
+    signal: options?.signal
   });
 
   await throwIfResNotOk(res);

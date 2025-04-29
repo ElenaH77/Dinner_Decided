@@ -105,8 +105,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[MEAL PLAN] Using household:', JSON.stringify(household, null, 2));
       
+      // Extract the detailed preferences
+      const { specialNotes, mealsByDay, mealCategories, numberOfMeals } = req.body.preferences || {};
+      
+      // Enhance the preferences with additional context
+      const enhancedPreferences = {
+        specialNotes: specialNotes || "",
+        mealsByDay: mealsByDay || {},
+        mealCategories: mealCategories || {},
+        numberOfMeals: numberOfMeals || 5,
+        weekStartDate: req.body.weekStartDate,
+        weekEndDate: req.body.weekEndDate,
+        // Add meal category details for the AI to understand the types
+        categoryDefinitions: {
+          quick: "Quick & Easy (15 minutes or less - rotisserie chicken magic, simple assembly meals)",
+          weeknight: "Weeknight Meals (About 30 minutes, kid-friendly, standard dinner fare)",
+          batch: "Batch Cooking (Larger meals meant to create leftovers for multiple meals)",
+          split: "Split Prep (Meals that allow you to do prep the night before or morning of)"
+        }
+      };
+      
       // Get meal plan from OpenAI
-      const generatedMeals = await generateMealPlan(household, req.body.preferences || {});
+      const generatedMeals = await generateMealPlan(household, enhancedPreferences);
       
       if (!generatedMeals || !generatedMeals.length) {
         console.log('[MEAL PLAN] No meals generated from OpenAI');
@@ -121,6 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         householdId: household.id,
         createdAt: new Date().toISOString(),
         isActive: true,
+        specialNotes: specialNotes || "",
         meals: generatedMeals,
       });
       

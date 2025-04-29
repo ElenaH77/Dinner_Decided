@@ -58,20 +58,69 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       return generateDummyMeals(preferences);
     }
     
-    const promptContent = preferences.replaceMeal
-      ? `Generate a single replacement meal for "${preferences.mealName}". The replacement should be in the same category (${preferences.categories.join(", ")}) but different enough to provide variety.`
-      : `Create a meal plan with 5 dinner ideas for a family with the following profile:
+    // Handle different types of requests
+    let promptContent = "";
+    
+    if (preferences.replaceMeal) {
+      // Replacement meal request
+      promptContent = `Generate a single replacement meal for "${preferences.mealName}". The replacement should be in the same category (${preferences.categories.join(", ")}) but different enough to provide variety.`;
+    } else if (preferences.mealsByDay && Object.keys(preferences.mealsByDay).length > 0) {
+      // New structured meal planning format
+      const mealSelections = [];
+      const days = Object.keys(preferences.mealsByDay);
+      
+      for (const day of days) {
+        const categories = preferences.mealsByDay[day] || [];
+        if (categories.length > 0) {
+          const categoryDescriptions = categories.map((cat: string) => 
+            preferences.categoryDefinitions?.[cat] || cat
+          );
+          mealSelections.push(`- ${day}: ${categoryDescriptions.join(", ")}`);
+        }
+      }
+      
+      // Count total meals requested
+      const totalMeals = Object.values(preferences.mealsByDay)
+        .reduce((sum: number, catArray: any) => sum + (catArray?.length || 0), 0);
+      
+      promptContent = `Create a personalized meal plan with ${totalMeals} dinner ideas for a family with the following profile:
         - Family size: ${household.members.length} people
-        - Available appliances: ${household.appliances.join(", ")}
-        - Cooking skill level (1-5): ${household.cookingSkill}
-        - Preferences: ${household.preferences}
+        - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
+        - Cooking skill level (1-5): ${household.cookingSkill || 3}
+        - Preferences: ${household.preferences || "Family-friendly meals"}
+        
+        Special notes for this week: ${preferences.specialNotes || "No special notes"}
+        
+        Meal selections by day:
+        ${mealSelections.join("\n        ")}
+        
+        For each meal, please provide:
+        1. Name of dish
+        2. Brief description explaining why it's a good fit for this family
+        3. Appropriate day of the week based on the selections above
+        4. Meal category from my selection
+        5. Prep time (in minutes)
+        6. List of main ingredients needed
+        7. Serving size (number of people)
+        8. Any meal prep tips, especially for "split prep" category meals
+        
+        Generate a JSON response with an array of meal objects.`;
+    } else {
+      // Standard meal plan request (fallback)
+      promptContent = `Create a meal plan with ${preferences.numberOfMeals || 5} dinner ideas for a family with the following profile:
+        - Family size: ${household.members.length} people
+        - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
+        - Cooking skill level (1-5): ${household.cookingSkill || 3}
+        - Preferences: ${household.preferences || "Family-friendly meals"}
         
         Generate unique, practical dinner ideas that this family would enjoy. For each meal, include a name, brief description explaining why it's a good fit for this family, categories (e.g., "quick", "vegetarian"), approximate prep time, and serving size.`;
+    }
     
     // Log the prompt being sent to OpenAI
     console.log('[MEAL PLAN] Sending prompt to OpenAI:');
     console.log(promptContent);
     console.log('[MEAL PLAN] Household data:', JSON.stringify(household, null, 2));
+    console.log('[MEAL PLAN] Preferences:', JSON.stringify(preferences, null, 2));
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -203,6 +252,100 @@ function generateDummyMeals(preferences: any): any[] {
     }];
   }
   
+  // If we have mealsByDay structure, create meals based on that
+  if (preferences.mealsByDay && Object.keys(preferences.mealsByDay).length > 0) {
+    const dummyMeals = [];
+    const days = Object.keys(preferences.mealsByDay);
+    
+    // Create a dummy meal for each day with selected categories
+    for (const day of days) {
+      const categories = preferences.mealsByDay[day] || [];
+      
+      for (const category of categories) {
+        let meal: any = {
+          id: `meal-${Date.now()}-${dummyMeals.length + 1}`,
+          day: day,
+          category: category,
+          prepTime: 0,
+          servings: 4,
+          ingredients: []
+        };
+        
+        // Customize based on category
+        switch (category) {
+          case 'quick':
+            meal.name = "Quick Sheet Pan Chicken Fajitas";
+            meal.description = "Perfect for a busy weeknight. Can be prepared in just 15 minutes.";
+            meal.prepTime = 15;
+            meal.ingredients = [
+              "1.5 lbs chicken breast, sliced",
+              "2 bell peppers, sliced",
+              "1 large onion, sliced",
+              "Fajita seasoning",
+              "Flour tortillas"
+            ];
+            break;
+            
+          case 'weeknight':
+            meal.name = "Weeknight Pasta Bolognese";
+            meal.description = "A classic family favorite that comes together in about 30 minutes.";
+            meal.prepTime = 30;
+            meal.ingredients = [
+              "1 lb ground beef",
+              "1 onion, diced",
+              "2 cloves garlic, minced",
+              "1 jar marinara sauce",
+              "1 lb pasta"
+            ];
+            break;
+            
+          case 'batch':
+            meal.name = "Big Batch Chili";
+            meal.description = "Makes plenty for leftovers - freeze some for another meal.";
+            meal.prepTime = 60;
+            meal.ingredients = [
+              "2 lbs ground beef",
+              "2 cans beans",
+              "1 large onion, diced",
+              "2 bell peppers, diced",
+              "2 cans diced tomatoes",
+              "Chili seasonings"
+            ];
+            break;
+            
+          case 'split':
+            meal.name = "Split-Prep Marinated Chicken";
+            meal.description = "Marinate the night before for maximum flavor with minimal evening effort.";
+            meal.prepTime = 40;
+            meal.prepTips = "Marinate chicken the night before. Prep vegetables in the morning.";
+            meal.ingredients = [
+              "2 lbs chicken thighs",
+              "Marinade ingredients",
+              "2 cups rice",
+              "Side vegetables"
+            ];
+            break;
+            
+          default:
+            meal.name = `${day} Dinner Special`;
+            meal.description = "A balanced meal for your family.";
+            meal.prepTime = 25;
+            meal.ingredients = [
+              "Protein",
+              "Vegetables",
+              "Starch",
+              "Seasonings"
+            ];
+        }
+        
+        dummyMeals.push(meal);
+      }
+    }
+    
+    return dummyMeals;
+  }
+  
+  // Standard response for other cases
   return [
     {
       id: `meal-${Date.now()}-1`,

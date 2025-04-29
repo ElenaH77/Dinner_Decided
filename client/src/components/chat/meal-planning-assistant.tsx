@@ -67,9 +67,29 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Context
-  const { members, equipment, preferences } = useHousehold();
-  const { currentPlan, setCurrentPlan } = useMealPlan();
+  // Context with fallbacks
+  let members = [];
+  let equipment = [];
+  let preferences = null;
+  let currentPlan = null;
+  let setCurrentPlan = () => {};
+  
+  try {
+    const householdData = useHousehold();
+    members = householdData.members || [];
+    equipment = householdData.equipment || [];
+    preferences = householdData.preferences || null;
+  } catch (error) {
+    console.error("Error accessing household context:", error);
+  }
+  
+  try {
+    const mealPlanContext = useMealPlan();
+    currentPlan = mealPlanContext?.currentPlan || null;
+    setCurrentPlan = mealPlanContext?.setCurrentPlan || (() => {});
+  } catch (error) {
+    console.error("Error accessing meal plan context:", error);
+  }
   
   // State
   const [step, setStep] = useState<'intro' | 'special' | 'meals' | 'generating'>('intro');
@@ -138,38 +158,63 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
       
       const mealCounts = Object.values(mealsByDay).flat().length;
       
-      // Create meal plan request
-      const response = await apiRequest('POST', '/api/meal-plan/generate', {
-        preferences: {
-          specialNotes,
-          mealsByDay,
-          mealCategories: selectedCategories,
-          numberOfMeals: mealCounts
-        },
-        weekStartDate: weekStart.toISOString(),
-        weekEndDate: weekEnd.toISOString(),
-      });
+      // Create meal plan request with timeout to handle long-running API calls
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
       
-      return response.json();
+      try {
+        const response = await apiRequest('POST', '/api/meal-plan/generate', {
+          preferences: {
+            specialNotes,
+            mealsByDay,
+            mealCategories: selectedCategories,
+            numberOfMeals: mealCounts
+          },
+          weekStartDate: weekStart.toISOString(),
+          weekEndDate: weekEnd.toISOString(),
+        }, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        return response.json();
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request took too long. The AI might be busy creating your perfect meal plan!');
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
-      setCurrentPlan(data);
-      queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
-      toast({
-        title: "Success!",
-        description: "Your meal plan has been created.",
-      });
-      onComplete();
+      if (data && data.meals && data.meals.length > 0) {
+        setCurrentPlan(data);
+        queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
+        toast({
+          title: "Success!",
+          description: "Your meal plan has been created.",
+        });
+        onComplete();
+      } else {
+        console.error("Received empty meal plan data:", data);
+        toast({
+          title: "Incomplete meal plan",
+          description: "We couldn't generate a complete meal plan. Please try again with different selections.",
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        setStep('meals');
+      }
     },
     onError: (error) => {
       console.error("Error generating meal plan:", error);
       toast({
         title: "Error",
-        description: "Failed to generate your meal plan. Please try again.",
+        description: error.message || "Failed to generate your meal plan. Please try again.",
         variant: "destructive",
       });
       setIsGenerating(false);
+      setStep('meals');
     }
   });
 
