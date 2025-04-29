@@ -21,8 +21,8 @@ export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   role: text("role").notNull(),
   content: text("content").notNull(),
-  timestamp: timestamp("timestamp").notNull(),
-  householdId: integer("household_id").references(() => households.id),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  householdId: integer("household_id").references(() => households.id).notNull(),
 });
 
 export const insertMessageSchema = createInsertSchema(messages);
@@ -34,7 +34,7 @@ export const mealPlans = pgTable("meal_plans", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   householdId: integer("household_id").references(() => households.id).notNull(),
-  createdAt: timestamp("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
   meals: jsonb("meals").notNull().$type<{
     id: string;
@@ -57,7 +57,7 @@ export const groceryLists = pgTable("grocery_lists", {
   id: serial("id").primaryKey(),
   mealPlanId: integer("meal_plan_id").references(() => mealPlans.id).notNull(),
   householdId: integer("household_id").references(() => households.id).notNull(),
-  createdAt: timestamp("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   sections: jsonb("sections").notNull().$type<{
     name: string;
     items: {

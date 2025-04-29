@@ -571,4 +571,157 @@ export class DatabaseStorage implements IStorage {
 }
 
 // Use database storage
-export const storage = new DatabaseStorage();
+// Initialize demo data before exporting storage
+const storage = new DatabaseStorage();
+
+// Seed function to add initial data to database if needed
+export async function seedInitialData() {
+  try {
+    // Check if we already have a household
+    const existingHousehold = await storage.getHousehold();
+    
+    if (!existingHousehold) {
+      // Create demo household
+      const household = await storage.createHousehold({
+        name: "Demo Family",
+        members: [
+          { id: "1", name: "Parent 1", age: "35" },
+          { id: "2", name: "Parent 2", age: "33" },
+          { id: "3", name: "Child", age: "8" }
+        ],
+        cookingSkill: 3,
+        preferences: "We try to have 2 vegetarian meals each week. Kids don't like spicy food. Everyone loves pasta and Mexican dishes.",
+        appliances: ["slowCooker", "instantPot", "ovenStovetop"]
+      });
+      
+      // Add welcome message
+      await storage.saveMessage({
+        id: "welcome",
+        role: "assistant",
+        content: "Welcome to Dinner, Decided! I'm your personal meal planning assistant. I'll help you create a flexible, personalized weekly dinner plan tailored to your family's needs.\n\nLet's get started with a few questions about your household. How many people are you cooking for?",
+        timestamp: new Date().toISOString(),
+        householdId: household.id
+      });
+      
+      // Create initial meal plan
+      const mealPlan = await storage.createMealPlan({
+        name: "Weekly Meal Plan",
+        householdId: household.id,
+        createdAt: new Date().toISOString(),
+        isActive: true,
+        meals: [
+          {
+            id: "meal1",
+            name: "Sheet Pan Chicken Fajitas",
+            description: "Perfect for a busy weeknight. Mexican-inspired, as your family enjoys, and can be prepared quickly on a sheet pan.",
+            categories: ["quick", "mexican", "kid-friendly"],
+            prepTime: 25,
+            servings: 4,
+            ingredients: [
+              "1.5 lbs chicken breast, sliced",
+              "2 bell peppers (red and green), sliced",
+              "1 large onion, sliced",
+              "2 tbsp olive oil",
+              "1 packet fajita seasoning",
+              "8 flour tortillas",
+              "Toppings: sour cream, avocado, salsa"
+            ]
+          },
+          {
+            id: "meal2",
+            name: "Creamy Vegetable Pasta",
+            description: "A vegetarian pasta dish that satisfies your family's love for pasta while incorporating seasonal vegetables.",
+            categories: ["vegetarian", "family favorite"],
+            prepTime: 30,
+            servings: 4,
+            ingredients: [
+              "1 lb pasta (penne or fusilli)",
+              "2 cups mixed vegetables (broccoli, carrots, peas)",
+              "1 cup heavy cream",
+              "1/2 cup grated parmesan cheese",
+              "2 cloves garlic, minced",
+              "2 tbsp olive oil",
+              "Salt and pepper to taste"
+            ]
+          },
+          {
+            id: "meal3",
+            name: "Instant Pot Beef Stew",
+            description: "Perfect for a busy day - quick to prepare in the Instant Pot. Mild flavor for the kids.",
+            categories: ["instantPot", "make ahead"],
+            prepTime: 45,
+            servings: 6,
+            ingredients: [
+              "1.5 lbs beef stew meat",
+              "4 carrots, chopped",
+              "2 potatoes, diced",
+              "1 onion, diced",
+              "2 cloves garlic, minced",
+              "2 cups beef broth",
+              "2 tbsp tomato paste",
+              "1 tsp thyme",
+              "Salt and pepper to taste"
+            ]
+          }
+        ]
+      });
+      
+      // Create initial grocery list
+      await storage.createGroceryList({
+        mealPlanId: mealPlan.id,
+        householdId: household.id,
+        createdAt: new Date().toISOString(),
+        sections: [
+          {
+            name: "Produce",
+            items: [
+              { id: "item1", name: "Bell peppers (red and green)", quantity: "4" },
+              { id: "item2", name: "Onions, yellow", quantity: "3" },
+              { id: "item3", name: "Carrots", quantity: "1 lb" },
+              { id: "item4", name: "Broccoli", quantity: "1 head" },
+              { id: "item5", name: "Potatoes", quantity: "2 large" },
+              { id: "item6", name: "Garlic", quantity: "1 head" }
+            ]
+          },
+          {
+            name: "Meat & Seafood",
+            items: [
+              { id: "item7", name: "Chicken breast", quantity: "1.5 lbs", mealId: "meal1" },
+              { id: "item8", name: "Beef stew meat", quantity: "1.5 lbs", mealId: "meal3" }
+            ]
+          },
+          {
+            name: "Dairy & Eggs",
+            items: [
+              { id: "item9", name: "Heavy cream", quantity: "1 cup", mealId: "meal2" },
+              { id: "item10", name: "Parmesan cheese", quantity: "8 oz", mealId: "meal2" },
+              { id: "item11", name: "Sour cream", quantity: "8 oz", mealId: "meal1" }
+            ]
+          },
+          {
+            name: "Pantry Staples",
+            items: [
+              { id: "item12", name: "Pasta (penne or fusilli)", quantity: "1 lb", mealId: "meal2" },
+              { id: "item13", name: "Olive oil", quantity: "1 bottle" },
+              { id: "item14", name: "Fajita seasoning", quantity: "1 packet", mealId: "meal1" },
+              { id: "item15", name: "Beef broth", quantity: "2 cups", mealId: "meal3" },
+              { id: "item16", name: "Tomato paste", quantity: "1 small can", mealId: "meal3" }
+            ]
+          },
+          {
+            name: "Bakery",
+            items: [
+              { id: "item17", name: "Flour tortillas", quantity: "1 package", mealId: "meal1" }
+            ]
+          }
+        ]
+      });
+      
+      console.log("Initial data seeded successfully");
+    }
+  } catch (error) {
+    console.error("Error seeding initial data:", error);
+  }
+}
+
+export { storage };
