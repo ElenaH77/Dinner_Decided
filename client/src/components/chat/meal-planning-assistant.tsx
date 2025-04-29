@@ -220,15 +220,11 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
           description: "Your meal plan has been created.",
         });
         
-        // Navigate to another page first, then back to meal-plan to force a full component refresh
+        // Force a more direct data reload to display the new meal plan
         setTimeout(() => {
-          window.location.href = '/grocery-list'; // First go to grocery list
-          
-          // Then after a brief delay, return to meal plan page
-          setTimeout(() => {
-            window.location.href = '/meal-plan';
-          }, 500);
-        }, 1000);
+          // Force a hard reload of the page to ensure all data is refreshed
+          window.location.href = window.location.pathname + '?reload=' + new Date().getTime();
+        }, 1500);
         
         onComplete();
       } else {

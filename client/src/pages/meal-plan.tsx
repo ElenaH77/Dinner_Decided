@@ -65,23 +65,30 @@ export default function MealPlan() {
     enabled: !!currentMealPlan || !!mealPlanApiData
   });
 
-  // Initialize meal plan from API data
+  // Initialize meal plan from API data and force a reload on query param change
   useEffect(() => {
-    if (mealPlanApiData && !currentMealPlan) {
+    if (mealPlanApiData && (!currentMealPlan || window.location.search.includes('reload'))) {
+      console.log("Setting meal plan from API data:", mealPlanApiData);
       setCurrentMealPlan(mealPlanApiData);
     }
   }, [mealPlanApiData, currentMealPlan, setCurrentMealPlan]);
 
   // Initialize meals from API data
   useEffect(() => {
-    if (mealsApiData && currentMealPlan) {
+    if (mealsApiData && (currentMealPlan || mealPlanApiData)) {
+      const mealPlanToUse = currentMealPlan || mealPlanApiData;
+      
+      if (!mealPlanToUse) return;
+      
       // Filter meals to only those in the current meal plan
+      console.log("Filtering meals from API data:", mealsApiData, "with meal plan:", mealPlanToUse);
       const planMeals = Array.isArray(mealsApiData) ? mealsApiData.filter((meal: Meal) => 
-        currentMealPlan.mealIds && currentMealPlan.mealIds.includes(meal.id)
+        mealPlanToUse.mealIds && mealPlanToUse.mealIds.includes(meal.id)
       ) : [];
+      console.log("Filtered meals:", planMeals);
       setMeals(planMeals);
     }
-  }, [mealsApiData, currentMealPlan, setMeals]);
+  }, [mealsApiData, currentMealPlan, mealPlanApiData, setMeals]);
 
   const isLoading = isMealPlanLoading || isMealsLoading;
 
