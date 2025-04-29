@@ -33,7 +33,16 @@ export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProp
   const category = meal.mealCategory || meal.category || '';
   
   // Process ingredients to extract quantities
-  const ingredients = parseIngredientsWithQuantities(ingredientStrings);
+  const ingredients = Array.isArray(ingredientStrings) ? 
+    // If ingredientStrings already has quantities (like "2 lbs ground beef"), use them directly
+    (ingredientStrings.some(ing => /^\d+\s*\w+\s+/.test(ing)) ? 
+      ingredientStrings.map(ing => ({ 
+        quantity: extractQuantity(ing), 
+        name: extractIngredientName(ing) 
+      })) : 
+      // Otherwise try to parse from simple strings
+      parseIngredientsWithQuantities(ingredientStrings)) 
+    : [];
   
   // Get cooking instructions/steps if they exist in any of the possible property names
   const instructions = meal.instructions || meal.steps || meal.cookingSteps || meal.cooking_steps || [];
@@ -41,6 +50,18 @@ export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProp
   // If there are no structured instructions, try to extract them from preparation tips
   // or create default instructions based on ingredients
   const hasInstructions = Array.isArray(instructions) && instructions.length > 0;
+  
+  // Helper functions to extract quantity and name from an ingredient string
+  function extractQuantity(ingredientStr: string): string {
+    // Extract quantity pattern (e.g., "2 lbs", "1/2 cup", "3 tablespoons")
+    const match = ingredientStr.match(/^([\d\/\.\s]+\s*(?:lb|lbs|cup|cups|tablespoon|tablespoons|tbsp|tsp|teaspoon|teaspoons|ounce|ounces|oz|gram|grams|g|kg|ml|l|pinch|dash|handful|clove|cloves|bunch|can|cans|package|packages|slice|slices|piece|pieces))\s+/i);
+    return match ? match[1] : '';
+  }
+  
+  function extractIngredientName(ingredientStr: string): string {
+    // Remove quantity from the beginning of the string
+    return ingredientStr.replace(/^([\d\/\.\s]+\s*(?:lb|lbs|cup|cups|tablespoon|tablespoons|tbsp|tsp|teaspoon|teaspoons|ounce|ounces|oz|gram|grams|g|kg|ml|l|pinch|dash|handful|clove|cloves|bunch|can|cans|package|packages|slice|slices|piece|pieces))\s+/i, '');
+  }
   
   // Create default instructions if none exist
   const defaultInstructions = !hasInstructions ? generateDefaultInstructions(ingredientStrings, prepTips) : [];

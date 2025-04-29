@@ -357,8 +357,14 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           - prepTime: preparation time in minutes (similar to original)
           - mealCategory: same category as the original
           - mealPrepTips: preparation tips for the modified recipe
-          - mainIngredients: array of ingredients for the modified recipe
+          - mainIngredients: array of ingredients WITH QUANTITIES (e.g., "1 lb ground turkey", "2 cups pasta")
+          - instructions: array of step-by-step cooking instructions (at least 5-7 detailed steps)
           - appropriateDay: same as the original recipe day
+          
+          IMPORTANT NOTES:
+          - Every ingredient MUST include specific quantities (e.g., "1 lb", "2 cups", "3 tablespoons")
+          - The cooking instructions must be detailed and complete, explaining the entire cooking process from start to finish
+          - Instructions should be in order and assume the reader needs guidance on all steps
           `
         },
         {
@@ -417,8 +423,14 @@ export async function replaceMeal(meal: any): Promise<any> {
           - prepTime: preparation time in minutes (similar to original)
           - mealCategory: same category as the original
           - mealPrepTips: helpful preparation tips specific to this new recipe
-          - mainIngredients: array of ingredients for the new recipe (should be different from original)
+          - mainIngredients: array of ingredients WITH QUANTITIES (e.g., "1 lb ground turkey", "2 cups pasta") 
+          - instructions: array of step-by-step cooking instructions (at least 5-7 detailed steps)
           - appropriateDay: same as the original recipe day
+          
+          IMPORTANT NOTES:
+          - Every ingredient MUST include specific quantities (e.g., "1 lb", "2 cups", "3 tablespoons")
+          - The cooking instructions must be detailed and complete, explaining the entire cooking process from start to finish
+          - Instructions should be in order and assume the reader needs guidance on all steps
           `
         },
         {
