@@ -337,6 +337,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cooking preferences routes
+  app.post("/api/cooking-preferences", async (req, res) => {
+    try {
+      const household = await storage.getHousehold();
+      
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
+      }
+      
+      // Update the household with the new preferences
+      const updatedHousehold = await storage.updateHousehold({
+        ...household,
+        cookingSkill: req.body.confidenceLevel,
+        preferences: JSON.stringify({
+          weekdayCookingTime: req.body.weekdayCookingTime,
+          weekendCookingStyle: req.body.weekendCookingStyle,
+          preferredCuisines: req.body.preferredCuisines,
+          location: req.body.location
+        })
+      });
+      
+      // Return a mock preferences object for now
+      res.json({
+        id: 1,
+        userId: 1,
+        confidenceLevel: req.body.confidenceLevel,
+        weekdayCookingTime: req.body.weekdayCookingTime,
+        weekendCookingStyle: req.body.weekendCookingStyle,
+        preferredCuisines: req.body.preferredCuisines,
+        location: req.body.location
+      });
+    } catch (error) {
+      console.error("Error saving household profile:", error);
+      res.status(500).json({ message: "Failed to save household profile" });
+    }
+  });
+  
+  app.put("/api/cooking-preferences/:id", async (req, res) => {
+    try {
+      const household = await storage.getHousehold();
+      
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
+      }
+      
+      // Update the household with the new preferences
+      const updatedHousehold = await storage.updateHousehold({
+        ...household,
+        cookingSkill: req.body.confidenceLevel,
+        preferences: JSON.stringify({
+          weekdayCookingTime: req.body.weekdayCookingTime,
+          weekendCookingStyle: req.body.weekendCookingStyle,
+          preferredCuisines: req.body.preferredCuisines,
+          location: req.body.location
+        })
+      });
+      
+      // Return a mock preferences object
+      res.json({
+        id: parseInt(req.params.id),
+        userId: 1,
+        confidenceLevel: req.body.confidenceLevel,
+        weekdayCookingTime: req.body.weekdayCookingTime,
+        weekendCookingStyle: req.body.weekendCookingStyle,
+        preferredCuisines: req.body.preferredCuisines,
+        location: req.body.location
+      });
+    } catch (error) {
+      console.error("Error updating cooking preferences:", error);
+      res.status(500).json({ message: "Failed to update cooking preferences" });
+    }
+  });
+
   // Grocery list routes
   app.get("/api/grocery-list/current", async (req, res) => {
     try {

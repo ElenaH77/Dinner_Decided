@@ -236,13 +236,13 @@ export default function HouseholdProfile() {
       }
       
       toast({
-        title: "Preferences saved",
-        description: "Your cooking preferences have been updated."
+        title: "Profile saved",
+        description: "Your household profile has been updated."
       });
     } catch (error) {
       toast({
-        title: "Failed to save preferences",
-        description: "There was an error saving your cooking preferences.",
+        title: "Failed to save profile",
+        description: "There was an error saving your household profile.",
         variant: "destructive"
       });
     }
