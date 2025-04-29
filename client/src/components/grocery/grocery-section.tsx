@@ -12,9 +12,10 @@ import { apiRequest } from '@/lib/queryClient';
 
 interface GrocerySectionProps {
   department: GroceryDepartment;
+  onItemCheck?: (item: GroceryItem, isChecked: boolean) => void;
 }
 
-export default function GrocerySection({ department }: GrocerySectionProps) {
+export default function GrocerySection({ department, onItemCheck }: GrocerySectionProps) {
   const [items, setItems] = useState(department.items);
   
   // Update items when department changes
@@ -28,6 +29,11 @@ export default function GrocerySection({ department }: GrocerySectionProps) {
       setItems(items.map(i => 
         i.id === item.id ? { ...i, isChecked: checked } : i
       ));
+      
+      // Notify parent component about check state change
+      if (onItemCheck) {
+        onItemCheck(item, checked);
+      }
       
       // Update in backend
       await apiRequest('PUT', `/api/grocery-items/${item.id}`, {

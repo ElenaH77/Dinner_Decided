@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,12 @@ import GrocerySection from '@/components/grocery/grocery-section';
 import { useToast } from '@/hooks/use-toast';
 import { GroceryDepartment, GroceryItem } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
-import { PrinterIcon, Share2Icon, Search, Plus, FileText } from 'lucide-react';
+import { PrinterIcon, Share2Icon, Search, Plus, FileText, RefreshCw, Copy, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function GroceryList() {
   const { toast } = useToast();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   
   const [mealPlan, setMealPlan] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +21,9 @@ export default function GroceryList() {
   const [newItemName, setNewItemName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [recentlyCheckedItems, setRecentlyCheckedItems] = useState<GroceryItem[]>([]);
+  const [showPlainTextDialog, setShowPlainTextDialog] = useState(false);
+  const [plainTextList, setPlainTextList] = useState('');
 
   // Load the meal plan from localStorage
   useEffect(() => {
@@ -84,8 +89,88 @@ export default function GroceryList() {
       depts.sort((a, b) => a.name.localeCompare(b.name));
       
       setDepartments(depts);
+      
+      // Also clear the recently checked items when we load a new list
+      setRecentlyCheckedItems([]);
     }
   }, [groceryList]);
+  
+  // Function to handle item check state changes
+  const handleItemCheck = (item: GroceryItem, isChecked: boolean) => {
+    // If item is being checked, add to recently checked items
+    if (isChecked) {
+      setRecentlyCheckedItems(prev => [...prev, item]);
+    } else {
+      // If item is being unchecked, remove from recently checked
+      setRecentlyCheckedItems(prev => {
+        // Find if this exact item is in recently checked
+        const itemIndex = prev.findIndex(i => i.id === item.id);
+        if (itemIndex >= 0) {
+          // Remove only this instance
+          return [...prev.slice(0, itemIndex), ...prev.slice(itemIndex + 1)];
+        }
+        return prev;
+      });
+    }
+  };
+  
+  // Function to reset all checked items
+  const resetCheckedItems = () => {
+    // Create a copy of departments with all items unchecked
+    const resetDepts = departments.map(dept => ({
+      ...dept,
+      items: dept.items.map(item => ({
+        ...item,
+        isChecked: false
+      }))
+    }));
+    
+    setDepartments(resetDepts);
+    setRecentlyCheckedItems([]);
+    
+    // Notify user
+    toast({
+      title: "List reset",
+      description: "All checked items have been reset."
+    });
+  };
+  
+  // Function to generate plain text version of the grocery list
+  const generatePlainText = () => {
+    let text = "GROCERY LIST\n\n";
+    
+    // Group by department
+    departments.forEach(dept => {
+      // Skip empty departments
+      if (dept.items.length === 0) return;
+      
+      // Only include unchecked items
+      const uncheckedItems = dept.items.filter(item => !item.isChecked);
+      if (uncheckedItems.length === 0) return;
+      
+      text += `${dept.name.toUpperCase()}\n`;
+      uncheckedItems.forEach(item => {
+        text += `- ${item.name}\n`;
+      });
+      text += "\n";
+    });
+    
+    setPlainTextList(text);
+    setShowPlainTextDialog(true);
+  };
+  
+  // Function to copy plain text to clipboard
+  const copyToClipboard = () => {
+    if (textAreaRef.current) {
+      textAreaRef.current.select();
+      document.execCommand('copy');
+      
+      toast({
+        title: "Copied to clipboard",
+        description: "Your grocery list has been copied."
+      });
+    }
+  };
 
   // Generate grocery list from meals
   const generateGroceryList = async () => {
@@ -227,7 +312,25 @@ export default function GroceryList() {
       
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-neutral-text">Grocery List</h2>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+            onClick={resetCheckedItems}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+            onClick={generatePlainText}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Text
+          </Button>
           <Button variant="outline" size="sm" className="flex items-center">
             <PrinterIcon className="h-4 w-4 mr-2" />
             Print
@@ -274,8 +377,37 @@ export default function GroceryList() {
 
           {/* Grocery Sections */}
           {filteredDepartments.map((dept) => (
-            <GrocerySection key={dept.name} department={dept} />
+            <GrocerySection key={dept.name} department={dept} onItemCheck={handleItemCheck} />
           ))}
+          
+          {/* Recently Checked Off Items */}
+          {recentlyCheckedItems.length > 0 && (
+            <div className="mt-8 border-t pt-6">
+              <div className="flex items-center mb-4">
+                <h3 className="text-lg font-medium">Recently Checked Off</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="ml-2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setRecentlyCheckedItems([])}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <ul className="space-y-2">
+                  {recentlyCheckedItems.map((item, index) => (
+                    <li key={`${item.id}-${index}`} className="flex items-center text-sm text-gray-600">
+                      <span className="mr-2">•</span>
+                      <span>{item.name}</span>
+                      <span className="text-xs text-gray-400 ml-2">({item.department})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm p-8 text-center">
@@ -321,6 +453,34 @@ export default function GroceryList() {
       
       {/* Add padding at the bottom to prevent content from being hidden behind the fixed Add Item section */}
       {departments.length > 0 && <div className="h-20"></div>}
+      
+      {/* Plain Text Export Dialog */}
+      <Dialog open={showPlainTextDialog} onOpenChange={setShowPlainTextDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Plain Text Grocery List</DialogTitle>
+            <DialogDescription>
+              Copy this text to paste into other shopping apps.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2">
+            <div className="grid flex-1 gap-2">
+              <textarea 
+                ref={textAreaRef}
+                className="w-full rounded-md border border-gray-300 p-3 h-48 text-sm"
+                value={plainTextList}
+                readOnly
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button variant="default" onClick={copyToClipboard}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
