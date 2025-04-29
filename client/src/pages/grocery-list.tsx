@@ -98,20 +98,48 @@ export default function GroceryList() {
   
   // Function to handle item check state changes
   const handleItemCheck = (item: GroceryItem, isChecked: boolean) => {
-    // If item is being checked, add to recently checked items
+    // Update the departments state directly to reflect changes
+    const updatedDepts = departments.map(dept => {
+      // If this is the department containing the item
+      if (dept.name === item.department) {
+        // Update the items in this department
+        const updatedItems = dept.items.map(i => 
+          i.id === item.id ? { ...i, isChecked: isChecked } : i
+        );
+        return { ...dept, items: updatedItems };
+      }
+      return dept;
+    });
+    
+    // Apply the departments update
+    setDepartments(updatedDepts);
+    
+    // Update the backend state to persist changes
+    try {
+      apiRequest('PUT', `/api/grocery-items/${item.id}`, {
+        isChecked: isChecked
+      }).catch(error => {
+        console.error("Error updating grocery item:", error);
+      });
+    } catch (error) {
+      console.error("Error updating grocery item:", error);
+    }
+    
+    // If item is being checked, add to recently checked items (if not already there)
     if (isChecked) {
-      setRecentlyCheckedItems(prev => [...prev, item]);
-    } else {
-      // If item is being unchecked, remove from recently checked
       setRecentlyCheckedItems(prev => {
-        // Find if this exact item is in recently checked
-        const itemIndex = prev.findIndex(i => i.id === item.id);
-        if (itemIndex >= 0) {
-          // Remove only this instance
-          return [...prev.slice(0, itemIndex), ...prev.slice(itemIndex + 1)];
+        // Only add if this item isn't already in the list
+        const exists = prev.some(i => i.id === item.id);
+        if (!exists) {
+          return [...prev, {...item, isChecked: true}];
         }
         return prev;
       });
+    } else {
+      // If item is being unchecked, remove from recently checked
+      setRecentlyCheckedItems(prev => 
+        prev.filter(i => i.id !== item.id)
+      );
     }
   };
   
@@ -416,27 +444,14 @@ export default function GroceryList() {
                         id={`checked-item-${item.id}-${index}`}
                         checked={true}
                         onCheckedChange={() => {
-                          // Uncheck this item by finding it in the main list and toggling it
-                          const updatedDepts = departments.map(dept => {
-                            if (dept.name === item.department) {
-                              const deptItems = dept.items.map(i => 
-                                i.id === item.id ? { ...i, isChecked: false } : i
-                              );
-                              return { ...dept, items: deptItems };
-                            }
-                            return dept;
-                          });
-                          setDepartments(updatedDepts);
+                          // Create a copy of the item with isChecked set to false for the handler
+                          const uncheckedItem = { ...item, isChecked: false };
                           
-                          // Also update backend
-                          apiRequest('PUT', `/api/grocery-items/${item.id}`, {
-                            isChecked: false
-                          }).catch(error => {
-                            console.error("Error updating grocery item:", error);
-                          });
-                          
-                          // Remove from recently checked
-                          handleItemCheck(item, false);
+                          // Call our item check handler which will:
+                          // 1. Update the departments state
+                          // 2. Remove from recently checked items
+                          // 3. Make the API call
+                          handleItemCheck(uncheckedItem, false);
                         }}
                         className="mt-0.5 mr-2"
                       />
