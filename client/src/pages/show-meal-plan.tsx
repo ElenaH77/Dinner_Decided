@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { RefreshCcw, Edit } from 'lucide-react';
+import { RefreshCcw, Edit, ShoppingCart, FileText } from 'lucide-react';
 import { modifyMeal, replaceMeal } from '@/lib/meal-ai';
 
 // Meal category icons mapping
@@ -357,6 +357,30 @@ export default function ShowMealPlan() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl min-h-screen">
+      {/* Fixed Action Buttons - Always Visible */}
+      <div className="sticky top-4 z-10 mb-6 flex justify-center">
+        <div className="bg-white rounded-full shadow-md px-4 py-2 flex gap-3">
+          <Button
+            onClick={() => {
+              window.location.href = '/grocery-list';
+            }}
+            className="bg-teal-primary hover:bg-teal-dark text-white"
+            size="sm"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              window.location.href = '/meal-plan';
+            }}
+            size="sm"
+          >
+            <FileText className="w-4 h-4 mr-2" /> Back to Meal Plan
+          </Button>
+        </div>
+      </div>
+      
       <div className="bg-white rounded-lg shadow-md p-6 mb-6" style={{ maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
         <h1 className="text-2xl font-bold mb-4">
           Your Meal Plan
