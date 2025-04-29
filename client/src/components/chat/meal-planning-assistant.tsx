@@ -246,7 +246,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
             </p>
             <Button 
               onClick={() => setStep('special')} 
-              className="bg-teal-primary hover:bg-teal-light text-white font-semibold py-2 px-6 rounded-md text-lg shadow-md"
+              className="bg-[#21706D] hover:bg-[#2a8c88] text-white font-semibold py-2 px-6 rounded-md text-lg shadow-md"
               size="lg"
             >
               Let's Get Started

@@ -139,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mealPlan = await storage.createMealPlan({
         name: "Weekly Meal Plan",
         householdId: household.id,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         isActive: true,
         specialNotes: specialNotes || "",
         meals: generatedMeals,
@@ -308,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       groceryList = await storage.createGroceryList({
         mealPlanId,
         householdId,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         sections: generatedList
       });
     }
