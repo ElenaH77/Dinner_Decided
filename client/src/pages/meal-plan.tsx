@@ -262,6 +262,50 @@ export default function MealPlan() {
             )}
           </div>
 
+          {/* Add direct localStorage rescue button */}
+          {!meals || meals.length === 0 ? (
+            <div className="mb-6">
+              <Button
+                onClick={() => {
+                  // Try to load directly from localStorage
+                  try {
+                    const savedPlan = localStorage.getItem('current_meal_plan');
+                    if (savedPlan) {
+                      const parsedPlan = JSON.parse(savedPlan);
+                      console.log("Found plan in localStorage:", parsedPlan);
+                      
+                      if (parsedPlan?.meals?.length > 0) {
+                        setCurrentMealPlan(parsedPlan);
+                        setMeals(parsedPlan.meals);
+                        
+                        toast({
+                          title: "Plan loaded from backup",
+                          description: `Recovered your meal plan with ${parsedPlan.meals.length} meals.`
+                        });
+                        return;
+                      }
+                    }
+                    toast({
+                      title: "No saved plan found",
+                      description: "We couldn't find a previously saved meal plan.",
+                      variant: "destructive"
+                    });
+                  } catch (e) {
+                    console.error("Error loading from localStorage:", e);
+                    toast({
+                      title: "Error loading plan",
+                      description: "There was a problem loading your saved meal plan.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white mb-4"
+              >
+                Recover Last Meal Plan
+              </Button>
+            </div>
+          ) : null}
+
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin h-8 w-8 border-4 border-teal-primary border-t-transparent rounded-full mx-auto mb-4"></div>
