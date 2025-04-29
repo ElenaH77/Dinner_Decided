@@ -261,11 +261,11 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
           console.error("Failed to update meal plan context/localStorage:", error);
         }
         
-        // Force a full page reload to ensure all contexts are correctly refreshed
+        // Navigate directly to the debug page which bypasses context issues
         setTimeout(() => {
-          console.log("Forcing page reload to refresh meal plan...");
-          // Use reload instead of navigation to ensure context is fully refreshed
-          window.location.reload();
+          console.log("Redirecting to debug meal plan page...");
+          // Redirect to our special debug page that loads directly from localStorage
+          window.location.href = '/show-meal-plan';
         }, 2000);
         
         onComplete();

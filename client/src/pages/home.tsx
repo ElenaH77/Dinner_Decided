@@ -16,7 +16,7 @@ export default function Home() {
   // If there's an active meal plan, redirect to it
   useEffect(() => {
     if (currentMealPlan) {
-      navigate('/meals');
+      navigate('/show-meal-plan');
     }
   }, [currentMealPlan, navigate]);
 
@@ -30,9 +30,9 @@ export default function Home() {
         <Button 
           size="lg" 
           className="bg-teal-primary hover:bg-teal-light text-white"
-          onClick={() => navigate('/meals')}
+          onClick={() => navigate('/show-meal-plan')}
         >
-          Start Planning This Week's Meals
+          View This Week's Meals
         </Button>
       </section>
 

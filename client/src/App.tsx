@@ -8,6 +8,7 @@ import Onboarding from "@/pages/onboarding";
 import ChatOnboarding from "@/pages/chat-onboarding";
 import TestErrorHandling from "@/pages/test-error-handling";
 import NotFound from "@/pages/not-found";
+import ShowMealPlan from "@/pages/show-meal-plan";
 import { useEffect } from "react";
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
             <Route path="/grocery" component={GroceryList} />
             <Route path="/profile" component={Profile} />
             <Route path="/test-errors" component={TestErrorHandling} />
+            <Route path="/show-meal-plan" component={ShowMealPlan} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
