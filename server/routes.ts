@@ -242,6 +242,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get current grocery list" });
     }
   });
+  
+  app.get("/api/grocery-list/by-meal-plan/:mealPlanId", async (req, res) => {
+    try {
+      const mealPlanId = parseInt(req.params.mealPlanId, 10);
+      if (isNaN(mealPlanId)) {
+        return res.status(400).json({ message: "Invalid meal plan ID" });
+      }
+      
+      const groceryList = await storage.getGroceryListByMealPlanId(mealPlanId);
+      if (!groceryList) {
+        return res.status(404).json({ message: "Grocery list not found for this meal plan" });
+      }
+      
+      res.json(groceryList);
+    } catch (error) {
+      console.error("Error getting grocery list by meal plan ID:", error);
+      res.status(500).json({ message: "Failed to get grocery list" });
+    }
+  });
 
   app.post("/api/grocery-list/generate", async (req, res) => {
     try {

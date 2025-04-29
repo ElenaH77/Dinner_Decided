@@ -51,12 +51,13 @@ export type MealPlan = {
 };
 
 export type GroceryItem = {
-  id: number;
-  mealPlanId: number;
+  id: string | number;
   name: string;
   department: string;
   isChecked: boolean;
-  relatedMealId?: number;
+  relatedMealId?: string | number;
+  mealPlanId?: number;
+  quantity?: string;
 };
 
 export type ChatMessage = {

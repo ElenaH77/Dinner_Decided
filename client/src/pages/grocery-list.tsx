@@ -49,35 +49,43 @@ export default function GroceryList() {
     }
   }, [toast]);
 
-  // Get grocery items if we have a meal plan
-  const { data: groceryItems, isLoading: isLoadingItems } = useQuery({
-    queryKey: ['/api/meal-plans', mealPlan?.id, 'grocery-items'],
+  // Get grocery list if we have a meal plan
+  const { data: groceryList, isLoading: isLoadingItems } = useQuery({
+    queryKey: ['/api/grocery-list/by-meal-plan', mealPlan?.id],
+    queryFn: async () => {
+      if (!mealPlan?.id) return null;
+      try {
+        const response = await apiRequest('GET', `/api/grocery-list/by-meal-plan/${mealPlan.id}`);
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching grocery list:", error);
+        return null;
+      }
+    },
     enabled: !!mealPlan?.id
   });
 
-  // Organize grocery items by department
+  // Process grocery list data when it loads
   useEffect(() => {
-    if (groceryItems && Array.isArray(groceryItems)) {
-      const deptMap = new Map<string, GroceryItem[]>();
-      
-      groceryItems.forEach((item: GroceryItem) => {
-        if (!deptMap.has(item.department)) {
-          deptMap.set(item.department, []);
-        }
-        deptMap.get(item.department)!.push(item);
-      });
-      
-      const deptArray: GroceryDepartment[] = [];
-      deptMap.forEach((items, name) => {
-        deptArray.push({ name, items });
-      });
+    if (groceryList && groceryList.sections) {
+      // Convert server format to our local format
+      const depts: GroceryDepartment[] = groceryList.sections.map(section => ({
+        name: section.name,
+        items: section.items.map(item => ({
+          id: item.id,
+          name: item.name,
+          isChecked: item.isChecked || false,
+          department: section.name,
+          relatedMealId: item.mealId
+        }))
+      }));
       
       // Sort departments alphabetically
-      deptArray.sort((a, b) => a.name.localeCompare(b.name));
+      depts.sort((a, b) => a.name.localeCompare(b.name));
       
-      setDepartments(deptArray);
+      setDepartments(depts);
     }
-  }, [groceryItems]);
+  }, [groceryList]);
 
   // Generate grocery list from meals
   const generateGroceryList = async () => {
