@@ -173,6 +173,7 @@ export default function ChatOnboarding() {
       case 'challenges':
         userResponse = inputValue;
         setChallenges(inputValue);
+        console.log('Setting challenges to:', inputValue);
         break;
       default:
         userResponse = inputValue;
@@ -254,6 +255,7 @@ export default function ChatOnboarding() {
             
             // Log what's being saved
             console.log('Saving household data:', JSON.stringify(householdData, null, 2));
+            console.log('Debug - Challenges state before saving:', challenges);
             
             apiRequest('POST', '/api/household', householdData)
             .then(() => {
