@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -7,48 +7,63 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ShoppingBasket } from 'lucide-react';
+import { GroceryDepartment, GroceryItem } from '@/lib/types';
+import { apiRequest } from '@/lib/queryClient';
 
 interface GrocerySectionProps {
-  title: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity?: string;
-    checked?: boolean;
-    mealId?: string;
-  }>;
-  onToggleItem: (itemId: string, checked: boolean) => void;
+  department: GroceryDepartment;
 }
 
-export default function GrocerySection({ title, items, onToggleItem }: GrocerySectionProps) {
+export default function GrocerySection({ department }: GrocerySectionProps) {
+  const [items, setItems] = useState(department.items);
+
+  const handleToggleItem = async (item: GroceryItem, checked: boolean) => {
+    try {
+      // Update local state for immediate UI feedback
+      setItems(items.map(i => 
+        i.id === item.id ? { ...i, isChecked: checked } : i
+      ));
+      
+      // Update in backend
+      await apiRequest('PUT', `/api/grocery-items/${item.id}`, {
+        isChecked: checked
+      });
+    } catch (error) {
+      console.error("Error updating grocery item:", error);
+      // Revert state on error
+      setItems(items.map(i => 
+        i.id === item.id ? { ...i, isChecked: !checked } : i
+      ));
+    }
+  };
+
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
+    <Card className="mb-4 border border-gray-200">
+      <CardHeader className="pb-2 border-b">
         <CardTitle className="text-md font-medium flex items-center">
           <ShoppingBasket className="h-5 w-5 mr-2 text-teal-primary" />
-          {title}
+          {department.name}
           <span className="ml-2 text-sm font-normal text-neutral-text">
             ({items.length})
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <ul className="space-y-2">
+      <CardContent className="pt-4">
+        <ul className="space-y-3">
           {items.map(item => (
-            <li key={item.id} className="flex items-start">
+            <li key={item.id} className="flex items-start gap-2">
               <Checkbox 
                 id={`item-${item.id}`} 
-                checked={item.checked} 
-                onCheckedChange={(checked) => onToggleItem(item.id, !!checked)}
-                className="mt-1 mr-2"
+                checked={item.isChecked} 
+                onCheckedChange={(checked) => handleToggleItem(item, !!checked)}
+                className="mt-0.5 mr-1"
               />
               <div className="flex-1">
                 <label 
                   htmlFor={`item-${item.id}`} 
-                  className={`text-sm ${item.checked ? 'line-through text-neutral-gray' : ''}`}
+                  className={`text-sm cursor-pointer ${item.isChecked ? 'line-through text-gray-400' : 'text-gray-800'}`}
                 >
                   {item.name}
-                  {item.quantity && <span className="text-neutral-text ml-1">({item.quantity})</span>}
                 </label>
               </div>
             </li>
