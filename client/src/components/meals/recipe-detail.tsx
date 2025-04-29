@@ -17,15 +17,23 @@ interface RecipeDetailProps {
   onClose: () => void;
 }
 
+interface Ingredient {
+  quantity: string;
+  name: string;
+}
+
 export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProps) {
   if (!meal) return null;
 
   // Handle different property name structures
-  const ingredients = meal.mainIngredients || meal.main_ingredients || meal.ingredients || [];
+  const ingredientStrings = meal.mainIngredients || meal.main_ingredients || meal.ingredients || [];
   const prepTips = meal.mealPrepTips || meal.meal_prep_tips || meal.prepTips || '';
   const prepTime = meal.prepTime || meal.prep_time || 0;
   const servingSize = meal.servingSize || meal.serving_size || 3;
   const category = meal.mealCategory || meal.category || '';
+  
+  // Process ingredients to extract quantities
+  const ingredients = parseIngredientsWithQuantities(ingredientStrings);
   
   // Get cooking instructions/steps if they exist in any of the possible property names
   const instructions = meal.instructions || meal.steps || meal.cookingSteps || meal.cooking_steps || [];
@@ -35,7 +43,28 @@ export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProp
   const hasInstructions = Array.isArray(instructions) && instructions.length > 0;
   
   // Create default instructions if none exist
-  const defaultInstructions = !hasInstructions ? generateDefaultInstructions(ingredients, prepTips) : [];
+  const defaultInstructions = !hasInstructions ? generateDefaultInstructions(ingredientStrings, prepTips) : [];
+  
+  // Parse ingredients to extract quantities and names
+  function parseIngredientsWithQuantities(ingredientStrings: string[]): Ingredient[] {
+    return ingredientStrings.map(ingredient => {
+      // Try to identify if there's a quantity at the beginning (like "2 cups flour" or "1/2 lb chicken")
+      const quantityMatch = ingredient.match(/^([\d\/\.\s]+\s*(?:cup|cups|tablespoon|tablespoons|tbsp|tsp|teaspoon|teaspoons|lb|pound|pounds|g|gram|grams|oz|ounce|ounces|ml|liter|liters|pinch|dash|handful|slice|slices|clove|cloves|head|bunch|can|cans|package|packages|box|boxes))?\s*(.*)/i);
+      
+      if (quantityMatch && quantityMatch[1]) {
+        return {
+          quantity: quantityMatch[1].trim(),
+          name: quantityMatch[2].trim()
+        };
+      }
+      
+      // If no specific quantity found, return the ingredient as the name with empty quantity
+      return {
+        quantity: '',
+        name: ingredient
+      };
+    });
+  }
   
   // Function to generate basic instructions from ingredients and prep tips
   function generateDefaultInstructions(ingredients: string[], prepTips: string): string[] {
@@ -95,8 +124,14 @@ export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProp
             <ChefHat className="h-5 w-5 mr-2" /> Ingredients
           </h3>
           <ul className="list-disc pl-6 mb-6 space-y-1.5">
-            {ingredients.map((ingredient: string, idx: number) => (
-              <li key={idx} className="text-gray-800">{ingredient}</li>
+            {ingredients.map((ingredient, idx) => (
+              <li key={idx} className="text-gray-800">
+                {ingredient.quantity && (
+                  <span className="font-medium">{ingredient.quantity}</span>
+                )}
+                {ingredient.quantity && " "}
+                {ingredient.name}
+              </li>
             ))}
           </ul>
         </div>
