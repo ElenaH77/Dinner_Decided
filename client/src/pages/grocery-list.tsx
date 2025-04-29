@@ -290,12 +290,16 @@ export default function GroceryList() {
   };
 
   // Filter displayed departments based on search and department filter
+  // Only show items that are NOT checked in the main list
   const filteredDepartments = departments.map(dept => {
     const filteredItems = dept.items.filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      // Only include items that match search term AND are not checked
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+      !item.isChecked
     );
     return { ...dept, items: filteredItems };
   }).filter(dept => 
+    // Only include departments that match filter AND have unchecked items
     (department === 'all' || dept.name === department) && dept.items.length > 0
   );
 

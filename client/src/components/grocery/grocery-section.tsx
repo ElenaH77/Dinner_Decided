@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Card, 
   CardContent, 
@@ -16,17 +16,14 @@ interface GrocerySectionProps {
 }
 
 export default function GrocerySection({ department, onItemCheck }: GrocerySectionProps) {
-  // Filter out checked items for display
-  const uncheckedItems = department.items.filter(item => !item.isChecked);
-  
   const handleToggleItem = async (item: GroceryItem, checked: boolean) => {
     try {
-      // Notify parent component about check state change
+      // First notify parent component about check state change for immediate UI update
       if (onItemCheck) {
         onItemCheck(item, checked);
       }
       
-      // Update in backend
+      // Then update in backend
       await apiRequest('PUT', `/api/grocery-items/${item.id}`, {
         isChecked: checked
       });
@@ -42,31 +39,35 @@ export default function GrocerySection({ department, onItemCheck }: GrocerySecti
           <ShoppingBasket className="h-5 w-5 mr-2 text-teal-primary" />
           {department.name}
           <span className="ml-2 text-sm font-normal text-neutral-text">
-            ({uncheckedItems.length})
+            ({department.items.length})
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <ul className="space-y-3">
-          {uncheckedItems.map(item => (
-            <li key={item.id} className="flex items-start gap-2">
-              <Checkbox 
-                id={`item-${item.id}`} 
-                checked={false}
-                onCheckedChange={(checked) => handleToggleItem(item, !!checked)}
-                className="mt-0.5 mr-1"
-              />
-              <div className="flex-1">
-                <label 
-                  htmlFor={`item-${item.id}`} 
-                  className="text-sm cursor-pointer text-gray-800"
-                >
-                  {item.name}
-                </label>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {department.items.length > 0 ? (
+          <ul className="space-y-3">
+            {department.items.map(item => (
+              <li key={item.id} className="flex items-start gap-2">
+                <Checkbox 
+                  id={`item-${item.id}`} 
+                  checked={false}
+                  onCheckedChange={(checked) => handleToggleItem(item, !!checked)}
+                  className="mt-0.5 mr-1"
+                />
+                <div className="flex-1">
+                  <label 
+                    htmlFor={`item-${item.id}`} 
+                    className="text-sm cursor-pointer text-gray-800"
+                  >
+                    {item.name}
+                  </label>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500 italic">No items in this category</p>
+        )}
       </CardContent>
     </Card>
   );
