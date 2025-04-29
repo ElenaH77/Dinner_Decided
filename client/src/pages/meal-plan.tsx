@@ -242,6 +242,30 @@ export default function MealPlan() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
+      {/* Fixed Action Buttons - Always Visible */}
+      <div className="sticky top-4 z-10 mb-6 flex justify-center">
+        <div className="bg-white rounded-full shadow-md px-4 py-2 flex gap-3">
+          <Button
+            onClick={() => {
+              window.location.href = '/grocery-list';
+            }}
+            className="bg-teal-primary hover:bg-teal-dark text-white"
+            size="sm"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              window.location.href = '/show-meal-plan';
+            }}
+            size="sm"
+          >
+            <FileText className="w-4 h-4 mr-2" /> View Full Recipes
+          </Button>
+        </div>
+      </div>
+
       <Tabs defaultValue="meals" value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="border-b border-neutral-gray w-full justify-start mb-6">
           <TabsTrigger value="meals" className="text-neutral-text data-[state=active]:text-teal-primary data-[state=active]:border-b-2 data-[state=active]:border-teal-primary">

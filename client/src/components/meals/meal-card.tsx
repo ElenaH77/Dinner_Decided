@@ -119,24 +119,14 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
       </CardContent>
       
       <CardFooter>
-        {onViewDetails ? (
-          <Button 
-            variant="outline" 
-            onClick={() => onViewDetails(meal.id)}
-            className="w-full"
-          >
-            View Details
-          </Button>
-        ) : (
-          <Button 
-            variant="outline" 
-            onClick={() => setRecipeDialogOpen(true)}
-            className="w-full"
-          >
-            <FileText className="h-4 w-4 mr-2" /> 
-            Full Recipe
-          </Button>
-        )}
+        <Button 
+          variant="outline" 
+          onClick={() => setRecipeDialogOpen(true)}
+          className="w-full"
+        >
+          <FileText className="h-4 w-4 mr-2" /> 
+          Full Recipe
+        </Button>
       </CardFooter>
       
       {/* Recipe Detail Dialog */}
