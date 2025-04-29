@@ -214,11 +214,37 @@ export default function HouseholdProfile() {
     }
   };
 
+  // Update cuisines list when preferences change
+  useEffect(() => {
+    if (preferences?.preferredCuisines) {
+      setSelectedCuisines(preferences.preferredCuisines);
+    }
+  }, [preferences]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="animate-spin h-12 w-12 border-4 border-teal-primary border-t-transparent rounded-full mb-4"></div>
+          <h3 className="text-xl font-medium text-neutral-text">Loading household data...</h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-neutral-text">Household Profile</h2>
         <p className="text-neutral-text mt-2">Customize your information to get more personalized meal suggestions.</p>
+        <Button 
+          variant="outline"
+          size="sm"
+          onClick={refreshHouseholdData}
+          className="mt-2"
+        >
+          Refresh Data
+        </Button>
       </div>
 
       {/* Household Members Section */}
