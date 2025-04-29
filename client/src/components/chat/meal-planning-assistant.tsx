@@ -230,11 +230,29 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
     },
     onError: (error: any) => {
       console.error("Error generating meal plan:", error);
+      
+      // Check if we have a structured error response with helpText
+      let errorMessage = "Failed to generate your meal plan. Please try again.";
+      let helpText = "";
+      
+      if (error?.data) {
+        errorMessage = error.data.message || errorMessage;
+        helpText = error.data.helpText || "";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error?.message || "Failed to generate your meal plan. Please try again.",
+        description: (
+          <div>
+            <p>{errorMessage}</p>
+            {helpText && <p className="mt-2 text-sm font-medium">{helpText}</p>}
+          </div>
+        ),
         variant: "destructive",
       });
+      
       setIsGenerating(false);
       setStep('meals');
     }

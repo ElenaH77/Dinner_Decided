@@ -52,6 +52,39 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
     
   } catch (error) {
     console.error("Error generating chat response:", error);
+    
+    // Check for specific OpenAI API errors
+    if (error && typeof error === 'object') {
+      // Handle OpenAI error object types
+      if ('error' in error && typeof error.error === 'object' && error.error !== null) {
+        const openaiError = error.error as Record<string, unknown>;
+        if ('type' in openaiError && typeof openaiError.type === 'string' && openaiError.type === 'insufficient_quota') {
+          return "I'm sorry, but your OpenAI API quota has been exceeded. Please update your API key or try again later.";
+        }
+      }
+      
+      // Handle status code errors
+      if ('code' in error && error.code === 'insufficient_quota') {
+        return "I'm sorry, but your OpenAI API quota has been exceeded. Please update your API key or try again later.";
+      } else if ('status' in error && error.status === 429) {
+        return "I'm experiencing high demand right now. Please try again in a few minutes.";
+      } else if ('status' in error && (error.status === 401 || error.status === 403)) {
+        return "There's an authentication issue with your AI service. Please check your API key.";
+      }
+      
+      // Also check for error message strings
+      if ('message' in error && typeof error.message === 'string') {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('exceeded your current quota')) {
+          return "I'm sorry, but your OpenAI API quota has been exceeded. Please update your API key or try again later.";
+        } else if (errorMessage.includes('rate limit')) {
+          return "I'm experiencing high demand right now. Please try again in a few minutes.";
+        } else if (errorMessage.includes('authentication') || errorMessage.includes('invalid api key')) {
+          return "There's an authentication issue with your AI service. Please check your API key.";
+        }
+      }
+    }
+    
     return "I'm sorry, I'm having trouble connecting to my knowledge base. Please try again later.";
   }
 }

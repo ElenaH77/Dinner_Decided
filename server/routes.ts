@@ -153,13 +153,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("[MEAL PLAN] Error generating meal plan:", error);
       
       // Check for specific error messages that should be shown to the user
-      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && (
-        error.message.includes('OpenAI API quota exceeded') ||
-        error.message.includes('API rate limit exceeded') ||
-        error.message.includes('API authentication error')
-      )) {
-        // Pass the OpenAI-specific error message to the client
-        res.status(500).json({ message: error.message });
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+        if (error.message.includes('OpenAI API quota exceeded')) {
+          // Quota exceeded error
+          res.status(500).json({ 
+            message: error.message,
+            helpText: "You need to upgrade your OpenAI API plan or wait until your quota refreshes."
+          });
+        } else if (error.message.includes('API rate limit exceeded')) {
+          // Rate limit error
+          res.status(500).json({ 
+            message: error.message,
+            helpText: "Please wait a few minutes before trying again."
+          });
+        } else if (error.message.includes('API authentication error') || error.message.includes('invalid api key')) {
+          // Authentication error
+          res.status(500).json({ 
+            message: "OpenAI API authentication error. Please check your API key.",
+            helpText: "You need to provide a valid OpenAI API key in the environment variables."
+          });
+        } else {
+          // Pass the OpenAI-specific error message to the client
+          res.status(500).json({ message: error.message });
+        }
       } else {
         // Generic error message for other issues
         res.status(500).json({ message: "Failed to generate meal plan" });
