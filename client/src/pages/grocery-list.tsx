@@ -8,7 +8,7 @@ import GrocerySection from '@/components/grocery/grocery-section';
 import { useToast } from '@/hooks/use-toast';
 import { GroceryDepartment, GroceryItem } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
-import { PrinterIcon, Share2Icon, Search, Plus, FileText, RefreshCw, Copy, X } from 'lucide-react';
+import { Search, Plus, FileText, RefreshCw, Copy, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function GroceryList() {
@@ -371,14 +371,6 @@ export default function GroceryList() {
           >
             <Copy className="h-4 w-4 mr-2" />
             Text
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center">
-            <PrinterIcon className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center">
-            <Share2Icon className="h-4 w-4 mr-2" />
-            Share
           </Button>
         </div>
       </div>
