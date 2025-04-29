@@ -240,8 +240,8 @@ export default function HouseholdProfile() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
-      <div className="sticky top-4 z-10 mb-6 bg-white rounded-lg shadow-sm p-4">
+    <div className="container mx-auto px-4 sm:px-6 py-6 pb-24 max-w-6xl overflow-y-auto h-full">
+      <div className="sticky top-0 z-20 mb-6 bg-white rounded-lg shadow-sm p-4">
         <div className="flex flex-wrap items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-neutral-text">Household Profile</h2>
