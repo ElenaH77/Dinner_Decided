@@ -11,7 +11,7 @@ import { HouseholdMember } from '@/lib/types';
 interface MemberCardProps {
   member: HouseholdMember;
   onUpdate: (member: HouseholdMember) => void;
-  onRemove: (id: number) => void;
+  onRemove: (id: string | number) => void;
 }
 
 export default function MemberCard({ member, onUpdate, onRemove }: MemberCardProps) {

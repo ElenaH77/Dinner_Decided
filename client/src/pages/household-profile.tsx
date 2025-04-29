@@ -87,16 +87,22 @@ export default function HouseholdProfile() {
     }
   };
 
-  const removeMember = async (id: number) => {
+  const removeMember = async (id: string | number) => {
     try {
       await apiRequest('DELETE', `/api/household-members/${id}`);
-      setMembers(members.filter(member => member.id !== id));
+      
+      // Update local state
+      setMembers(members.filter(member => String(member.id) !== String(id)));
       
       toast({
         title: "Member removed",
         description: "The household member has been removed."
       });
+      
+      // Refresh household data to ensure consistency
+      await refreshHouseholdData();
     } catch (error) {
+      console.error('Error removing member:', error);
       toast({
         title: "Failed to remove member",
         description: "There was an error removing the household member.",
@@ -108,13 +114,19 @@ export default function HouseholdProfile() {
   const updateMember = async (member: HouseholdMember) => {
     try {
       await apiRequest('PUT', `/api/household-members/${member.id}`, member);
-      setMembers(members.map(m => m.id === member.id ? member : m));
+      
+      // Update local state
+      setMembers(members.map(m => String(m.id) === String(member.id) ? member : m));
       
       toast({
         title: "Member updated",
         description: `${member.name}'s information has been updated.`
       });
+      
+      // Refresh household data to ensure consistency
+      await refreshHouseholdData();
     } catch (error) {
+      console.error('Error updating member:', error);
       toast({
         title: "Failed to update member",
         description: "There was an error updating the household member.",
