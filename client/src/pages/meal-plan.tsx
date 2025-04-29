@@ -74,11 +74,29 @@ export default function MealPlan() {
     enabled: !!currentMealPlan || !!mealPlanApiData
   });
 
-  // Initialize meal plan from API data and force a reload on query param change
+  // Check for direct localStorage data on mount
   useEffect(() => {
-    if (mealPlanApiData && (!currentMealPlan || window.location.search.includes('reload'))) {
-      console.log("Setting meal plan from API data:", mealPlanApiData);
-      setCurrentMealPlan(mealPlanApiData);
+    try {
+      // First try to load directly from localStorage
+      const storedPlan = localStorage.getItem('current_meal_plan');
+      if (storedPlan) {
+        const parsedPlan = JSON.parse(storedPlan);
+        console.log("Found meal plan in localStorage:", parsedPlan);
+        
+        if (parsedPlan && parsedPlan.id) {
+          console.log("Setting meal plan from localStorage");
+          setCurrentMealPlan(parsedPlan);
+          return;
+        }
+      }
+      
+      // Fall back to API data
+      if (mealPlanApiData && (!currentMealPlan || window.location.search.includes('t'))) {
+        console.log("Setting meal plan from API data:", mealPlanApiData);
+        setCurrentMealPlan(mealPlanApiData);
+      }
+    } catch (error) {
+      console.error("Error loading meal plan from localStorage:", error);
     }
   }, [mealPlanApiData, currentMealPlan, setCurrentMealPlan]);
 

@@ -223,24 +223,35 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         // Get the meal plan data directly from the response
         const mealPlanData = data.mealPlan || data;
         
-        // Try to update the context directly if possible
+        // Save directly to localStorage as a backup mechanism
         try {
+          console.log("Saving meal plan data directly to localStorage:", mealPlanData);
+          
+          // Save the full data including meals
+          const fullPlanData = {
+            ...mealPlanData,
+            meals: data.meals || []
+          };
+          
+          // Save to localStorage with a direct key
+          localStorage.setItem('current_meal_plan', JSON.stringify(fullPlanData));
+          console.log("Successfully saved meal plan to localStorage");
+          
+          // Try to update the context as well
           const mealPlanContext = useMealPlan();
           if (mealPlanContext && mealPlanContext.setCurrentPlan) {
-            console.log("Setting meal plan directly in context:", mealPlanData);
-            mealPlanContext.setCurrentPlan({
-              ...mealPlanData,
-              meals: data.meals || []
-            });
+            console.log("Updating meal plan context directly");
+            mealPlanContext.setCurrentPlan(fullPlanData);
           }
         } catch (error) {
-          console.error("Failed to update meal plan context directly:", error);
+          console.error("Failed to update meal plan context/localStorage:", error);
         }
         
-        // Force a hard reload with a delay to ensure the API has time to update
+        // Force a redirect with a delay to ensure the localStorage is updated
         setTimeout(() => {
-          window.location.href = '/meal-plan?reload=' + new Date().getTime();
-        }, 1500);
+          console.log("Redirecting to meal plan page...");
+          window.location.href = '/this-week?t=' + new Date().getTime();
+        }, 2000);
         
         onComplete();
       } else {

@@ -23,6 +23,7 @@ interface MealPlanContextType {
 }
 
 const STORAGE_KEY = 'meal_plan_cache';
+const DIRECT_STORAGE_KEY = 'current_meal_plan';
 
 const MealPlanContext = createContext<MealPlanContextType | undefined>(undefined);
 
@@ -32,6 +33,8 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   
   // Wrapper to handle both basic and extended meal plans
   const setCurrentPlan = (plan: ExtendedMealPlan | any) => {
+    if (!plan) return;
+    
     console.log("Setting current plan in context:", plan);
     
     // Process the plan to ensure it has the right structure
@@ -50,17 +53,55 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // Save to state
     setCurrentPlanState(processedPlan);
     
-    // Save to local storage for persistence
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(processedPlan));
+    // Save to both local storage locations for persistence and redundancy
+    try {
+      console.log("Saving processed plan to localStorage:", processedPlan);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(processedPlan));
+      localStorage.setItem(DIRECT_STORAGE_KEY, JSON.stringify(processedPlan));
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
   };
 
-  // Load from API or local storage on mount
+  // Load from localStorage or API on mount
   useEffect(() => {
     const loadMealPlan = async () => {
       try {
         setIsLoading(true);
         
-        // Try to load from API first
+        console.log("Loading meal plan on context initialization");
+        
+        // First try the direct storage key (used by the meal planning assistant)
+        const directStored = localStorage.getItem(DIRECT_STORAGE_KEY);
+        if (directStored) {
+          try {
+            const parsedPlan = JSON.parse(directStored);
+            console.log("Loaded meal plan from direct storage:", parsedPlan);
+            if (parsedPlan && parsedPlan.id) {
+              setCurrentPlan(parsedPlan);
+              return;
+            }
+          } catch (e) {
+            console.error("Error parsing direct stored meal plan:", e);
+          }
+        }
+        
+        // Then try the regular cache
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (cached) {
+          try {
+            const parsedPlan = JSON.parse(cached);
+            console.log("Loaded meal plan from cache:", parsedPlan);
+            if (parsedPlan && parsedPlan.id) {
+              setCurrentPlan(parsedPlan);
+              return;
+            }
+          } catch (e) {
+            console.error("Error parsing cached meal plan:", e);
+          }
+        }
+        
+        // Finally try to load from API
         const response = await apiRequest('GET', '/api/users/1/meal-plans/current');
         if (response.ok) {
           const data = await response.json();
@@ -69,16 +110,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
           // If we have a valid meal plan, set it
           if (data && data.id) {
             setCurrentPlan(data);
-            return;
           }
-        }
-        
-        // Fall back to local storage if API fails or returns no data
-        const cached = localStorage.getItem(STORAGE_KEY);
-        if (cached) {
-          const parsedPlan = JSON.parse(cached);
-          console.log("Loaded meal plan from cache:", parsedPlan);
-          setCurrentPlan(parsedPlan);
         }
       } catch (error) {
         console.error("Error loading meal plan:", error);
