@@ -275,13 +275,20 @@ export default function MealPlan() {
                       console.log("Found plan in localStorage:", parsedPlan);
                       
                       if (parsedPlan?.meals?.length > 0) {
-                        setCurrentMealPlan(parsedPlan);
+                        // Force immediate UI update with state
                         setMeals(parsedPlan.meals);
+                        setCurrentMealPlan(parsedPlan);
                         
+                        // Force page refresh to ensure everything is updated
                         toast({
                           title: "Plan loaded from backup",
                           description: `Recovered your meal plan with ${parsedPlan.meals.length} meals.`
                         });
+                        
+                        // Force a page reload for guaranteed rendering
+                        setTimeout(() => {
+                          window.location.reload();
+                        }, 1500);
                         return;
                       }
                     }
