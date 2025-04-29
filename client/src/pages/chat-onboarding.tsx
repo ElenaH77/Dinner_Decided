@@ -178,8 +178,8 @@ export default function ChatOnboarding() {
         userResponse = inputValue;
     }
     
-    // Add the user's message to the chat
-    if (userResponse) {
+    // Add the user's message to the chat, except for equipment
+    if (userResponse && question.id !== 'equipment') {
       addUserMessage(userResponse);
     }
     
@@ -282,14 +282,44 @@ export default function ChatOnboarding() {
   
   // Handle skill level selection
   const handleSkillSelection = (option: string) => {
+    // Set the skill level immediately
     setSkillLevel(option);
     
-    // Auto-submit after selection with proper error handling
+    // Auto-submit after a longer delay to ensure state updates
     setTimeout(() => {
       try {
-        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+        // Use a direct message addition approach rather than form submission
+        const userMessageId = `user-${Date.now()}`;
+        
+        // Add user response to chat
+        setMessages(prev => [...prev, {
+          id: userMessageId,
+          role: 'user',
+          content: option
+        }]);
+        
+        // Add assistant response
+        const responseId = `response-${Date.now()}`;
+        setMessages(prev => [...prev, {
+          id: responseId,
+          role: 'assistant',
+          content: ONBOARDING_RESPONSES.skill_response(option)
+        }]);
+        
+        // Move to next question
+        setCurrentStep(prevStep => prevStep + 1);
+        
+        // After a delay, show the next question
+        setTimeout(() => {
+          if (currentStep < ONBOARDING_QUESTIONS.length - 1) {
+            addQuestion(currentStep + 1);
+          } else {
+            // We're at the end, show completion message
+            addCompletionMessage();
+          }
+        }, 1000);
       } catch (error) {
-        console.error("Error submitting skill selection:", error);
+        console.error("Error processing skill selection:", error);
         toast({
           title: "Error",
           description: "Something went wrong. Please try again.",

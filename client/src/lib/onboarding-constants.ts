@@ -71,7 +71,7 @@ export const ONBOARDING_RESPONSES = {
       ? `I understand - ${challenges} can definitely make meal planning tougher. I'll work on suggestions that help overcome these challenges.`
       : `Thanks for sharing your thoughts on meal planning challenges. I'll design a meal plan that simplifies your dinner routine.`,
   
-  complete: "Thanks for sharing all that information! I have everything I need to start creating personalized meal plans for you. Let's get cooking!"
+  complete: "Let's get cooking!"
 };
 
 // Emoji mapping for different categories
