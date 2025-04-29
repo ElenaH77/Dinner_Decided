@@ -30,25 +30,25 @@ const MEAL_CATEGORIES: MealCategory[] = [
   {
     id: 'quick',
     name: 'Quick & Easy',
-    description: '15 minutes or less - rotisserie chicken magic, simple assembly meals',
+    description: 'Done in 15-20 minutes. Perfect for "we just got home and everyone is starving."',
     icon: '⚡'
   },
   {
     id: 'weeknight',
     name: 'Weeknight Meals',
-    description: 'About 30 minutes, kid-friendly, standard dinner fare',
+    description: '30 min or less. Familiar and no-fuss.',
     icon: '🍽️'
   },
   {
     id: 'batch',
     name: 'Batch Cooking',
-    description: 'Larger meals meant to create leftovers for multiple meals',
+    description: 'Make extra to eat again later. Ideal for slower days.',
     icon: '📦'
   },
   {
     id: 'split',
     name: 'Split Prep',
-    description: 'Meals that allow you to do prep the night before or morning of',
+    description: 'Start early, finish fast. Great for crazy evenings.',
     icon: '⏰'
   }
 ];
@@ -331,29 +331,66 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         {/* Meal Selection */}
         {step === 'meals' && (
           <div className="ai-bubble conversation-bubble bg-gray-50 p-6 rounded-lg border border-gray-100 shadow-sm">
-            <h3 className="text-xl font-semibold mb-3">Choose meals for each day</h3>
-            <p className="mb-4">
-              Select the type of meal you want for each day of the week. You can leave days empty if you plan to eat out or use leftovers.
+            <h3 className="text-2xl font-semibold mb-3">Pick what kind of dinner makes sense for each night.</h3>
+            <p className="mb-6 text-gray-700">
+              Don't overthink it—just go with your gut. Leave days blank
+              if you're planning to eat out, have leftovers, or want to decide later. This is just a starting point.
             </p>
             
+            {/* Collapsible meal type descriptions */}
+            <div className="mb-6 border border-gray-200 rounded-lg p-4">
+              <button 
+                className="flex items-center gap-2 w-full justify-between"
+                onClick={() => setShowDescriptions(!showDescriptions)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600 text-xl">?</span>
+                  <span className="font-medium">Not sure what the meal types mean?</span>
+                </div>
+                <span>{showDescriptions ? "Hide" : "Show"} Meal Type Descriptions {showDescriptions ? "↑" : "↓"}</span>
+              </button>
+              
+              {showDescriptions && (
+                <div className="mt-4 space-y-2 pt-3 border-t border-gray-200">
+                  {MEAL_CATEGORIES.map((category) => (
+                    <div key={category.id} className="flex items-start gap-2">
+                      <span className="text-xl">{category.icon}</span>
+                      <div>
+                        <span className="font-medium">{category.name}</span>
+                        <span className="text-gray-600"> — {category.description}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Meal selection table */}
             <div className="my-6">
-              <Table>
+              <Table className="border-collapse border-spacing-0">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Day</TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                     {MEAL_CATEGORIES.map((category) => (
                       <TableHead key={category.id} className="text-center">
                         <div className="flex flex-col items-center">
-                          <span>{category.name}</span>
                           <span className="text-xl">{category.icon}</span>
                         </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                  <TableRow className="border-b border-gray-200">
+                    <TableHead className="w-[100px]"></TableHead>
+                    {MEAL_CATEGORIES.map((category) => (
+                      <TableHead key={`title-${category.id}`} className="text-center text-xs pb-2">
+                        {category.name}
                       </TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {DAYS_OF_WEEK.map((day) => (
-                    <TableRow key={day}>
+                    <TableRow key={day} className="border-b border-gray-200">
                       <TableCell className="font-medium">{day}</TableCell>
                       {MEAL_CATEGORIES.map((category) => (
                         <TableCell key={`${day}-${category.id}`} className="text-center">
@@ -362,6 +399,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
                               id={`${day}-${category.id}`}
                               checked={(mealsByDay[day] || []).includes(category.id)}
                               onCheckedChange={() => handleCategorySelect(category.id, day)}
+                              className="h-5 w-5 border-2"
                             />
                           </div>
                         </TableCell>
@@ -372,22 +410,38 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
               </Table>
             </div>
 
-            <div className="mt-4">
+            {/* Summary */}
+            <div className="mb-6">
               <h4 className="font-semibold mb-2">Summary</h4>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-col gap-1">
                 {MEAL_CATEGORIES.map((category) => (
-                  <div key={category.id} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                    <span className="mr-1">{category.icon}</span> 
+                  <div key={category.id} className="flex items-center gap-2">
+                    <span className="text-xl">{category.icon}</span>
                     <span>{category.name}: {selectedCategories[category.id] || 0}</span>
                   </div>
                 ))}
               </div>
             </div>
             
-            <div className="mt-4">
+            {/* Special notes section */}
+            <div className="mb-6">
+              <h4 className="font-semibold mb-2">Anything else I need to know?</h4>
+              <p className="text-sm text-gray-600 mb-2">
+                Optional: Add any special considerations like dietary needs, ingredients to use up, or days you'll be out.
+              </p>
+              <Input
+                value={specialNotes}
+                onChange={(e) => setSpecialNotes(e.target.value)}
+                placeholder="E.g., We have asparagus to use up, no cooking Tuesday..."
+                className="mb-3"
+              />
+            </div>
+            
+            {/* Generate button */}
+            <div className="mt-6">
               <Button 
                 onClick={handleGenerateMealPlan}
-                className="bg-teal-primary hover:bg-teal-light text-white font-semibold py-2 px-6 rounded-md shadow-md"
+                className="bg-[#21706D] hover:bg-[#2a8c88] text-white font-semibold py-2 px-6 rounded-md shadow-md w-full sm:w-auto"
                 size="lg"
                 disabled={Object.keys(mealsByDay).length === 0}
               >
