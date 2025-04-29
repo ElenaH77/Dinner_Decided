@@ -190,7 +190,8 @@ export default function HouseholdProfile() {
           confidenceLevel,
           weekdayCookingTime,
           weekendCookingStyle,
-          preferredCuisines: selectedCuisines
+          preferredCuisines: selectedCuisines,
+          location: zipCode
         });
       } else {
         // Otherwise create new preferences
@@ -200,7 +201,7 @@ export default function HouseholdProfile() {
           weekdayCookingTime,
           weekendCookingStyle,
           preferredCuisines: selectedCuisines,
-          location: ''
+          location: zipCode
         });
         
         const newPreferences = await response.json();
