@@ -264,12 +264,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/grocery-list/generate", async (req, res) => {
     try {
-      const { mealPlanId } = req.body;
+      const { mealPlanId, empty } = req.body;
       const mealPlan = await storage.getMealPlan(mealPlanId);
       const household = await storage.getHousehold();
       
       if (!mealPlan) {
         return res.status(404).json({ message: "Meal plan not found" });
+      }
+      
+      if (empty) {
+        // Clear the grocery list
+        // Check if a list already exists
+        let groceryList = await storage.getGroceryListByMealPlanId(mealPlanId);
+        
+        if (groceryList) {
+          // Update with empty sections
+          groceryList = await storage.updateGroceryList(groceryList.id, {
+            ...groceryList,
+            sections: []
+          });
+        } else {
+          // Create a new empty list
+          groceryList = await storage.createGroceryList({
+            mealPlanId,
+            householdId: household.id,
+            createdAt: new Date(),
+            sections: []
+          });
+        }
+        
+        return res.json(groceryList);
       }
       
       // Generate grocery list

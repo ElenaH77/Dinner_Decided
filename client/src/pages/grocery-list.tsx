@@ -114,25 +114,34 @@ export default function GroceryList() {
     }
   };
   
-  // Function to reset all checked items
-  const resetCheckedItems = () => {
-    // Create a copy of departments with all items unchecked
-    const resetDepts = departments.map(dept => ({
-      ...dept,
-      items: dept.items.map(item => ({
-        ...item,
-        isChecked: false
-      }))
-    }));
+  // Function to completely empty the grocery list
+  const resetCheckedItems = async () => {
+    if (!mealPlan?.id) return;
     
-    setDepartments(resetDepts);
-    setRecentlyCheckedItems([]);
-    
-    // Notify user
-    toast({
-      title: "List reset",
-      description: "All checked items have been reset."
-    });
+    try {
+      // Clear the departments locally
+      setDepartments([]);
+      setRecentlyCheckedItems([]);
+      
+      // Call API to clear the list on the server
+      await apiRequest('POST', '/api/grocery-list/generate', {
+        mealPlanId: mealPlan.id,
+        empty: true
+      });
+      
+      // Notify user
+      toast({
+        title: "List reset",
+        description: "Your grocery list has been completely cleared."
+      });
+    } catch (error) {
+      console.error("Error resetting grocery list:", error);
+      toast({
+        title: "Error",
+        description: "Could not reset your grocery list. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   // Function to generate plain text version of the grocery list
