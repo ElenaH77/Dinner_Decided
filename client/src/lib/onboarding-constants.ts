@@ -48,22 +48,28 @@ export const ONBOARDING_RESPONSES = {
   welcome: "Hi there! I'm your personal meal planning assistant. Let me ask you a few quick questions so I can create meal plans that work perfectly for your household.",
   
   household_response: (details: string) => 
-    `Got it! I'll plan meals appropriate for ${details}. This helps me suggest the right portion sizes and kid-friendly options when needed.`,
+    `Got it! I'll plan meals appropriate for ${details || 'your household'}. This helps me suggest the right portion sizes and kid-friendly options when needed.`,
   
   dietary_response: (restrictions: string) => 
-    `Thanks for letting me know about ${restrictions}. I'll make sure to keep these preferences in mind when suggesting meals.`,
+    `Thanks for letting me know about ${restrictions || 'your dietary preferences'}. I'll make sure to keep these preferences in mind when suggesting meals.`,
   
   equipment_response: (equipment: string[]) => 
-    `Great! I'll suggest recipes that work with your ${equipment.join(', ')}. This helps me recommend meals you can actually make with what you have.`,
+    equipment && equipment.length > 0 
+      ? `Great! I'll suggest recipes that work with your ${equipment.join(', ')}. This helps me recommend meals you can actually make with what you have.`
+      : `Thanks for letting me know about your kitchen setup. I'll focus on simple recipes that don't require specialized equipment.`,
   
   skill_response: (level: string) => 
     `Perfect! I'll make sure to suggest recipes that match your comfort level: ${level}.`,
   
   location_response: (zipCode: string) => 
-    `Thanks! I'll consider seasonal ingredients and weather patterns in your area (${zipCode}) when planning your meals.`,
+    zipCode
+      ? `Thanks! I'll consider seasonal ingredients and weather patterns in your area (${zipCode}) when planning your meals.`
+      : `Thanks! I'll consider seasonal ingredients when planning your meals.`,
   
   challenges_response: (challenges: string) => 
-    `I understand - ${challenges} can definitely make meal planning tougher. I'll work on suggestions that help overcome these challenges.`,
+    challenges
+      ? `I understand - ${challenges} can definitely make meal planning tougher. I'll work on suggestions that help overcome these challenges.`
+      : `Thanks for sharing your thoughts on meal planning challenges. I'll design a meal plan that simplifies your dinner routine.`,
   
   complete: "Thanks for sharing all that information! I have everything I need to start creating personalized meal plans for you. Let's get cooking!"
 };
