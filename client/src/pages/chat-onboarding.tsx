@@ -124,6 +124,9 @@ export default function ChatOnboarding() {
     setIsComplete(true);
   };
   
+  // Reference to directly capture challenge text
+  const challengeTextRef = useRef('');
+  
   // Store direct values for completion
   const [finalChallenges, setFinalChallenges] = useState('');
 
@@ -178,7 +181,10 @@ export default function ChatOnboarding() {
         setChallenges(inputValue);
         // Store in a separate state variable that won't be affected by timing issues
         setFinalChallenges(inputValue);
+        // Store in ref for direct access that's not affected by React's async state updates
+        challengeTextRef.current = inputValue;
         console.log('Setting challenges to:', inputValue);
+        console.log('Directly setting challengeTextRef.current to:', inputValue);
         break;
       default:
         userResponse = inputValue;
@@ -253,7 +259,7 @@ export default function ChatOnboarding() {
                             skillLevel === "I enjoy it when I have time" ? 3 : 
                             skillLevel === "I can follow a recipe" ? 2 : 1,
               preferences: dietary || "No special dietary preferences",
-              challenges: finalChallenges || "None specified",
+              challenges: challengeTextRef.current || "None specified",
               location: location || "Unknown",
               appliances: equipment
             };
