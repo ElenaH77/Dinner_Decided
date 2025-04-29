@@ -14,8 +14,34 @@ import { PlusCircle } from 'lucide-react';
 
 export default function MealPlan() {
   const { toast } = useToast();
-  const { members, equipment, preferences } = useHousehold();
-  const { currentMealPlan, setCurrentMealPlan, meals, setMeals } = useMealPlan();
+  
+  // Use dummy values if context throws errors
+  let members = [];
+  let equipment = [];
+  let preferences = null;
+  let currentMealPlan = null;
+  let setCurrentMealPlan = () => {};
+  let meals = [];
+  let setMeals = () => {};
+  
+  try {
+    const householdData = useHousehold();
+    members = householdData.members;
+    equipment = householdData.equipment;
+    preferences = householdData.preferences;
+  } catch (error) {
+    console.error("Error accessing household context:", error);
+  }
+  
+  try {
+    const mealPlanContext = useMealPlan();
+    currentMealPlan = mealPlanContext.currentPlan;
+    setCurrentMealPlan = mealPlanContext.setCurrentPlan;
+    meals = mealPlanContext.currentPlan?.meals || [];
+    setMeals = mealPlanContext.addMeal;
+  } catch (error) {
+    console.error("Error accessing meal plan context:", error);
+  }
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTab, setSelectedTab] = useState<string>('meals');
@@ -27,34 +53,34 @@ export default function MealPlan() {
   const weekDateRange = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
 
   // Get meal plan data if it exists
-  const { data: mealPlanData, isLoading: isMealPlanLoading } = useQuery({
+  const { data: mealPlanApiData, isLoading: isMealPlanLoading } = useQuery({
     queryKey: ['/api/users/1/meal-plans/current'],
     enabled: !currentMealPlan
   });
 
   // Get meals data if we have a meal plan
-  const { data: mealsData, isLoading: isMealsLoading } = useQuery({
+  const { data: mealsApiData, isLoading: isMealsLoading } = useQuery({
     queryKey: ['/api/users/1/meals'],
-    enabled: !!currentMealPlan || !!mealPlanData
+    enabled: !!currentMealPlan || !!mealPlanApiData
   });
 
   // Initialize meal plan from API data
   useEffect(() => {
-    if (mealPlanData && !currentMealPlan) {
-      setCurrentMealPlan(mealPlanData);
+    if (mealPlanApiData && !currentMealPlan) {
+      setCurrentMealPlan(mealPlanApiData);
     }
-  }, [mealPlanData, currentMealPlan, setCurrentMealPlan]);
+  }, [mealPlanApiData, currentMealPlan, setCurrentMealPlan]);
 
   // Initialize meals from API data
   useEffect(() => {
-    if (mealsData && currentMealPlan) {
+    if (mealsApiData && currentMealPlan) {
       // Filter meals to only those in the current meal plan
-      const planMeals = mealsData.filter((meal: Meal) => 
-        currentMealPlan.mealIds.includes(meal.id)
-      );
+      const planMeals = Array.isArray(mealsApiData) ? mealsApiData.filter((meal: Meal) => 
+        currentMealPlan.mealIds && currentMealPlan.mealIds.includes(meal.id)
+      ) : [];
       setMeals(planMeals);
     }
-  }, [mealsData, currentMealPlan, setMeals]);
+  }, [mealsApiData, currentMealPlan, setMeals]);
 
   const isLoading = isMealPlanLoading || isMealsLoading;
 
