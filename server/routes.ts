@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered meal modification endpoints
   app.post("/api/meal/modify", async (req, res) => {
     try {
-      const { meal, modificationRequest } = req.body;
+      const { meal, modificationRequest, mealPlanId } = req.body;
       
       if (!meal || !modificationRequest) {
         return res.status(400).json({ error: 'Meal data and modification request are required' });
@@ -376,6 +376,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use OpenAI to modify the meal
       const modifiedMeal = await modifyMeal(meal, modificationRequest);
+      
+      // Update the grocery list if we have a meal plan ID
+      if (mealPlanId) {
+        try {
+          // Get the household ID for the grocery list
+          const household = await storage.getHousehold();
+          
+          if (household) {
+            console.log(`[MEAL] Updating grocery list for meal plan ${mealPlanId} after meal modification`);
+            
+            // Check if a grocery list already exists for this meal plan
+            const existingList = await storage.getGroceryListByMealPlanId(mealPlanId);
+            
+            if (existingList) {
+              // We have an existing list, so regenerate it with the modified meal
+              await generateAndSaveGroceryList(mealPlanId, household.id);
+              console.log(`[MEAL] Successfully regenerated grocery list for meal plan ${mealPlanId}`);
+            }
+          }
+        } catch (groceryError) {
+          // Log but don't fail the whole request if grocery list regeneration fails
+          console.error('Error updating grocery list after meal modification:', groceryError);
+        }
+      }
       
       res.status(200).json(modifiedMeal);
     } catch (error) {
@@ -401,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered meal replacement endpoint
   app.post("/api/meal/replace", async (req, res) => {
     try {
-      const { meal } = req.body;
+      const { meal, mealPlanId } = req.body;
       
       if (!meal) {
         return res.status(400).json({ error: 'Meal data is required' });
@@ -411,6 +435,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use OpenAI to generate a replacement meal
       const replacementMeal = await replaceMeal(meal);
+      
+      // Update the grocery list if we have a meal plan ID
+      if (mealPlanId) {
+        try {
+          // Get the household ID for the grocery list
+          const household = await storage.getHousehold();
+          
+          if (household) {
+            console.log(`[MEAL] Updating grocery list for meal plan ${mealPlanId} after meal replacement`);
+            
+            // Check if a grocery list already exists for this meal plan
+            const existingList = await storage.getGroceryListByMealPlanId(mealPlanId);
+            
+            if (existingList) {
+              // We have an existing list, so regenerate it with the replaced meal
+              await generateAndSaveGroceryList(mealPlanId, household.id);
+              console.log(`[MEAL] Successfully regenerated grocery list for meal plan ${mealPlanId}`);
+            }
+          }
+        } catch (groceryError) {
+          // Log but don't fail the whole request if grocery list regeneration fails
+          console.error('Error updating grocery list after meal replacement:', groceryError);
+        }
+      }
       
       res.status(200).json(replacementMeal);
     } catch (error) {

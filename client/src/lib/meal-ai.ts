@@ -3,12 +3,19 @@ import { apiRequest } from './queryClient';
 /**
  * Modify a meal based on user requirements
  */
-export async function modifyMeal(meal: any, modificationRequest: string): Promise<any> {
+export async function modifyMeal(meal: any, modificationRequest: string, mealPlanId?: number): Promise<any> {
   try {
-    const response = await apiRequest('POST', '/api/meal/modify', {
+    const payload: any = {
       meal,
       modificationRequest
-    });
+    };
+    
+    // Add meal plan ID if available for grocery list updates
+    if (mealPlanId) {
+      payload.mealPlanId = mealPlanId;
+    }
+    
+    const response = await apiRequest('POST', '/api/meal/modify', payload);
     
     if (!response.ok) {
       const errorData = await response.json();
@@ -25,9 +32,16 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
 /**
  * Generate a completely new replacement meal based on the criteria of the original
  */
-export async function replaceMeal(meal: any): Promise<any> {
+export async function replaceMeal(meal: any, mealPlanId?: number): Promise<any> {
   try {
-    const response = await apiRequest('POST', '/api/meal/replace', { meal });
+    const payload: any = { meal };
+    
+    // Add meal plan ID if available for grocery list updates
+    if (mealPlanId) {
+      payload.mealPlanId = mealPlanId;
+    }
+    
+    const response = await apiRequest('POST', '/api/meal/replace', payload);
     
     if (!response.ok) {
       const errorData = await response.json();
