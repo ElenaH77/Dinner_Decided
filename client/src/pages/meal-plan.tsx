@@ -40,6 +40,15 @@ export default function MealPlan() {
     setCurrentMealPlan = mealPlanContext.setCurrentPlan;
     meals = mealPlanContext.currentPlan?.meals || [];
     setMeals = mealPlanContext.addMeal;
+    
+    // Refetch meal plan if reload param is present or no plan loaded
+    useEffect(() => {
+      const shouldRefetch = window.location.search.includes('reload') || !currentMealPlan;
+      if (shouldRefetch && !mealPlanContext.isLoading) {
+        console.log("Refetching meal plan due to reload parameter or missing plan");
+        mealPlanContext.refetchMealPlan();
+      }
+    }, [window.location.search, mealPlanContext, currentMealPlan]);
   } catch (error) {
     console.error("Error accessing meal plan context:", error);
   }

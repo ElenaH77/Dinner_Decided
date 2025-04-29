@@ -207,7 +207,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data && data.meals && data.meals.length > 0) {
         // Invalidate the queries to refresh any components that fetch meal plans
         queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
@@ -217,13 +217,29 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         // Show success message
         toast({
           title: "Success!",
-          description: "Your meal plan has been created.",
+          description: "Your meal plan has been created. Redirecting to view your plan...",
         });
         
-        // Force a more direct data reload to display the new meal plan
+        // Get the meal plan data directly from the response
+        const mealPlanData = data.mealPlan || data;
+        
+        // Try to update the context directly if possible
+        try {
+          const mealPlanContext = useMealPlan();
+          if (mealPlanContext && mealPlanContext.setCurrentPlan) {
+            console.log("Setting meal plan directly in context:", mealPlanData);
+            mealPlanContext.setCurrentPlan({
+              ...mealPlanData,
+              meals: data.meals || []
+            });
+          }
+        } catch (error) {
+          console.error("Failed to update meal plan context directly:", error);
+        }
+        
+        // Force a hard reload with a delay to ensure the API has time to update
         setTimeout(() => {
-          // Force a hard reload of the page to ensure all data is refreshed
-          window.location.href = window.location.pathname + '?reload=' + new Date().getTime();
+          window.location.href = '/meal-plan?reload=' + new Date().getTime();
         }, 1500);
         
         onComplete();
