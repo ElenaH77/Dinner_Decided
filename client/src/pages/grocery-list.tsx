@@ -98,24 +98,27 @@ export default function GroceryList() {
         mealPlanId: mealPlan.id
       });
 
-      const data = await response.json();
+      const groceryList = await response.json();
       
-      // Create grocery items in the database
-      for (const item of data.groceryItems) {
-        // Find related meal ID if possible
-        const relatedMeal = mealPlan.meals.find(meal => meal.name === item.relatedMealName);
+      // The grocery list is already saved on the server
+      // We just need to update our state and display it
+      if (groceryList && groceryList.sections) {
+        // Process sections into our department format
+        const newDepartments = groceryList.sections.map(section => ({
+          name: section.name,
+          items: section.items.map(item => ({
+            id: item.id,
+            name: item.name,
+            isChecked: false,
+            department: section.name,
+            relatedMealId: item.mealId
+          }))
+        }));
         
-        await apiRequest('POST', '/api/grocery-items', {
-          mealPlanId: mealPlan.id,
-          name: item.name,
-          department: item.department,
-          isChecked: false,
-          relatedMealId: relatedMeal?.id
-        });
+        setDepartments(newDepartments);
       }
-      
-      // Refresh grocery items
-      window.location.reload();
+
+      // No need to reload the page
       
       toast({
         title: "Grocery list created!",
@@ -133,31 +136,45 @@ export default function GroceryList() {
     }
   };
 
-  const addGroceryItem = async () => {
-    if (!newItemName.trim() || !mealPlan) {
+  const addGroceryItem = () => {
+    if (!newItemName.trim()) {
       return;
     }
 
-    try {
-      await apiRequest('POST', '/api/grocery-items', {
-        mealPlanId: mealPlan.id,
-        name: newItemName,
-        department: 'Other',
-        isChecked: false
-      });
-      
-      setNewItemName('');
-      
-      // Refresh grocery items
-      window.location.reload();
-    } catch (error) {
-      console.error("Error adding grocery item:", error);
-      toast({
-        title: "Could not add item",
-        description: "There was an error adding the grocery item. Please try again.",
-        variant: "destructive"
-      });
+    // Add item directly to our local state
+    const newItemId = crypto.randomUUID();
+    const newItem = {
+      id: newItemId,
+      name: newItemName,
+      isChecked: false,
+      department: 'Other',
+    };
+    
+    // Check if we already have an "Other" department
+    const otherDept = departments.find(dept => dept.name === 'Other');
+    
+    if (otherDept) {
+      // Add to existing Other department
+      const updatedDepartments = departments.map(dept => 
+        dept.name === 'Other' 
+          ? { ...dept, items: [...dept.items, newItem] }
+          : dept
+      );
+      setDepartments(updatedDepartments);
+    } else {
+      // Create new Other department
+      setDepartments([
+        ...departments, 
+        { name: 'Other', items: [newItem] }
+      ]);
     }
+    
+    setNewItemName('');
+    
+    toast({
+      title: "Item added",
+      description: "Your item has been added to the grocery list.",
+    });
   };
 
   // Filter displayed departments based on search and department filter
