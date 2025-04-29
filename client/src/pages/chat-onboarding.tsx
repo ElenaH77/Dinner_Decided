@@ -217,7 +217,7 @@ export default function ChatOnboarding() {
           cookingSkill: skillLevel === "Give me a cooking project!" ? 5 : 
                         skillLevel === "I enjoy it when I have time" ? 3 : 
                         skillLevel === "I can follow a recipe" ? 2 : 1,
-          preferences: \`Dietary: \${dietary}. Challenges: \${challenges}\`,
+          preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
           appliances: equipment
         });
           
@@ -267,11 +267,11 @@ export default function ChatOnboarding() {
                 className={`flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
               >
                 <div
-                  className={\`max-w-[80%] rounded-xl p-3 \${
+                  className={`max-w-[80%] rounded-xl p-3 ${
                     message.role === 'assistant'
                       ? 'bg-[#E7F6F5] text-[#333333] chat-bubble-assistant'
                       : 'bg-[#21706D] text-white chat-bubble-user'
-                  }\`}
+                  }`}
                 >
                   <div className="whitespace-pre-wrap">{message.content}</div>
                   
@@ -309,11 +309,11 @@ export default function ChatOnboarding() {
                         <Button 
                           key={idx}
                           variant={skillLevel === option ? "default" : "outline"}
-                          className={\`w-full justify-start text-left \${
+                          className={`w-full justify-start text-left ${
                             skillLevel === option 
                               ? 'bg-[#21706D] text-white' 
                               : 'bg-white text-[#21706D] border-[#21706D]'
-                          }\`}
+                          }`}
                           onClick={() => handleSkillSelection(option)}
                         >
                           {option}

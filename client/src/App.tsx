@@ -16,13 +16,14 @@ function App() {
   useEffect(() => {
     // Only redirect if we're at the root path and want to simulate first-time use
     if (location === "/") {
-      setLocation("/onboarding");
+      setLocation("/chat-onboarding");
     }
   }, [location, setLocation]);
   
   return (
     <Switch>
       <Route path="/onboarding" component={Onboarding} />
+      <Route path="/chat-onboarding" component={ChatOnboarding} />
       
       <Route>
         {/* All other routes use the AppLayout */}
