@@ -20,7 +20,7 @@ const MEAL_CATEGORY_ICONS: { [key: string]: string } = {
 };
 
 // Enhanced MealCard component with modification capabilities
-const MealCard = ({ meal, onUpdate }: { meal: any, onUpdate?: (updatedMeal: any) => void }) => {
+const MealCard = ({ meal, onUpdate, mealPlanId }: { meal: any, onUpdate?: (updatedMeal: any) => void, mealPlanId?: number }) => {
   const day = meal.day || meal.dayOfWeek || meal.appropriateDay || '';
   const category = meal.mealCategory || meal.category || '';
   const icon = MEAL_CATEGORY_ICONS[category] || '';
@@ -46,7 +46,8 @@ const MealCard = ({ meal, onUpdate }: { meal: any, onUpdate?: (updatedMeal: any)
     
     try {
       // Use OpenAI to modify the meal with the user's request
-      const updatedMeal = await modifyMeal(meal, modificationRequest);
+      // Pass the meal plan ID for grocery list updates
+      const updatedMeal = await modifyMeal(meal, modificationRequest, mealPlanId);
       
       // Update the meal plan
       if (onUpdate) {
@@ -78,7 +79,8 @@ const MealCard = ({ meal, onUpdate }: { meal: any, onUpdate?: (updatedMeal: any)
     
     try {
       // Use OpenAI to generate a completely new meal
-      const replacementMeal = await replaceMeal(meal);
+      // Pass the meal plan ID for grocery list updates
+      const replacementMeal = await replaceMeal(meal, mealPlanId);
       
       // Update the meal plan
       if (onUpdate) {
@@ -427,6 +429,7 @@ export default function ShowMealPlan() {
                 <MealCard 
                   key={meal.id || index} 
                   meal={meal} 
+                  mealPlanId={mealPlan.id}
                   onUpdate={(updatedMeal) => handleMealUpdate(updatedMeal, index)}
                 />
               ))}
