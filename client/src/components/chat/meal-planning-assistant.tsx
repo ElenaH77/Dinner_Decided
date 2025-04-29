@@ -208,7 +208,20 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
       }
     },
     onSuccess: async (data) => {
+      console.log("API Response from meal plan generation:", data);
+      
+      // Check the structure of the data to help with debugging
+      console.log("Response data structure:", {
+        hasMealPlan: !!data?.mealPlan,
+        hasMeals: !!data?.meals,
+        mealsCount: data?.meals?.length || 0,
+        mealPlanId: data?.mealPlan?.id || data?.id,
+        mealIds: data?.mealPlan?.mealIds || data?.mealIds || []
+      });
+      
       if (data && data.meals && data.meals.length > 0) {
+        console.log("✅ Meal plan generated successfully with " + data.meals.length + " meals");
+        
         // Invalidate the queries to refresh any components that fetch meal plans
         queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
@@ -222,6 +235,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         
         // Get the meal plan data directly from the response
         const mealPlanData = data.mealPlan || data;
+        console.log("Using meal plan data:", mealPlanData);
         
         // Save directly to localStorage as a backup mechanism
         try {
@@ -250,7 +264,8 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         // Force a redirect with a delay to ensure the localStorage is updated
         setTimeout(() => {
           console.log("Redirecting to meal plan page...");
-          window.location.href = '/this-week?t=' + new Date().getTime();
+          // Note: It's important to use the correct path that exists in our routing
+          window.location.href = '/meal-plan?t=' + new Date().getTime();
         }, 2000);
         
         onComplete();

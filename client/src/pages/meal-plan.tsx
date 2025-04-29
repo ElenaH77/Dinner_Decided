@@ -119,6 +119,32 @@ export default function MealPlan() {
 
   const isLoading = isMealPlanLoading || isMealsLoading;
 
+  // Add a direct check for localStorage data on render for debugging
+  useEffect(() => {
+    // If we don't have a plan yet or are loading, try to get from localStorage directly
+    if ((!currentMealPlan || !meals || meals.length === 0) && !isLoading) {
+      console.log("No meal plan found normally, checking localStorage directly");
+      
+      try {
+        // Try direct storage first
+        const directStored = localStorage.getItem('current_meal_plan');
+        if (directStored) {
+          const parsedPlan = JSON.parse(directStored);
+          console.log("Found meal plan in direct localStorage:", parsedPlan);
+          
+          if (parsedPlan && parsedPlan.id && parsedPlan.meals && parsedPlan.meals.length > 0) {
+            console.log("Using plan from localStorage with " + parsedPlan.meals.length + " meals");
+            setCurrentMealPlan(parsedPlan);
+            setMeals(parsedPlan.meals);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error loading meal plan from localStorage fallback:", error);
+      }
+    }
+  }, [currentMealPlan, meals, isLoading, setCurrentMealPlan, setMeals]);
+
   const generateMealPlan = async () => {
     if (!preferences || !equipment) {
       toast({
