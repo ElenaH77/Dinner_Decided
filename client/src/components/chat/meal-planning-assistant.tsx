@@ -209,21 +209,26 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
     },
     onSuccess: (data) => {
       if (data && data.meals && data.meals.length > 0) {
-        // Just invalidate the queries to refresh any components that fetch meal plans
+        // Invalidate the queries to refresh any components that fetch meal plans
         queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users/1/meals'] });
         
-        // Force window refresh to show the new meal plan
+        // Show success message
         toast({
           title: "Success!",
-          description: "Your meal plan has been created. Refreshing to show your plan...",
+          description: "Your meal plan has been created.",
         });
         
-        // Add a small delay before reloading to ensure the toast is visible
+        // Navigate to another page first, then back to meal-plan to force a full component refresh
         setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+          window.location.href = '/grocery-list'; // First go to grocery list
+          
+          // Then after a brief delay, return to meal plan page
+          setTimeout(() => {
+            window.location.href = '/meal-plan';
+          }, 500);
+        }, 1000);
         
         onComplete();
       } else {
