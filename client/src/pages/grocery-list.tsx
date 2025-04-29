@@ -290,11 +290,9 @@ export default function GroceryList() {
   };
 
   // Filter displayed departments based on search and department filter
-  // Also filter out checked items from the main list
   const filteredDepartments = departments.map(dept => {
     const filteredItems = dept.items.filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !item.isChecked // Only show unchecked items
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     return { ...dept, items: filteredItems };
   }).filter(dept => 
