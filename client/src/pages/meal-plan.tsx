@@ -350,7 +350,16 @@ export default function MealPlan() {
               {/* Meal cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {meals.map((meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+                  <MealCard 
+                    key={meal.id} 
+                    meal={{
+                      ...meal,
+                      // Ensure required properties are available
+                      ingredients: meal.ingredients || meal.mainIngredients || meal.main_ingredients || [],
+                      prepTime: meal.prepTime || meal.prep_time || 30,
+                      servings: meal.servingSize || meal.serving_size || 4
+                    }}
+                  />
                 ))}
 
                 {/* Add Meal Card */}
