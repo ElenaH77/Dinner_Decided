@@ -124,6 +124,9 @@ export default function ChatOnboarding() {
     setIsComplete(true);
   };
   
+  // Store direct values for completion
+  const [finalChallenges, setFinalChallenges] = useState('');
+
   // Process user input and move to next step
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,6 +176,8 @@ export default function ChatOnboarding() {
       case 'challenges':
         userResponse = inputValue;
         setChallenges(inputValue);
+        // Store in a separate state variable that won't be affected by timing issues
+        setFinalChallenges(inputValue);
         console.log('Setting challenges to:', inputValue);
         break;
       default:
@@ -248,7 +253,7 @@ export default function ChatOnboarding() {
                             skillLevel === "I enjoy it when I have time" ? 3 : 
                             skillLevel === "I can follow a recipe" ? 2 : 1,
               preferences: dietary || "No special dietary preferences",
-              challenges: challenges === "" ? "None specified" : challenges,
+              challenges: finalChallenges || "None specified",
               location: location || "Unknown",
               appliances: equipment
             };
@@ -256,6 +261,7 @@ export default function ChatOnboarding() {
             // Log what's being saved
             console.log('Saving household data:', JSON.stringify(householdData, null, 2));
             console.log('Debug - Challenges state before saving:', challenges);
+            console.log('Debug - finalChallenges before saving:', finalChallenges);
             
             apiRequest('POST', '/api/household', householdData)
             .then(() => {
