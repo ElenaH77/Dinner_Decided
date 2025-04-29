@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useHousehold } from '@/contexts/household-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,17 +18,28 @@ export default function HouseholdProfile() {
     members, 
     equipment, 
     preferences,
+    isLoading,
     setMembers,
     setEquipment,
-    setPreferences
+    setPreferences,
+    refreshHouseholdData
   } = useHousehold();
 
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberDietary, setNewMemberDietary] = useState('');
   const [newEquipmentName, setNewEquipmentName] = useState('');
-  const [confidenceLevel, setConfidenceLevel] = useState(preferences?.confidenceLevel || 3);
-  const [weekdayCookingTime, setWeekdayCookingTime] = useState(preferences?.weekdayCookingTime || '30-45 minutes');
-  const [weekendCookingStyle, setWeekendCookingStyle] = useState(preferences?.weekendCookingStyle || 'More time for special meals');
+  const [confidenceLevel, setConfidenceLevel] = useState<number>(3);
+  const [weekdayCookingTime, setWeekdayCookingTime] = useState<string>('30-45 minutes');
+  const [weekendCookingStyle, setWeekendCookingStyle] = useState<string>('More time for special meals');
+  
+  // Update form values when preferences are loaded
+  useEffect(() => {
+    if (preferences) {
+      setConfidenceLevel(preferences.confidenceLevel);
+      setWeekdayCookingTime(preferences.weekdayCookingTime);
+      setWeekendCookingStyle(preferences.weekendCookingStyle);
+    }
+  }, [preferences]);
   
   // Available cuisines for selection
   const availableCuisines = ['Italian', 'Mexican', 'American', 'Indian', 'Chinese', 'Japanese', 'Thai', 'Mediterranean', 'French', 'Greek'];
