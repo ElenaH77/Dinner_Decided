@@ -60,7 +60,7 @@ export const ONBOARDING_RESPONSES = {
     `Perfect! I'll make sure to suggest recipes that match your comfort level: ${level}.`,
   
   location_response: (zipCode: string) => 
-    `Thanks! I'll consider seasonal ingredients and weather patterns in ${zipCode} when planning your meals.`,
+    `Thanks! I'll consider seasonal ingredients and weather patterns in your area (${zipCode}) when planning your meals.`,
   
   challenges_response: (challenges: string) => 
     `I understand - ${challenges} can definitely make meal planning tougher. I'll work on suggestions that help overcome these challenges.`,

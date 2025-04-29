@@ -283,9 +283,19 @@ export default function ChatOnboarding() {
   // Handle skill level selection
   const handleSkillSelection = (option: string) => {
     setSkillLevel(option);
-    // Auto-submit after selection
+    
+    // Auto-submit after selection with proper error handling
     setTimeout(() => {
-      handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+      try {
+        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+      } catch (error) {
+        console.error("Error submitting skill selection:", error);
+        toast({
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
+      }
     }, 500);
   };
   
@@ -333,7 +343,18 @@ export default function ChatOnboarding() {
                       <Button 
                         variant="outline" 
                         className="mt-2 col-span-2 bg-white text-[#21706D] border-[#21706D]"
-                        onClick={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+                        onClick={() => {
+                          try {
+                            handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+                          } catch (error) {
+                            console.error("Error submitting equipment selection:", error);
+                            toast({
+                              title: "Error",
+                              description: "Something went wrong. Please try again.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
                       >
                         Continue
                       </Button>
