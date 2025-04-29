@@ -23,10 +23,10 @@ const MealCard = ({ meal }: { meal: any }) => {
   
   return (
     <Card className="mb-6 border border-gray-200 overflow-hidden">
-      <div className="bg-teal-primary text-white px-4 py-2 flex items-center justify-between">
-        <div>
-          {day && <span className="font-medium">{day}: </span>}
-          <span className="font-bold">{meal.name}</span>
+      <div className="bg-teal-primary px-4 py-2 flex items-center justify-between">
+        <div className="text-white">
+          {day && <span className="font-medium text-white">{day}: </span>}
+          <span className="font-bold text-white">{meal.name}</span>
         </div>
         {icon && <span className="text-xl">{icon}</span>}
       </div>
