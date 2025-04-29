@@ -86,6 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Household member routes
   app.post("/api/household-members", async (req, res) => {
     try {
+      console.log('[HOUSEHOLD] Adding new member:', JSON.stringify(req.body, null, 2));
+      
       const household = await storage.getHousehold();
       if (!household) {
         return res.status(404).json({ message: "Household not found" });
@@ -99,14 +101,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newMember.id = Date.now();
       }
       
-      const members = household.members || [];
+      const members = Array.isArray(household.members) ? [...household.members] : [];
+      console.log('[HOUSEHOLD] Current members:', JSON.stringify(members, null, 2));
+      
       members.push(newMember);
+      console.log('[HOUSEHOLD] Updated members array:', JSON.stringify(members, null, 2));
       
       // Update the household with the new member
       const updatedHousehold = await storage.updateHousehold({
         ...household,
         members
       });
+      
+      console.log('[HOUSEHOLD] Updated household:', JSON.stringify(updatedHousehold, null, 2));
       
       res.json(newMember);
     } catch (error) {

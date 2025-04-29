@@ -54,18 +54,23 @@ export default function HouseholdProfile() {
 
     try {
       const newMember = {
-        id: Date.now(),
+        id: Date.now(), // Generate a unique ID
         userId: 1,
         name: newMemberName,
         dietaryRestrictions: newMemberDietary || '',
         isMainUser: members.length === 0
       };
       
-      // Make API call to save the member
-      await apiRequest('POST', '/api/household-members', newMember);
+      console.log('Adding new member:', newMember);
       
-      // Update local state
-      setMembers([...members, newMember]);
+      // Make API call to save the member
+      const response = await apiRequest('POST', '/api/household-members', newMember);
+      const savedMember = await response.json();
+      
+      console.log('Server response:', savedMember);
+      
+      // Update local state with the server response
+      setMembers(currentMembers => [...currentMembers, savedMember]);
       
       // Clear form fields
       setNewMemberName('');
@@ -73,12 +78,14 @@ export default function HouseholdProfile() {
       
       toast({
         title: "Member added",
-        description: `${newMember.name} has been added to your household.`
+        description: `${savedMember.name} has been added to your household.`
       });
       
       // Refresh household data to ensure consistency
+      console.log('Refreshing household data...');
       await refreshHouseholdData();
     } catch (error) {
+      console.error('Error adding member:', error);
       toast({
         title: "Failed to add member",
         description: "There was an error adding the household member.",

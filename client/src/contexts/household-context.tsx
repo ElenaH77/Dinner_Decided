@@ -30,15 +30,23 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       const response = await apiRequest('GET', '/api/household');
       const data = await response.json();
       
+      console.log('Fetched household data:', data);
+      
       if (data) {
         // Set household members
         if (data.members && Array.isArray(data.members)) {
+          console.log('Setting members:', data.members);
           setMembers(data.members);
+        } else {
+          console.log('No members data or invalid format:', data.members);
+          setMembers([]);
         }
         
         // Set kitchen equipment
         if (data.equipment && Array.isArray(data.equipment)) {
           setEquipment(data.equipment);
+        } else {
+          setEquipment([]);
         }
         
         // Set cooking preferences
