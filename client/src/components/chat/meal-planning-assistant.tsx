@@ -478,7 +478,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
             <div className="mb-6">
               <h4 className="font-semibold mb-2">Anything else I need to know?</h4>
               <p className="text-sm text-gray-600 mb-2">
-                Optional: Add any special considerations like temporary dietary needs, additional guests, or ingredients to use up.
+                Use this space to tell me about any special considerations (e.g. temporary dietary needs, additional mouths you're feeding this week, or the farmers market haul we need to use up)
               </p>
               <Input
                 value={specialNotes}
