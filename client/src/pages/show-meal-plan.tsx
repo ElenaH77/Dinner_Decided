@@ -5,31 +5,46 @@ import { toast } from '@/hooks/use-toast';
 
 // Simple component to display meal details
 const MealCard = ({ meal }: { meal: any }) => {
+  const day = meal.day || meal.dayOfWeek || meal.appropriateDay || '';
+  const category = meal.mealCategory || meal.category || '';
+  
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        <h3 className="text-lg font-bold mb-2">{meal.name}</h3>
-        <p className="text-gray-700 mb-2">{meal.description}</p>
-        <p className="text-sm">Category: {meal.mealCategory || meal.category}</p>
-        <p className="text-sm">Prep Time: {meal.prepTime} minutes</p>
-        
-        {meal.mainIngredients && meal.mainIngredients.length > 0 && (
-          <div className="mt-3">
-            <h4 className="font-medium">Ingredients:</h4>
-            <ul className="list-disc pl-5">
-              {meal.mainIngredients.map((ingredient: string, i: number) => (
-                <li key={i} className="text-sm">{ingredient}</li>
-              ))}
-            </ul>
+    <Card className="mb-6 border border-gray-200 overflow-hidden">
+      <div className="bg-teal-primary text-white px-4 py-2">
+        {day && <span className="font-medium">{day}: </span>}
+        <span className="font-bold">{meal.name}</span>
+      </div>
+      <CardContent className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+          <div className="bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-700">
+            {category}
           </div>
-        )}
-        
-        {meal.mealPrepTips && (
-          <div className="mt-3">
-            <h4 className="font-medium">Prep Tips:</h4>
-            <p className="text-sm italic">{meal.mealPrepTips}</p>
+          <div className="text-sm text-gray-600">
+            Prep Time: {meal.prepTime} min
           </div>
-        )}
+        </div>
+        
+        <p className="text-gray-700 mb-4">{meal.description}</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {meal.mainIngredients && meal.mainIngredients.length > 0 && (
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h4 className="font-medium text-teal-primary mb-2">Ingredients:</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                {meal.mainIngredients.map((ingredient: string, i: number) => (
+                  <li key={i} className="text-sm">{ingredient}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {meal.mealPrepTips && (
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h4 className="font-medium text-orange-accent mb-2">Prep Tips:</h4>
+              <p className="text-sm">{meal.mealPrepTips}</p>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -107,13 +122,13 @@ export default function ShowMealPlan() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div className="container mx-auto px-4 py-8 max-w-4xl min-h-screen">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6" style={{ maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
         <h1 className="text-2xl font-bold mb-4">
           Your Meal Plan
         </h1>
         
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
           <Button 
             onClick={handleReload}
             className="mr-2"
@@ -125,6 +140,12 @@ export default function ShowMealPlan() {
             variant="outline"
           >
             Go to Regular Meal Plan Page
+          </Button>
+          <Button 
+            onClick={() => window.location.href = '/'}
+            variant="outline"
+          >
+            Home
           </Button>
         </div>
         
