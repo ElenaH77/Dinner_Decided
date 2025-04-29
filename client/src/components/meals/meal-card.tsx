@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -8,13 +9,14 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Users, MoreVertical, Trash2, MessageSquare } from 'lucide-react';
+import { Clock, Users, MoreVertical, Trash2, MessageSquare, FileText } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import RecipeDetail from './recipe-detail';
 
 interface MealCardProps {
   meal: {
@@ -26,6 +28,11 @@ interface MealCardProps {
     servings?: number;
     imageUrl?: string;
     ingredients?: string[];
+    mainIngredients?: string[];
+    main_ingredients?: string[];
+    mealPrepTips?: string;
+    meal_prep_tips?: string;
+    prepTips?: string;
   };
   onViewDetails?: (mealId: string) => void;
   onRemove?: (mealId: string) => void;
@@ -33,6 +40,7 @@ interface MealCardProps {
 }
 
 export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: MealCardProps) {
+  const [recipeDialogOpen, setRecipeDialogOpen] = useState(false);
   return (
     <Card className="overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow duration-200">
       {meal.imageUrl && (
@@ -110,8 +118,8 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
         </div>
       </CardContent>
       
-      {onViewDetails && (
-        <CardFooter>
+      <CardFooter>
+        {onViewDetails ? (
           <Button 
             variant="outline" 
             onClick={() => onViewDetails(meal.id)}
@@ -119,8 +127,24 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
           >
             View Details
           </Button>
-        </CardFooter>
-      )}
+        ) : (
+          <Button 
+            variant="outline" 
+            onClick={() => setRecipeDialogOpen(true)}
+            className="w-full"
+          >
+            <FileText className="h-4 w-4 mr-2" /> 
+            Full Recipe
+          </Button>
+        )}
+      </CardFooter>
+      
+      {/* Recipe Detail Dialog */}
+      <RecipeDetail 
+        meal={meal} 
+        isOpen={recipeDialogOpen} 
+        onClose={() => setRecipeDialogOpen(false)} 
+      />
     </Card>
   );
 }
