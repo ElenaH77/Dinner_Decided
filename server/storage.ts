@@ -599,7 +599,7 @@ export async function seedInitialData() {
         id: "welcome",
         role: "assistant",
         content: "Welcome to Dinner, Decided! I'm your personal meal planning assistant. I'll help you create a flexible, personalized weekly dinner plan tailored to your family's needs.\n\nLet's get started with a few questions about your household. How many people are you cooking for?",
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
         householdId: household.id
       });
       
@@ -607,7 +607,7 @@ export async function seedInitialData() {
       const mealPlan = await storage.createMealPlan({
         name: "Weekly Meal Plan",
         householdId: household.id,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         isActive: true,
         meals: [
           {
@@ -670,7 +670,7 @@ export async function seedInitialData() {
       await storage.createGroceryList({
         mealPlanId: mealPlan.id,
         householdId: household.id,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         sections: [
           {
             name: "Produce",
