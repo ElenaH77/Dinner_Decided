@@ -146,9 +146,9 @@ export default function GroceryList() {
   
   // Function to generate plain text version of the grocery list
   const generatePlainText = () => {
-    let text = "GROCERY LIST\n\n";
+    let text = "";
     
-    // Group by department
+    // Create a flat list of all unchecked items without headers or formatting
     departments.forEach(dept => {
       // Skip empty departments
       if (dept.items.length === 0) return;
@@ -157,11 +157,10 @@ export default function GroceryList() {
       const uncheckedItems = dept.items.filter(item => !item.isChecked);
       if (uncheckedItems.length === 0) return;
       
-      text += `${dept.name.toUpperCase()}\n`;
+      // Add each item on its own line without any dashes or formatting
       uncheckedItems.forEach(item => {
-        text += `- ${item.name}\n`;
+        text += `${item.name}\n`;
       });
-      text += "\n";
     });
     
     setPlainTextList(text);
@@ -467,9 +466,9 @@ export default function GroceryList() {
       <Dialog open={showPlainTextDialog} onOpenChange={setShowPlainTextDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Plain Text Grocery List</DialogTitle>
+            <DialogTitle>Simple Item List</DialogTitle>
             <DialogDescription>
-              Copy this text to paste into other shopping apps.
+              Simple list format for pasting into other apps or making a physical list.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center space-x-2">
