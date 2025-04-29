@@ -90,10 +90,11 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
   }, []);
   
   // State - always start with the intro step
-  const [step, setStep] = useState<'intro' | 'special' | 'meals' | 'generating'>('intro');
+  const [step, setStep] = useState<'intro' | 'meals' | 'special' | 'generating'>('intro');
   const [specialNotes, setSpecialNotes] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<Record<string, number>>({});
   const [mealsByDay, setMealsByDay] = useState<Record<string, string[]>>({});
+  const [showDescriptions, setShowDescriptions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Scroll to bottom of chat when messages change
@@ -286,7 +287,7 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
               This will be a collaborative process where we'll build the plan based on your needs.
             </p>
             <Button 
-              onClick={() => setStep('special')} 
+              onClick={() => setStep('meals')} 
               className="bg-[#21706D] hover:bg-[#2a8c88] text-white font-semibold py-2 px-6 rounded-md text-lg shadow-md"
               size="lg"
             >
