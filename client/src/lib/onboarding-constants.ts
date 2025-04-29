@@ -59,7 +59,7 @@ export const ONBOARDING_RESPONSES = {
       : `Thanks for letting me know about your kitchen setup. I'll focus on simple recipes that don't require specialized equipment.`,
   
   skill_response: (level: string) => 
-    `Perfect! I'll make sure to suggest recipes that match your comfort level: ${level}.`,
+    `Perfect! I'll make sure to suggest recipes that match your cooking comfort level.`,
   
   location_response: (zipCode: string) => 
     zipCode
