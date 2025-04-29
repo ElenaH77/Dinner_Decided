@@ -336,7 +336,7 @@ export default function ChatOnboarding() {
   
   // Handle navigation to meal plan after completion
   const handleFinish = () => {
-    navigate('/meal-plan');
+    navigate('/this-week');
   };
   
   return (

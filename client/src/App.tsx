@@ -30,7 +30,9 @@ function App() {
         <AppLayout>
           <Switch>
             <Route path="/" component={Home} />
-            <Route path="/meals" component={MealPlan} />
+            <Route path="/this-week" component={MealPlan} />
+            <Route path="/meal-plan" component={MealPlan} /> {/* Alias for backward compatibility */}
+            <Route path="/meals" component={MealPlan} /> {/* Alias for backward compatibility */}
             <Route path="/grocery" component={GroceryList} />
             <Route path="/profile" component={Profile} />
             <Route component={NotFound} />
