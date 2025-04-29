@@ -234,17 +234,21 @@ export default function HouseholdProfile() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-neutral-text">Household Profile</h2>
-        <p className="text-neutral-text mt-2">Customize your information to get more personalized meal suggestions.</p>
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={refreshHouseholdData}
-          className="mt-2"
-        >
-          Refresh Data
-        </Button>
+      <div className="sticky top-4 z-10 mb-6 bg-white rounded-lg shadow-sm p-4">
+        <div className="flex flex-wrap items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-neutral-text">Household Profile</h2>
+            <p className="text-neutral-text mt-1">Customize your information to get more personalized meal suggestions.</p>
+          </div>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={refreshHouseholdData}
+            className="mt-2 sm:mt-0"
+          >
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       {/* Household Members Section */}
@@ -393,14 +397,20 @@ export default function HouseholdProfile() {
         </div>
       </div>
 
-      <div className="flex justify-end mb-12">
-        <Button 
-          onClick={savePreferences}
-          className="bg-teal-primary hover:bg-teal-light text-white py-2 px-6 font-medium"
-        >
-          Save Changes
-        </Button>
+      {/* Fixed Save Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-md z-10">
+        <div className="container mx-auto max-w-6xl flex justify-end">
+          <Button 
+            onClick={savePreferences}
+            className="bg-teal-primary hover:bg-teal-light text-white py-2 px-6 font-medium"
+          >
+            Save Changes
+          </Button>
+        </div>
       </div>
+      
+      {/* Add padding at the bottom to prevent content from being hidden behind the fixed button */}
+      <div className="h-20"></div>
     </div>
   );
 }
