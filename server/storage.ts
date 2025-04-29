@@ -601,8 +601,8 @@ export async function seedInitialData() {
       const household = await storage.createHousehold({
         name: "Demo Family",
         members: [
-          { id: "1", name: "Parent 1", age: "35" },
-          { id: "2", name: "Parent 2", age: "33" },
+          { id: "1", name: "Adult 1", age: "35" },
+          { id: "2", name: "Adult 2", age: "33" },
           { id: "3", name: "Child", age: "8" }
         ],
         cookingSkill: 3,
