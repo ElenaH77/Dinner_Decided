@@ -199,7 +199,7 @@ export default function GroceryList() {
   const departmentNames = ['all', ...Array.from(new Set(departments.map(dept => dept.name)))];
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
+    <div className="container mx-auto px-4 sm:px-6 py-6 pb-24 max-w-6xl max-h-screen overflow-y-auto">
       {/* Fixed Action Buttons - Always Visible */}
       <div className="sticky top-4 z-10 mb-6 flex justify-center">
         <div className="bg-white rounded-full shadow-md px-4 py-2 flex gap-3">
@@ -235,7 +235,7 @@ export default function GroceryList() {
           <p>Loading your grocery list...</p>
         </div>
       ) : departments.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 max-h-[70vh] overflow-y-auto">
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
             <div className="relative flex-grow">
@@ -266,9 +266,25 @@ export default function GroceryList() {
           {filteredDepartments.map((dept) => (
             <GrocerySection key={dept.name} department={dept} />
           ))}
-
-          {/* Add Item Section */}
-          <div className="mt-6">
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+          <h3 className="text-xl font-semibold mb-4">No Grocery List Yet</h3>
+          <p className="mb-6">You haven't created a grocery list for this week's meal plan.</p>
+          <Button 
+            onClick={generateGroceryList}
+            disabled={isGenerating}
+            className="bg-teal-primary hover:bg-teal-light text-white"
+          >
+            {isGenerating ? "Generating..." : "Generate Grocery List"}
+          </Button>
+        </div>
+      )}
+      
+      {/* Add Item Section - Fixed at bottom */}
+      {departments.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-md">
+          <div className="container mx-auto max-w-6xl">
             <div className="flex">
               <Input
                 type="text"
@@ -291,19 +307,10 @@ export default function GroceryList() {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-          <h3 className="text-xl font-semibold mb-4">No Grocery List Yet</h3>
-          <p className="mb-6">You haven't created a grocery list for this week's meal plan.</p>
-          <Button 
-            onClick={generateGroceryList}
-            disabled={isGenerating}
-            className="bg-teal-primary hover:bg-teal-light text-white"
-          >
-            {isGenerating ? "Generating..." : "Generate Grocery List"}
-          </Button>
-        </div>
       )}
+      
+      {/* Add padding at the bottom to prevent content from being hidden behind the fixed Add Item section */}
+      {departments.length > 0 && <div className="h-20"></div>}
     </div>
   );
 }
