@@ -126,21 +126,23 @@ const MealCard = ({ meal, onUpdate }: { meal: any, onUpdate?: (updatedMeal: any)
         <p className="text-gray-700 mb-4">{meal.description}</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {meal.mainIngredients && meal.mainIngredients.length > 0 && (
+          {/* Check for both camelCase and snake_case property names */}
+          {(meal.mainIngredients || meal.main_ingredients || meal.ingredients) && (
             <div className="bg-gray-50 p-3 rounded-md">
               <h4 className="font-medium text-[#21706D] mb-2">Ingredients:</h4>
               <ul className="list-disc pl-5 space-y-1">
-                {meal.mainIngredients.map((ingredient: string, i: number) => (
+                {(meal.mainIngredients || meal.main_ingredients || meal.ingredients || []).map((ingredient: string, i: number) => (
                   <li key={i} className="text-sm">{ingredient}</li>
                 ))}
               </ul>
             </div>
           )}
           
-          {meal.mealPrepTips && (
+          {/* Check for both camelCase and snake_case property names */}
+          {(meal.mealPrepTips || meal.meal_prep_tips || meal.prepTips) && (
             <div className="bg-gray-50 p-3 rounded-md">
               <h4 className="font-medium text-[#F25C05] mb-2">Prep Tips:</h4>
-              <p className="text-sm">{meal.mealPrepTips}</p>
+              <p className="text-sm">{meal.mealPrepTips || meal.meal_prep_tips || meal.prepTips}</p>
             </div>
           )}
         </div>
