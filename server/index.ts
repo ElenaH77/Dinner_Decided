@@ -52,9 +52,26 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    console.error("Server error:", err);
+    
+    // Check for OpenAI API specific errors
+    if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string' && (
+      err.message.includes('OpenAI API quota exceeded') ||
+      err.message.includes('API rate limit exceeded') ||
+      err.message.includes('API authentication error')
+    )) {
+      // Pass the OpenAI-specific error message to the client
+      return res.status(status).json({ message: err.message });
+    }
 
-    res.status(status).json({ message });
-    throw err;
+    // For other errors, use a generic message in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    const clientMessage = isProduction && status === 500 
+      ? "An unexpected error occurred. Please try again later."
+      : message;
+    
+    res.status(status).json({ message: clientMessage });
   });
 
   // importantly only setup vite in development and after

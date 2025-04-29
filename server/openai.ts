@@ -2,7 +2,16 @@ import OpenAI from "openai";
 import { Message } from "@shared/schema";
 
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "dummy_api_key" });
+// Check if we have a valid API key
+const apiKey = process.env.OPENAI_API_KEY;
+if (apiKey && apiKey.trim() === '') {
+  console.warn('WARNING: Empty OpenAI API key provided. Using dummy responses.');
+}
+
+// Only use the API key if it's actually provided and not empty
+const openai = new OpenAI({ 
+  apiKey: apiKey && apiKey.trim() !== '' ? apiKey : 'dummy_api_key' 
+});
 
 // Generate a response for the chat conversation
 export async function generateChatResponse(messages: Message[]): Promise<string> {
@@ -150,6 +159,15 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
     
     // Check for specific OpenAI API errors
     if (error && typeof error === 'object') {
+      // Handle OpenAI error object types
+      if ('error' in error && typeof error.error === 'object') {
+        const openaiError = error.error;
+        if ('type' in openaiError && openaiError.type === 'insufficient_quota') {
+          throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
+        }
+      }
+      
+      // Handle status code errors
       if ('code' in error && error.code === 'insufficient_quota') {
         throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
       } else if ('status' in error && error.status === 429) {
@@ -157,9 +175,22 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       } else if ('status' in error && (error.status === 401 || error.status === 403)) {
         throw new Error('OpenAI API authentication error. Please check your API key.');
       }
+      
+      // Also check for error message strings
+      if ('message' in error && typeof error.message === 'string') {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('exceeded your current quota')) {
+          throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
+        } else if (errorMessage.includes('rate limit')) {
+          throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
+        } else if (errorMessage.includes('authentication') || errorMessage.includes('invalid api key')) {
+          throw new Error('OpenAI API authentication error. Please check your API key.');
+        }
+      }
     }
     
     // For other errors, use backup data
+    console.log('[MEAL PLAN] Using fallback data due to OpenAI API error');
     return generateDummyMeals(preferences);
   }
 }
@@ -209,6 +240,40 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
     
   } catch (error) {
     console.error("Error generating grocery list:", error);
+    
+    // Check for specific OpenAI API errors
+    if (error && typeof error === 'object') {
+      // Handle OpenAI error object types
+      if ('error' in error && typeof error.error === 'object') {
+        const openaiError = error.error;
+        if ('type' in openaiError && openaiError.type === 'insufficient_quota') {
+          throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
+        }
+      }
+      
+      // Handle status code errors
+      if ('code' in error && error.code === 'insufficient_quota') {
+        throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
+      } else if ('status' in error && error.status === 429) {
+        throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
+      } else if ('status' in error && (error.status === 401 || error.status === 403)) {
+        throw new Error('OpenAI API authentication error. Please check your API key.');
+      }
+      
+      // Also check for error message strings
+      if ('message' in error && typeof error.message === 'string') {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('exceeded your current quota')) {
+          throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
+        } else if (errorMessage.includes('rate limit')) {
+          throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
+        } else if (errorMessage.includes('authentication') || errorMessage.includes('invalid api key')) {
+          throw new Error('OpenAI API authentication error. Please check your API key.');
+        }
+      }
+    }
+    
+    console.log('[GROCERY] Using fallback data due to OpenAI API error');
     return generateDummyGroceryList();
   }
 }

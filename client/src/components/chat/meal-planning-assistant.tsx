@@ -180,6 +180,29 @@ export default function MealPlanningAssistant({ onComplete }: MealPlanningAssist
         if (error?.name === 'AbortError') {
           throw new Error('Request took too long. The AI might be busy creating your perfect meal plan!');
         }
+        
+        // Try to parse the error response
+        if (error?.response) {
+          try {
+            const errorData = await error.response.json();
+            if (errorData?.message) {
+              // Handle specific OpenAI API errors
+              if (errorData.message.includes('OpenAI API quota exceeded')) {
+                throw new Error('The AI service has reached its usage limit. Please try again later or update your API key.');
+              } else if (errorData.message.includes('API rate limit')) {
+                throw new Error('The AI service is experiencing high demand. Please wait a moment and try again.');
+              } else if (errorData.message.includes('API authentication error')) {
+                throw new Error('There was an issue with the AI service authentication. Please check your API key.');
+              }
+              
+              // Use the server's error message
+              throw new Error(errorData.message);
+            }
+          } catch (parseError) {
+            // If we can't parse the error, just fall through to the generic throw
+          }
+        }
+        
         throw error;
       }
     },
