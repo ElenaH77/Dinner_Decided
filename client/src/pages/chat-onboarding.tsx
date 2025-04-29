@@ -52,6 +52,7 @@ export default function ChatOnboarding() {
   
   // Function to display the next question
   const askNextQuestion = () => {
+    // Safety check - don't process if we're already at the end
     if (currentQuestion >= ONBOARDING_QUESTIONS.length) {
       // We're done with all questions
       setMessages(prev => [...prev, {
@@ -63,11 +64,14 @@ export default function ChatOnboarding() {
       return;
     }
     
+    // Get the question based on the CURRENT question index
+    // This is important to ensure we're showing the right question
     const question = ONBOARDING_QUESTIONS[currentQuestion];
     
-    // Add the next question from the assistant
+    // Add the next question from the assistant with a unique timestamp ID
+    const timestamp = Date.now();
     const newMessage: Message = {
-      id: question.id + '-' + Date.now(), // Add timestamp to make the ID unique
+      id: `question-${question.id}-${timestamp}`, // Ensure ID is unique with timestamp
       role: 'assistant',
       content: `${question.question}\n${question.hint ? question.hint : ''}`
     };
@@ -86,7 +90,8 @@ export default function ChatOnboarding() {
       newMessage.options = question.options;
     }
     
-    setMessages(prev => [...prev, newMessage]);
+    // Add the message to the chat
+    setMessages(prevMessages => [...prevMessages, newMessage]);
   };
   
   // Initial welcome and first question
@@ -102,6 +107,11 @@ export default function ChatOnboarding() {
   // Handle user submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Safety check - don't process if we're already at the end
+    if (currentQuestion >= ONBOARDING_QUESTIONS.length) {
+      return;
+    }
     
     // Ignore empty submissions
     if (currentQuestion === 3 && !skillLevel) {
@@ -133,7 +143,7 @@ export default function ChatOnboarding() {
         setDietary(inputValue);
         break;
       case 'equipment':
-        userResponse = equipment.join(', ');
+        userResponse = equipment.join(', ') || 'None selected';
         break;
       case 'skill':
         userResponse = skillLevel;
@@ -146,12 +156,16 @@ export default function ChatOnboarding() {
         userResponse = inputValue;
         setChallenges(inputValue);
         break;
+      default:
+        userResponse = inputValue;
+        break;
     }
     
     // Add user's message to the chat
     if (userResponse) {
+      const userMessageId = `user-${Date.now()}`;
       setMessages(prev => [...prev, {
-        id: `user-${Date.now()}`,
+        id: userMessageId,
         role: 'user',
         content: userResponse
       }]);
@@ -161,6 +175,10 @@ export default function ChatOnboarding() {
     if (question.id !== 'equipment' && question.id !== 'skill') {
       setInputValue('');
     }
+    
+    // Increment to the next question BEFORE adding responses
+    const questionIndex = currentQuestion;
+    setCurrentQuestion(questionIndex + 1);
     
     // Add assistant's response to the user's answer
     setTimeout(() => {
@@ -185,52 +203,71 @@ export default function ChatOnboarding() {
         case 'challenges':
           responseContent = ONBOARDING_RESPONSES.challenges_response(challenges);
           break;
+        default:
+          responseContent = "Thank you for that information!";
+          break;
       }
       
       if (responseContent) {
+        const responseId = `response-${Date.now()}`;
         setMessages(prev => [...prev, {
-          id: `response-${Date.now()}`,
+          id: responseId,
           role: 'assistant',
           content: responseContent
         }]);
       }
       
-      // Move to the next question
-      setCurrentQuestion(prev => prev + 1);
-      
-      // Ask the next question with a slight delay
-      setTimeout(() => {
-        askNextQuestion();
-      }, 1000);
-      
-    }, 500);
-    
-    // If we just finished the last question, save all the data
-    if (currentQuestion === ONBOARDING_QUESTIONS.length - 1) {
-      try {
-        // Create the main household member
-        await apiRequest('POST', '/api/household', {
-          name: "My Household",
-          members: [
-            { id: "1", name: household, age: "adult" }
-          ],
-          cookingSkill: skillLevel === "Give me a cooking project!" ? 5 : 
-                        skillLevel === "I enjoy it when I have time" ? 3 : 
-                        skillLevel === "I can follow a recipe" ? 2 : 1,
-          preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
-          appliances: equipment
-        });
-          
-        // Update API cache
-        queryClient.invalidateQueries({ queryKey: ['/api/household'] });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to save household information. Please try again.",
-          variant: "destructive"
-        });
+      // If we're not at the end, ask the next question
+      if (questionIndex < ONBOARDING_QUESTIONS.length - 1) {
+        // Ask the next question with a slight delay
+        setTimeout(() => {
+          askNextQuestion();
+        }, 1000);
+      } else {
+        // We're at the end, show completion message
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: `complete-${Date.now()}`,
+            role: 'assistant',
+            content: ONBOARDING_RESPONSES.complete
+          }]);
+          setIsComplete(true);
+        }, 1000);
+        
+        // Save the household data
+        try {
+          // Create the main household member
+          apiRequest('POST', '/api/household', {
+            name: "My Household",
+            members: [
+              { id: "1", name: household, age: "adult" }
+            ],
+            cookingSkill: skillLevel === "Give me a cooking project!" ? 5 : 
+                          skillLevel === "I enjoy it when I have time" ? 3 : 
+                          skillLevel === "I can follow a recipe" ? 2 : 1,
+            preferences: `Dietary: ${dietary}. Challenges: ${challenges}`,
+            appliances: equipment
+          })
+          .then(() => {
+            // Update API cache
+            queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+          })
+          .catch((error) => {
+            toast({
+              title: "Error",
+              description: "Failed to save household information. Please try again.",
+              variant: "destructive"
+            });
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to save household information. Please try again.",
+            variant: "destructive"
+          });
+        }
       }
-    }
+    }, 500);
   };
   
   // Handle checkbox changes for equipment
