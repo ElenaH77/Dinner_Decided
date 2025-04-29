@@ -94,8 +94,8 @@ export default function GroceryList() {
       setIsGenerating(true);
 
       // Call API to generate grocery list
-      const response = await apiRequest('POST', '/api/generate-grocery-list', {
-        meals: mealPlan.meals
+      const response = await apiRequest('POST', '/api/grocery-list/generate', {
+        mealPlanId: mealPlan.id
       });
 
       const data = await response.json();
