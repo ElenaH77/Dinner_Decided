@@ -82,6 +82,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update household" });
     }
   });
+  
+  // Household member routes
+  app.post("/api/household-members", async (req, res) => {
+    try {
+      const household = await storage.getHousehold();
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
+      }
+      
+      // Add the new member to the household
+      const newMember = req.body;
+      
+      // Ensure member has an ID
+      if (!newMember.id) {
+        newMember.id = Date.now();
+      }
+      
+      const members = household.members || [];
+      members.push(newMember);
+      
+      // Update the household with the new member
+      const updatedHousehold = await storage.updateHousehold({
+        ...household,
+        members
+      });
+      
+      res.json(newMember);
+    } catch (error) {
+      console.error('[HOUSEHOLD] Error adding member:', error);
+      res.status(500).json({ message: "Failed to add household member" });
+    }
+  });
+  
+  app.put("/api/household-members/:id", async (req, res) => {
+    try {
+      const memberId = parseInt(req.params.id, 10);
+      const household = await storage.getHousehold();
+      
+      if (!household || !household.members) {
+        return res.status(404).json({ message: "Household or members not found" });
+      }
+      
+      // Find the member to update
+      const memberIndex = household.members.findIndex(member => member.id === memberId);
+      
+      if (memberIndex === -1) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+      
+      // Update the member
+      const updatedMember = req.body;
+      const updatedMembers = [...household.members];
+      updatedMembers[memberIndex] = updatedMember;
+      
+      // Update the household with the updated member
+      const updatedHousehold = await storage.updateHousehold({
+        ...household,
+        members: updatedMembers
+      });
+      
+      res.json(updatedMember);
+    } catch (error) {
+      console.error('[HOUSEHOLD] Error updating member:', error);
+      res.status(500).json({ message: "Failed to update household member" });
+    }
+  });
+  
+  app.delete("/api/household-members/:id", async (req, res) => {
+    try {
+      const memberId = parseInt(req.params.id, 10);
+      const household = await storage.getHousehold();
+      
+      if (!household || !household.members) {
+        return res.status(404).json({ message: "Household or members not found" });
+      }
+      
+      // Filter out the member to be removed
+      const updatedMembers = household.members.filter(member => member.id !== memberId);
+      
+      // Update the household without this member
+      const updatedHousehold = await storage.updateHousehold({
+        ...household,
+        members: updatedMembers
+      });
+      
+      res.json({ message: "Member removed successfully" });
+    } catch (error) {
+      console.error('[HOUSEHOLD] Error removing member:', error);
+      res.status(500).json({ message: "Failed to remove household member" });
+    }
+  });
 
   // Meal plan routes
   app.get("/api/meal-plan/current", async (req, res) => {

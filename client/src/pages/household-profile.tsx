@@ -53,7 +53,6 @@ export default function HouseholdProfile() {
     if (!newMemberName.trim()) return;
 
     try {
-      // Create a fake member with a unique ID instead of calling the API
       const newMember = {
         id: Date.now(),
         userId: 1,
@@ -62,7 +61,13 @@ export default function HouseholdProfile() {
         isMainUser: members.length === 0
       };
       
+      // Make API call to save the member
+      await apiRequest('POST', '/api/household-members', newMember);
+      
+      // Update local state
       setMembers([...members, newMember]);
+      
+      // Clear form fields
       setNewMemberName('');
       setNewMemberDietary('');
       
@@ -70,6 +75,9 @@ export default function HouseholdProfile() {
         title: "Member added",
         description: `${newMember.name} has been added to your household.`
       });
+      
+      // Refresh household data to ensure consistency
+      await refreshHouseholdData();
     } catch (error) {
       toast({
         title: "Failed to add member",
