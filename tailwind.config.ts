@@ -44,6 +44,13 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // Custom colors
+        "teal-primary": "#21706D",
+        "teal-light": "#2A8F8B",
+        "teal-dark": "#185856",
+        "orange-accent": "#F25C05",
+        "orange-light": "#FF7828",
+        "orange-dark": "#D94F00",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",

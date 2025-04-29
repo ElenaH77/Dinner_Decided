@@ -23,12 +23,12 @@ const MealCard = ({ meal }: { meal: any }) => {
   
   return (
     <Card className="mb-6 border border-gray-200 overflow-hidden">
-      <div className="bg-teal-primary px-4 py-2 flex items-center justify-between">
+      <div className="bg-[#21706D] px-4 py-2 flex items-center justify-between">
         <div className="text-white">
           {day && <span className="font-medium text-white">{day}: </span>}
           <span className="font-bold text-white">{meal.name}</span>
         </div>
-        {icon && <span className="text-xl">{icon}</span>}
+        {icon && <span className="text-xl text-white">{icon}</span>}
       </div>
       <CardContent className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
@@ -46,7 +46,7 @@ const MealCard = ({ meal }: { meal: any }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {meal.mainIngredients && meal.mainIngredients.length > 0 && (
             <div className="bg-gray-50 p-3 rounded-md">
-              <h4 className="font-medium text-teal-primary mb-2">Ingredients:</h4>
+              <h4 className="font-medium text-[#21706D] mb-2">Ingredients:</h4>
               <ul className="list-disc pl-5 space-y-1">
                 {meal.mainIngredients.map((ingredient: string, i: number) => (
                   <li key={i} className="text-sm">{ingredient}</li>
@@ -57,7 +57,7 @@ const MealCard = ({ meal }: { meal: any }) => {
           
           {meal.mealPrepTips && (
             <div className="bg-gray-50 p-3 rounded-md">
-              <h4 className="font-medium text-orange-accent mb-2">Prep Tips:</h4>
+              <h4 className="font-medium text-[#F25C05] mb-2">Prep Tips:</h4>
               <p className="text-sm">{meal.mealPrepTips}</p>
             </div>
           )}
