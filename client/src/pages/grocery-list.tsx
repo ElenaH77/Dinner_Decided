@@ -5,30 +5,59 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GrocerySection from '@/components/grocery/grocery-section';
 import { useToast } from '@/hooks/use-toast';
-import { useMealPlan } from '@/contexts/meal-plan-context';
 import { GroceryDepartment, GroceryItem } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
-import { PrinterIcon, Share2Icon, Search, Plus } from 'lucide-react';
+import { PrinterIcon, Share2Icon, Search, Plus, FileText } from 'lucide-react';
 
 export default function GroceryList() {
   const { toast } = useToast();
-  const { currentMealPlan, meals } = useMealPlan();
   
+  const [mealPlan, setMealPlan] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [department, setDepartment] = useState('all');
   const [departments, setDepartments] = useState<GroceryDepartment[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load the meal plan from localStorage
+  useEffect(() => {
+    try {
+      const storedPlan = localStorage.getItem('current_meal_plan');
+      if (storedPlan) {
+        const parsedPlan = JSON.parse(storedPlan);
+        console.log("Found meal plan in localStorage:", parsedPlan);
+        setMealPlan(parsedPlan);
+        setLoading(false);
+      } else {
+        console.log("No meal plan found in localStorage");
+        toast({
+          title: "No meal plan found",
+          description: "Please create a meal plan first",
+          variant: "destructive"
+        });
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error loading meal plan from localStorage:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your meal plan",
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
+  }, [toast]);
 
   // Get grocery items if we have a meal plan
-  const { data: groceryItems, isLoading } = useQuery({
-    queryKey: ['/api/meal-plans', currentMealPlan?.id, 'grocery-items'],
-    enabled: !!currentMealPlan?.id
+  const { data: groceryItems, isLoading: isLoadingItems } = useQuery({
+    queryKey: ['/api/meal-plans', mealPlan?.id, 'grocery-items'],
+    enabled: !!mealPlan?.id
   });
 
   // Organize grocery items by department
   useEffect(() => {
-    if (groceryItems) {
+    if (groceryItems && Array.isArray(groceryItems)) {
       const deptMap = new Map<string, GroceryItem[]>();
       
       groceryItems.forEach((item: GroceryItem) => {
@@ -52,7 +81,7 @@ export default function GroceryList() {
 
   // Generate grocery list from meals
   const generateGroceryList = async () => {
-    if (!currentMealPlan || !meals || meals.length === 0) {
+    if (!mealPlan || !mealPlan.meals || mealPlan.meals.length === 0) {
       toast({
         title: "No meal plan found",
         description: "Please create a meal plan first to generate a grocery list.",
@@ -66,7 +95,7 @@ export default function GroceryList() {
 
       // Call API to generate grocery list
       const response = await apiRequest('POST', '/api/generate-grocery-list', {
-        meals
+        meals: mealPlan.meals
       });
 
       const data = await response.json();
@@ -74,10 +103,10 @@ export default function GroceryList() {
       // Create grocery items in the database
       for (const item of data.groceryItems) {
         // Find related meal ID if possible
-        const relatedMeal = meals.find(meal => meal.name === item.relatedMealName);
+        const relatedMeal = mealPlan.meals.find(meal => meal.name === item.relatedMealName);
         
         await apiRequest('POST', '/api/grocery-items', {
-          mealPlanId: currentMealPlan.id,
+          mealPlanId: mealPlan.id,
           name: item.name,
           department: item.department,
           isChecked: false,
@@ -105,13 +134,13 @@ export default function GroceryList() {
   };
 
   const addGroceryItem = async () => {
-    if (!newItemName.trim() || !currentMealPlan) {
+    if (!newItemName.trim() || !mealPlan) {
       return;
     }
 
     try {
       await apiRequest('POST', '/api/grocery-items', {
-        mealPlanId: currentMealPlan.id,
+        mealPlanId: mealPlan.id,
         name: newItemName,
         department: 'Other',
         isChecked: false
@@ -142,10 +171,25 @@ export default function GroceryList() {
   );
 
   // Get unique department names for the filter dropdown
-  const departmentNames = ['all', ...new Set(departments.map(dept => dept.name))];
+  const departmentNames = ['all', ...Array.from(new Set(departments.map(dept => dept.name)))];
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
+      {/* Fixed Action Buttons - Always Visible */}
+      <div className="sticky top-4 z-10 mb-6 flex justify-center">
+        <div className="bg-white rounded-full shadow-md px-4 py-2 flex gap-3">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              window.location.href = '/meal-plan';
+            }}
+            size="sm"
+          >
+            <FileText className="w-4 h-4 mr-2" /> Back to Meal Plan
+          </Button>
+        </div>
+      </div>
+      
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-neutral-text">Grocery List</h2>
         <div className="flex space-x-2">
@@ -160,7 +204,7 @@ export default function GroceryList() {
         </div>
       </div>
 
-      {isLoading ? (
+      {loading || isLoadingItems ? (
         <div className="text-center py-12">
           <div className="animate-spin h-8 w-8 border-4 border-teal-primary border-t-transparent rounded-full mx-auto mb-4"></div>
           <p>Loading your grocery list...</p>
