@@ -5,6 +5,7 @@ import MealPlan from "@/pages/meal-plan";
 import GroceryList from "@/pages/grocery-list";
 import Profile from "@/pages/household-profile";
 import Onboarding from "@/pages/onboarding";
+import ChatOnboarding from "@/pages/chat-onboarding";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
