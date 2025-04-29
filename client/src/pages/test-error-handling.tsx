@@ -15,22 +15,23 @@ export default function TestErrorHandling() {
       const response = await fetch(`/api/test/errors/${errorType}`);
       const data = await response.json();
       
-      // This will show our enhanced error message
-      if (!response.ok) {
-        let errorMessage = data.message || 'An unknown error occurred';
-        let helpText = data.helpText || '';
-        
-        toast({
-          title: "Error",
-          description: (
-            <div>
-              <p>{errorMessage}</p>
-              {helpText && <p className="mt-2 text-sm font-medium">{helpText}</p>}
-            </div>
-          ),
-          variant: "destructive",
-        });
-      }
+      // Force a display of the error message even if status is 200
+      // In real app, we'd check !response.ok
+      let errorMessage = data.message || 'An unknown error occurred';
+      let helpText = data.helpText || '';
+      
+      toast({
+        title: "Error Simulation",
+        description: (
+          <div>
+            <p>{errorMessage}</p>
+            {helpText && <p className="mt-2 text-sm font-medium text-gray-600">{helpText}</p>}
+          </div>
+        ),
+        variant: "destructive",
+      });
+      
+      console.log('Test error response:', data);
     } catch (error) {
       console.error("Error testing error handling:", error);
       toast({
