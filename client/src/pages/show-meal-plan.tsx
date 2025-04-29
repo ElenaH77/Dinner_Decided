@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCcw, Edit } from 'lucide-react';
+import { modifyMeal, replaceMeal } from '@/lib/meal-ai';
 
 // Meal category icons mapping
 const MEAL_CATEGORY_ICONS: { [key: string]: string } = {
@@ -44,31 +45,22 @@ const MealCard = ({ meal, onUpdate }: { meal: any, onUpdate?: (updatedMeal: any)
     setLoading(true);
     
     try {
-      // In a production app, this would make an API call to modify the meal
-      // using OpenAI with the modification request
+      // Use OpenAI to modify the meal with the user's request
+      const updatedMeal = await modifyMeal(meal, modificationRequest);
       
-      // Simple mock for now - in a real implementation we'd call the API
-      setTimeout(() => {
-        const updatedMeal = {
-          ...meal,
-          modifiedFrom: meal.name,
-          modificationRequest
-        };
-        
-        if (onUpdate) {
-          onUpdate(updatedMeal);
-        }
-        
-        toast({
-          title: "Meal updated",
-          description: "Your modifications have been applied successfully.",
-        });
-        
-        setModifyDialogOpen(false);
-        setModificationRequest('');
-        setLoading(false);
-      }, 1500);
+      // Update the meal plan
+      if (onUpdate) {
+        onUpdate(updatedMeal);
+      }
       
+      toast({
+        title: "Meal updated",
+        description: "Your modifications have been applied successfully.",
+      });
+      
+      setModifyDialogOpen(false);
+      setModificationRequest('');
+      setLoading(false);
     } catch (error) {
       console.error("Error modifying meal:", error);
       toast({
@@ -85,31 +77,21 @@ const MealCard = ({ meal, onUpdate }: { meal: any, onUpdate?: (updatedMeal: any)
     setLoading(true);
     
     try {
-      // In a production app, this would make an API call to replace the meal
-      // using similar criteria but generating a new option
+      // Use OpenAI to generate a completely new meal
+      const replacementMeal = await replaceMeal(meal);
       
-      // Simple mock for now - in a real implementation we'd call the API
-      setTimeout(() => {
-        const replacementMeal = {
-          ...meal,
-          name: `Alternative to ${meal.name}`,
-          description: `This is a replacement option similar to ${meal.name} but with different ingredients or preparation methods.`,
-          isReplacement: true
-        };
-        
-        if (onUpdate) {
-          onUpdate(replacementMeal);
-        }
-        
-        toast({
-          title: "Meal replaced",
-          description: "A new meal option has been generated for you.",
-        });
-        
-        setReplaceDialogOpen(false);
-        setLoading(false);
-      }, 1500);
+      // Update the meal plan
+      if (onUpdate) {
+        onUpdate(replacementMeal);
+      }
       
+      toast({
+        title: "Meal replaced",
+        description: "A new meal option has been generated for you.",
+      });
+      
+      setReplaceDialogOpen(false);
+      setLoading(false);
     } catch (error) {
       console.error("Error replacing meal:", error);
       toast({
