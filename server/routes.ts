@@ -151,7 +151,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(mealPlan);
     } catch (error) {
       console.error("[MEAL PLAN] Error generating meal plan:", error);
-      res.status(500).json({ message: "Failed to generate meal plan" });
+      
+      // Check for specific error messages that should be shown to the user
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && (
+        error.message.includes('OpenAI API quota exceeded') ||
+        error.message.includes('API rate limit exceeded') ||
+        error.message.includes('API authentication error')
+      )) {
+        // Pass the OpenAI-specific error message to the client
+        res.status(500).json({ message: error.message });
+      } else {
+        // Generic error message for other issues
+        res.status(500).json({ message: "Failed to generate meal plan" });
+      }
     }
   });
 

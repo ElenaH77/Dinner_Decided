@@ -147,6 +147,19 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
     
   } catch (error) {
     console.error("Error generating meal plan:", error);
+    
+    // Check for specific OpenAI API errors
+    if (error && typeof error === 'object') {
+      if ('code' in error && error.code === 'insufficient_quota') {
+        throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
+      } else if ('status' in error && error.status === 429) {
+        throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
+      } else if ('status' in error && (error.status === 401 || error.status === 403)) {
+        throw new Error('OpenAI API authentication error. Please check your API key.');
+      }
+    }
+    
+    // For other errors, use backup data
     return generateDummyMeals(preferences);
   }
 }
