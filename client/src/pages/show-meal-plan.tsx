@@ -3,21 +3,38 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
+// Meal category icons mapping
+const MEAL_CATEGORY_ICONS: { [key: string]: string } = {
+  'Quick & Easy': '⚡',
+  'Weeknight Meals': '🍽️',
+  'Batch Cooking': '📦',
+  'Split Prep': '⏰',
+  'quick': '⚡',
+  'weeknight': '🍽️',
+  'batch': '📦',
+  'split': '⏰'
+};
+
 // Simple component to display meal details
 const MealCard = ({ meal }: { meal: any }) => {
   const day = meal.day || meal.dayOfWeek || meal.appropriateDay || '';
   const category = meal.mealCategory || meal.category || '';
+  const icon = MEAL_CATEGORY_ICONS[category] || '';
   
   return (
     <Card className="mb-6 border border-gray-200 overflow-hidden">
-      <div className="bg-teal-primary text-white px-4 py-2">
-        {day && <span className="font-medium">{day}: </span>}
-        <span className="font-bold">{meal.name}</span>
+      <div className="bg-teal-primary text-white px-4 py-2 flex items-center justify-between">
+        <div>
+          {day && <span className="font-medium">{day}: </span>}
+          <span className="font-bold">{meal.name}</span>
+        </div>
+        {icon && <span className="text-xl">{icon}</span>}
       </div>
       <CardContent className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-          <div className="bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-700">
-            {category}
+          <div className="bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-700 flex items-center">
+            {icon && <span className="mr-1">{icon}</span>}
+            <span>{category}</span>
           </div>
           <div className="text-sm text-gray-600">
             Prep Time: {meal.prepTime} min
