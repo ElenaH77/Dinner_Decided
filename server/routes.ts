@@ -535,13 +535,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Update the meal plan with the current meals from the UI
+      // Create a deep copy of the current plan to avoid reference issues
+      // This is crucial for correct meal handling
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, {
-        ...currentPlan,
-        meals: meals
+        ...JSON.parse(JSON.stringify(currentPlan)),
+        meals: JSON.parse(JSON.stringify(meals)) // Important: deep copy the meals
       });
       
       console.log(`[GROCERY] Updated meal plan ${updatedPlan.id} with current UI meals`);
+      console.log(`[GROCERY] Updated meal plan contains ${updatedPlan.meals.length} meals:`, 
+        updatedPlan.meals.map((meal: any) => meal.name).join(', '));
       
       // If empty parameter is true, just return an empty grocery list
       if (empty) {
@@ -568,8 +571,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(groceryList);
       }
       
-      // Generate the grocery list using the updated meal plan
-      const groceryList = await generateAndSaveGroceryList(updatedPlan.id, household.id);
+      // Instead of using generateAndSaveGroceryList, directly call OpenAI with the UI meals
+      // This ensures we're using exactly the data from the UI
+      console.log(`[GROCERY] Directly generating grocery list from UI-provided meals`);
+      
+      // Create a mock meal plan with the UI-provided meals for OpenAI
+      const mealPlanForOpenAI = {
+        ...updatedPlan,
+        meals: meals // Use the raw UI meals to ensure variety
+      };
+      
+      // Directly call OpenAI to generate the list
+      const sections = await generateGroceryList(mealPlanForOpenAI);
+      
+      // Save the generated sections to the grocery list
+      let groceryList = await storage.getGroceryListByMealPlanId(updatedPlan.id);
+      
+      if (groceryList) {
+        // Update existing list
+        groceryList = await storage.updateGroceryList(groceryList.id, {
+          ...groceryList,
+          sections: sections
+        });
+      } else {
+        // Create new grocery list
+        groceryList = await storage.createGroceryList({
+          mealPlanId: updatedPlan.id,
+          householdId: household.id,
+          createdAt: new Date(),
+          sections: sections
+        });
+      }
+      
+      console.log(`[GROCERY] Successfully generated grocery list with ${sections.length} sections`);
       
       res.json(groceryList);
     } catch (error) {
@@ -692,10 +726,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : [modifiedMeal];
               }
               
-              // Update the meal plan with the modified meal
+              // Update the meal plan with the modified meal - use deep copy to avoid reference issues
               const updatedPlan = await storage.updateMealPlan(mealPlanId, {
-                ...mealPlan,
-                meals: updatedMeals
+                ...JSON.parse(JSON.stringify(mealPlan)),
+                meals: JSON.parse(JSON.stringify(updatedMeals))
               });
               
               console.log(`[MEAL] Updated meal plan with modified meal`);
@@ -787,10 +821,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : [replacementMeal];
               }
               
-              // Update the meal plan with the replaced meal
+              // Update the meal plan with the replaced meal - use deep copy to avoid reference issues
               const updatedPlan = await storage.updateMealPlan(mealPlanId, {
-                ...mealPlan,
-                meals: updatedMeals
+                ...JSON.parse(JSON.stringify(mealPlan)),
+                meals: JSON.parse(JSON.stringify(updatedMeals))
               });
               
               console.log(`[MEAL] Updated meal plan with replacement meal`);
