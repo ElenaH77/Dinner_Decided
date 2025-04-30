@@ -181,9 +181,13 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         3. Categories (e.g., "quick", "vegetarian")
         4. Approximate prep time in minutes
         5. Serving size
-        6. 2-3 rationales for why this meal is a good fit for this specific family
+        6. 3-4 specific rationales for why this meal is a good fit (each one in a separate string in a "rationales" array):
+           - Include dietary considerations based on household members
+           - Mention time/effort alignment with their cooking confidence
+           - Reference equipment they have available
+           - If location and weather data is available, note weather appropriateness
         
-        Return the response as a JSON object with an array of meal objects.`;
+        Return the response as a JSON object with an array of meal objects, where each object has a "rationales" field containing an array of strings.`;
     }
     
     // Log the prompt being sent to OpenAI

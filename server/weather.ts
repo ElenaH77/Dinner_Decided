@@ -134,18 +134,48 @@ export async function getWeatherContextForMealPlanning(location: string = DEFAUL
     // Generate meal planning context based on weather
     let weatherContext = `The current weather in ${weatherData.location.name} is ${currentTemp}°C and ${currentCondition}.`;
     
+    // Add weather-specific meal recommendations
     if (isHot) {
-      weatherContext += " It's quite warm, so lighter meals, salads, and grilled dishes would be appropriate.";
+      weatherContext += " It's quite warm, so consider lighter meals such as:";
+      weatherContext += "\n- Refreshing salads with seasonal produce";
+      weatherContext += "\n- Cold soups like gazpacho or chilled cucumber soup";
+      weatherContext += "\n- Grilled proteins with minimal oven use";
+      weatherContext += "\n- Cold pasta or grain salads";
+      weatherContext += "\n- Meals that don't require long cooking times to avoid heating the kitchen";
     } else if (isCold) {
-      weatherContext += " It's cold, so hearty soups, stews, and warm comfort food would be ideal.";
+      weatherContext += " It's cold, so consider warming comfort foods such as:";
+      weatherContext += "\n- Hearty soups, stews, and chilis";
+      weatherContext += "\n- Roasted meat and root vegetable dishes";
+      weatherContext += "\n- Casseroles and baked pasta dishes";
+      weatherContext += "\n- Warm grain bowls with seasonal toppings";
+      weatherContext += "\n- Slow cooker meals that provide warmth throughout the day";
+    } else {
+      weatherContext += " The temperature is moderate, allowing for a wide range of meal options.";
     }
     
+    // Add precipitation-specific recommendations
     if (currentCondition.includes('rain') || currentCondition.includes('shower')) {
-      weatherContext += " With the rainy weather, comforting meals that don't require going out for many ingredients might be appreciated.";
+      weatherContext += "\n\nWith the rainy weather, consider:";
+      weatherContext += "\n- Comforting meals that don't require going out for many ingredients";
+      weatherContext += "\n- One-pot recipes that simplify cleanup";
+      weatherContext += "\n- Baking projects that can warm up the home";
+      weatherContext += "\n- Using pantry staples to avoid unnecessary trips to the store";
+    } else if (currentCondition.includes('snow')) {
+      weatherContext += "\n\nWith snowy conditions, consider:";
+      weatherContext += "\n- Hearty, warming meals that provide sustained energy";
+      weatherContext += "\n- Recipes using primarily shelf-stable ingredients";
+      weatherContext += "\n- Dishes that can be batch-cooked if power outages are a concern";
+    } else if (currentCondition.includes('clear') || currentCondition.includes('sunny')) {
+      weatherContext += "\n\nWith the clear, pleasant weather, consider:";
+      weatherContext += "\n- Meals that can be enjoyed outdoors";
+      weatherContext += "\n- Grilled dishes that take advantage of outdoor cooking";
+      weatherContext += "\n- Fresh, seasonal ingredients that highlight the good weather";
     }
     
+    // Add weekly forecast if available
     if (forecastSummary) {
-      weatherContext += ` The weather forecast for the week ahead is: ${forecastSummary}`;
+      weatherContext += `\n\nThe weather forecast for the week ahead is: ${forecastSummary}`;
+      weatherContext += "\n\nConsider planning meals that align with each day's specific weather conditions.";
     }
     
     return weatherContext;
