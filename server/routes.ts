@@ -574,11 +574,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This ensures we're using exactly the data from the UI
       console.log(`[GROCERY] Directly generating grocery list from UI-provided meals`);
       
-      // Create a mock meal plan with the UI-provided meals for OpenAI
+      // Create a meal plan with the UI-provided meals for OpenAI
+      // Make sure each meal has a unique reference to prevent duplication
       const mealPlanForOpenAI = {
         ...updatedPlan,
-        meals: meals // Use the raw UI meals to ensure variety
+        meals: meals.map((meal: any, index: number) => ({
+          ...meal,
+          // Add a unique index property to ensure each meal is treated as distinct
+          uniqueIndex: index
+        }))
       };
+      
+      // Check for potential duplicate meals (this should be rare with UI-provided meals)
+      const mealNames = mealPlanForOpenAI.meals.map((m: any) => m.name);
+      const uniqueMealNames = [...new Set(mealNames)];
+      
+      if (uniqueMealNames.length < mealPlanForOpenAI.meals.length) {
+        console.warn(`[GROCERY] WARNING: Duplicate meal names detected in UI meals! Using indexed meals to prevent duplicates.`);
+        console.warn(`[GROCERY] Unique meal names: ${uniqueMealNames.join(', ')}`);
+      }
+      
+      console.log(`[GROCERY] Generating grocery list with ${mealPlanForOpenAI.meals.length} indexed meals`);
       
       // Directly call OpenAI to generate the list
       const sections = await generateGroceryList(mealPlanForOpenAI);
@@ -642,19 +658,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to generate and save grocery list
   async function generateAndSaveGroceryList(mealPlanId: number, householdId: number) {
+    // Get meal plan from storage
     const mealPlan = await storage.getMealPlan(mealPlanId);
     
     if (!mealPlan) {
       throw new Error("Meal plan not found");
     }
     
-    // Log the meal plan being used for debugging
+    // Check for duplicate meals which indicate a reference problem
+    const mealNames = mealPlan.meals.map((meal: any) => meal.name);
+    const uniqueMealNames = [...new Set(mealNames)];
+    
+    // Log information about the meal plan
     console.log(`[GROCERY] Generating list for meal plan ID ${mealPlanId}, name: ${mealPlan.name}`);
     console.log(`[GROCERY] Meal plan contains ${mealPlan.meals.length} meals:`, 
-      mealPlan.meals.map(meal => meal.name).join(', '));
+      mealPlan.meals.map((meal: any) => meal.name).join(', '));
     
-    // Generate grocery list with OpenAI
-    const generatedList = await generateGroceryList(mealPlan);
+    // Create a safer meal plan to avoid all meals becoming the same
+    const fixedMealPlan = {
+      ...mealPlan,
+      meals: mealPlan.meals.map((meal: any, index: number) => {
+        // Make a new copy of each meal to avoid shared references
+        return {
+          ...meal,
+          // Add an index suffix to the ID to ensure uniqueness
+          uniqueIndex: index
+        };
+      })
+    };
+    
+    if (uniqueMealNames.length < mealPlan.meals.length) {
+      console.warn(`[GROCERY] WARNING: Duplicate meals detected! Using fixed meal plan to prevent duplicates.`);
+    }
+    
+    // Generate grocery list with OpenAI using our fixed meal plan
+    const generatedList = await generateGroceryList(fixedMealPlan);
     
     // Get existing list or create new one
     let groceryList = await storage.getGroceryListByMealPlanId(mealPlanId);

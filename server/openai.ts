@@ -266,8 +266,18 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       };
     });
     
-    // Log grocery list generation
-    console.log('[GROCERY] Generating grocery list for meals:', JSON.stringify(meals, null, 2));
+    // Log grocery list generation - check for duplicate meals
+    const mealNames = meals.map((m: any) => m.name);
+    const uniqueMealNames = [...new Set(mealNames)];
+    
+    console.log(`[GROCERY] Generating grocery list with ${meals.length} meals, ${uniqueMealNames.length} unique meal types`);
+    if (uniqueMealNames.length < meals.length) {
+      console.warn(`[GROCERY] WARNING: Duplicate meals detected! This will cause ingredient quantities to be multiplied incorrectly`);
+      console.warn(`[GROCERY] Unique meal names: ${uniqueMealNames.join(', ')}`);
+    }
+    
+    // Only log detailed meal info if we need troubleshooting data
+    // console.log('[GROCERY] Generating grocery list for meals:', JSON.stringify(meals, null, 2));
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
