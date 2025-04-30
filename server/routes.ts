@@ -4,12 +4,12 @@ import { storage } from "./storage";
 import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal } from "./openai";
 import { z } from "zod";
 import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
-import settingsRoutes from "./api/settings";
+import settingsRouter from "./api/settings";
 import { v4 as uuidv4 } from "uuid";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register API sub-routes
-  app.use('/api/settings', settingsRoutes);
+  app.use('/api/settings', settingsRouter);
   // Chat routes
   app.get("/api/chat/messages", async (req, res) => {
     try {
