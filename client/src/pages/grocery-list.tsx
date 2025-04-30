@@ -152,8 +152,10 @@ export default function GroceryList() {
       setDepartments([]);
       setRecentlyCheckedItems([]);
       
-      // Call API to clear the list on the server
-      await apiRequest('POST', '/api/grocery-list/generate', {
+      // Call API to regenerate the list on the server using current UI meals
+      // with empty: true to clear it
+      await apiRequest('POST', '/api/grocery-list/generate-from-meals', {
+        meals: mealPlan.meals,
         mealPlanId: mealPlan.id,
         empty: true
       });
@@ -223,8 +225,10 @@ export default function GroceryList() {
     try {
       setIsGenerating(true);
 
-      // Call API to generate grocery list
-      const response = await apiRequest('POST', '/api/grocery-list/generate', {
+      // Use our new endpoint to generate grocery list from current UI meals
+      // This ensures we use the latest meal data, not what's stored in the database
+      const response = await apiRequest('POST', '/api/grocery-list/generate-from-meals', {
+        meals: mealPlan.meals,
         mealPlanId: mealPlan.id
       });
 
@@ -252,7 +256,7 @@ export default function GroceryList() {
       
       toast({
         title: "Grocery list created!",
-        description: "Your grocery list has been generated based on your meal plan."
+        description: "Your grocery list has been generated based on your current meal plan."
       });
     } catch (error) {
       console.error("Error generating grocery list:", error);

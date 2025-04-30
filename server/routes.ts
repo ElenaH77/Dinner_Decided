@@ -502,6 +502,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New endpoint to generate grocery list from current UI meals
+  app.post("/api/grocery-list/generate-from-meals", async (req, res) => {
+    try {
+      const { meals, mealPlanId } = req.body;
+      
+      if (!meals || !Array.isArray(meals) || meals.length === 0) {
+        return res.status(400).json({ message: "Valid meals array is required" });
+      }
+      
+      const household = await storage.getHousehold();
+      
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
+      }
+      
+      console.log(`[GROCERY] Generating grocery list from ${meals.length} UI-provided meals`);
+      console.log(`[GROCERY] Meals: ${meals.map(meal => meal.name).join(', ')}`);
+      
+      // Get or create the current meal plan
+      let currentPlan: any;
+      
+      if (mealPlanId) {
+        currentPlan = await storage.getMealPlan(mealPlanId);
+        if (!currentPlan) {
+          return res.status(404).json({ message: "Specified meal plan not found" });
+        }
+      } else {
+        currentPlan = await storage.getCurrentMealPlan();
+        if (!currentPlan) {
+          return res.status(404).json({ message: "No active meal plan found" });
+        }
+      }
+      
+      // Update the meal plan with the current meals from the UI
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, {
+        ...currentPlan,
+        meals: meals
+      });
+      
+      console.log(`[GROCERY] Updated meal plan ${updatedPlan.id} with current UI meals`);
+      
+      // Generate the grocery list using the updated meal plan
+      const groceryList = await generateAndSaveGroceryList(updatedPlan.id, household.id);
+      
+      res.json(groceryList);
+    } catch (error) {
+      console.error("Error generating grocery list from meals:", error);
+      res.status(500).json({ message: "Failed to generate grocery list from meals" });
+    }
+  });
+
   app.post("/api/grocery-list/add-meal", async (req, res) => {
     try {
       const { mealId } = req.body;
