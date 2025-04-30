@@ -535,11 +535,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Create a deep copy of the current plan to avoid reference issues
-      // This is crucial for correct meal handling
+      // Update with the UI meals without deep copying which causes Date conversion issues
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, {
-        ...JSON.parse(JSON.stringify(currentPlan)),
-        meals: JSON.parse(JSON.stringify(meals)) // Important: deep copy the meals
+        ...currentPlan,
+        meals: meals // Use the direct meals array without JSON stringification
       });
       
       console.log(`[GROCERY] Updated meal plan ${updatedPlan.id} with current UI meals`);
@@ -594,11 +593,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sections: sections
         });
       } else {
-        // Create new grocery list
+        // Create new grocery list - using proper Date object
         groceryList = await storage.createGroceryList({
           mealPlanId: updatedPlan.id,
           householdId: household.id,
-          createdAt: new Date(),
+          createdAt: new Date(), // Make sure this is a proper Date object
           sections: sections
         });
       }
@@ -726,10 +725,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : [modifiedMeal];
               }
               
-              // Update the meal plan with the modified meal - use deep copy to avoid reference issues
+              // Update the meal plan with the modified meal - don't use deep copy to avoid Date issues
               const updatedPlan = await storage.updateMealPlan(mealPlanId, {
-                ...JSON.parse(JSON.stringify(mealPlan)),
-                meals: JSON.parse(JSON.stringify(updatedMeals))
+                ...mealPlan,
+                meals: updatedMeals
               });
               
               console.log(`[MEAL] Updated meal plan with modified meal`);
@@ -821,10 +820,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : [replacementMeal];
               }
               
-              // Update the meal plan with the replaced meal - use deep copy to avoid reference issues
+              // Update the meal plan with the replaced meal - don't use deep copy to avoid Date issues
               const updatedPlan = await storage.updateMealPlan(mealPlanId, {
-                ...JSON.parse(JSON.stringify(mealPlan)),
-                meals: JSON.parse(JSON.stringify(updatedMeals))
+                ...mealPlan,
+                meals: updatedMeals
               });
               
               console.log(`[MEAL] Updated meal plan with replacement meal`);
