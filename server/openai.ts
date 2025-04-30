@@ -127,6 +127,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       
       promptContent = `Create a personalized meal plan with ${totalMeals} dinner ideas for a family with the following profile:
         - Family size: ${household.members.length} people
+        - Family members: ${household.members.map(m => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
         - Preferences: ${household.preferences || "Family-friendly meals"}
@@ -138,15 +139,16 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         
         For each meal, please provide:
         1. Name of dish
-        2. Brief description explaining why it's a good fit for this family
+        2. Brief description of the dish
         3. Appropriate day of the week based on the selections above
         4. Meal category from my selection
         5. Prep time (in minutes)
-        6. List of main ingredients needed
+        6. List of main ingredients needed (with quantities)
         7. Serving size (number of people)
         8. Any meal prep tips, especially for "split prep" category meals
+        9. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
         
-        Generate a JSON response with an array of meal objects.`;
+        Generate a JSON response with an array of meal objects, ensuring that you include the rationales as an array of strings in a "rationales" field for each meal.`;
     } else {
       // Standard meal plan request (fallback)
       promptContent = `Create a meal plan with ${preferences.numberOfMeals || 5} dinner ideas for a family with the following profile:

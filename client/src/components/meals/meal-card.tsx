@@ -33,6 +33,7 @@ interface MealCardProps {
     mealPrepTips?: string;
     meal_prep_tips?: string;
     prepTips?: string;
+    rationales?: string[];
   };
   onViewDetails?: (mealId: string) => void;
   onRemove?: (mealId: string) => void;
@@ -101,7 +102,7 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
       </CardHeader>
       
       <CardContent className="pb-2 flex-grow">
-        <div className="flex gap-4 text-sm text-neutral-text">
+        <div className="flex gap-4 text-sm text-neutral-text mb-3">
           {meal.prepTime && (
             <div className="flex items-center">
               <Clock className="h-4 w-4 mr-1" />
@@ -116,6 +117,18 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
             </div>
           )}
         </div>
+        
+        {/* Display personalized rationales if available */}
+        {meal.rationales && meal.rationales.length > 0 && (
+          <div className="mt-2">
+            <h4 className="text-xs font-semibold text-teal-primary mb-1.5">Why This Meal Fits Your Family:</h4>
+            <ul className="list-disc pl-4 space-y-1">
+              {meal.rationales.map((rationale, index) => (
+                <li key={index} className="text-xs text-gray-700">{rationale}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
       
       <CardFooter>
