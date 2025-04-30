@@ -414,6 +414,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weather routes
+  app.get("/api/weather/context", async (req, res) => {
+    try {
+      const household = await storage.getHousehold();
+      
+      if (!household || !household.location) {
+        return res.status(400).json({ 
+          message: "Location not set. Please set your location in the settings.",
+          weatherContext: "Weather information not available. Location not set."
+        });
+      }
+      
+      const location = household.location;
+      console.log(`[WEATHER] Generating weather context for location: ${location}`);
+      
+      const weatherContext = await getWeatherContextForMealPlanning(location);
+      res.json({ 
+        location, 
+        weatherContext 
+      });
+    } catch (error) {
+      console.error("[WEATHER] Error generating weather context:", error);
+      res.status(500).json({ 
+        message: "Failed to get weather context", 
+        weatherContext: "Weather information is temporarily unavailable."
+      });
+    }
+  });
+  
   // Grocery list routes
   app.get("/api/grocery-list/current", async (req, res) => {
     try {
