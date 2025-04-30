@@ -590,9 +590,8 @@ export async function replaceMeal(meal: any): Promise<any> {
 // Helper function to get household data
 async function getHouseholdData() {
   try {
-    // This will depend on your storage method - this is a placeholder
-    // Assuming your storage interface has a getHousehold method
-    const storage = require('./storage').storage;
+    // Import the storage from the current module context
+    const { storage } = await import('./storage');
     return await storage.getHousehold();
   } catch (error) {
     console.error('Error getting household data:', error);
