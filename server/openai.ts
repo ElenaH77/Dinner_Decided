@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { Message } from "@shared/schema";
+import { getWeatherContextForMealPlanning } from "./weather";
 
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
 // Check if we have a valid API key
@@ -100,6 +101,18 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       return generateDummyMeals(preferences);
     }
     
+    // Get weather context if location is available
+    let weatherContext = "";
+    if (household.location) {
+      try {
+        weatherContext = await getWeatherContextForMealPlanning(household.location);
+        console.log(`[MEAL PLAN] Retrieved weather context for ${household.location}`);
+      } catch (weatherError) {
+        console.error("[MEAL PLAN] Error getting weather context:", weatherError);
+        weatherContext = "Weather information is not available.";
+      }
+    }
+    
     // Handle different types of requests
     let promptContent = "";
     
@@ -131,6 +144,8 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
         - Preferences: ${household.preferences || "Family-friendly meals"}
+        - Location: ${household.location || "Unknown location"}
+        ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
         
         Special notes for this week: ${preferences.specialNotes || "No special notes"}
         
@@ -153,11 +168,22 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       // Standard meal plan request (fallback)
       promptContent = `Create a meal plan with ${preferences.numberOfMeals || 5} dinner ideas for a family with the following profile:
         - Family size: ${household.members.length} people
+        - Family members: ${household.members.map(m => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
         - Preferences: ${household.preferences || "Family-friendly meals"}
+        - Location: ${household.location || "Unknown location"}
+        ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
         
-        Generate unique, practical dinner ideas that this family would enjoy. For each meal, include a name, brief description explaining why it's a good fit for this family, categories (e.g., "quick", "vegetarian"), approximate prep time, and serving size.`;
+        Generate unique, practical dinner ideas that this family would enjoy. For each meal, include:
+        1. A name for the dish
+        2. Brief description of the dish
+        3. Categories (e.g., "quick", "vegetarian")
+        4. Approximate prep time in minutes
+        5. Serving size
+        6. 2-3 rationales for why this meal is a good fit for this specific family
+        
+        Return the response as a JSON object with an array of meal objects.`;
     }
     
     // Log the prompt being sent to OpenAI
