@@ -6,6 +6,7 @@ import { z } from "zod";
 import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
 import settingsRouter from "./api/settings";
 import { v4 as uuidv4 } from "uuid";
+import { getWeatherContextForMealPlanning } from "./weather";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register API sub-routes
