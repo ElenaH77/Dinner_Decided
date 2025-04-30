@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { MessageSquare, Calendar, ShoppingBasket, User } from "lucide-react";
+import { MessageSquare, Calendar, ShoppingBasket, User, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 interface SidebarProps {
