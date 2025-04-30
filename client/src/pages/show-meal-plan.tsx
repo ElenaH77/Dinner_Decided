@@ -20,7 +20,17 @@ const MEAL_CATEGORY_ICONS: { [key: string]: string } = {
 };
 
 // Enhanced MealCard component with modification capabilities
-const MealCard = ({ meal, onUpdate, mealPlanId }: { meal: any, onUpdate?: (updatedMeal: any) => void, mealPlanId?: number }) => {
+const MealCard = ({ 
+  meal, 
+  onUpdate, 
+  mealPlanId,
+  currentMeals 
+}: { 
+  meal: any, 
+  onUpdate?: (updatedMeal: any) => void, 
+  mealPlanId?: number,
+  currentMeals?: any[] 
+}) => {
   const day = meal.day || meal.dayOfWeek || meal.appropriateDay || '';
   const category = meal.mealCategory || meal.category || '';
   const icon = MEAL_CATEGORY_ICONS[category] || '';
@@ -46,8 +56,13 @@ const MealCard = ({ meal, onUpdate, mealPlanId }: { meal: any, onUpdate?: (updat
     
     try {
       // Use OpenAI to modify the meal with the user's request
-      // Pass the meal plan ID for grocery list updates
-      const updatedMeal = await modifyMeal(meal, modificationRequest, mealPlanId);
+      // Pass the meal plan ID and current meals for grocery list updates
+      const updatedMeal = await modifyMeal(
+        meal, 
+        modificationRequest, 
+        mealPlanId,
+        currentMeals // Pass the current meals array
+      );
       
       // Update the meal plan
       if (onUpdate) {
@@ -79,8 +94,12 @@ const MealCard = ({ meal, onUpdate, mealPlanId }: { meal: any, onUpdate?: (updat
     
     try {
       // Use OpenAI to generate a completely new meal
-      // Pass the meal plan ID for grocery list updates
-      const replacementMeal = await replaceMeal(meal, mealPlanId);
+      // Pass the meal plan ID and current meals for grocery list updates
+      const replacementMeal = await replaceMeal(
+        meal, 
+        mealPlanId,
+        currentMeals // Pass the current meals array
+      );
       
       // Update the meal plan
       if (onUpdate) {
@@ -430,6 +449,7 @@ export default function ShowMealPlan() {
                   key={meal.id || index} 
                   meal={meal} 
                   mealPlanId={mealPlan.id}
+                  currentMeals={mealPlan.meals} // Pass all current meals
                   onUpdate={(updatedMeal) => handleMealUpdate(updatedMeal, index)}
                 />
               ))}
