@@ -238,14 +238,23 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
     
     // Extract the most important info from each meal, making sure to use the latest modified data
     const meals = mealPlan.meals.map((meal: any) => {
-      // Get main ingredients - prefer meal.mainIngredients if available (from modified recipes)
+      // For ingredients, prefer mainIngredients with quantities if available
+      // These should have been generated from our updated OpenAI functions
       const ingredients = meal.mainIngredients || meal.ingredients || [];
+      
+      // If we have instructions, we might have detailed ingredients with quantities in there
+      if (meal.instructions && Array.isArray(meal.instructions) && meal.instructions.length > 0) {
+        console.log('[GROCERY] Meal has detailed instructions, using full recipe details');
+      }
       
       // Include modification details in name if available
       const mealName = meal.modifiedFrom ? 
         `${meal.name} (modified from ${meal.modifiedFrom})` : 
         meal.name;
-        
+      
+      // Log what we're using for this meal
+      console.log(`[GROCERY] Processing meal "${meal.name}" with ${ingredients.length} ingredients`);
+      
       return {
         id: meal.id,
         name: mealName,
@@ -267,9 +276,13 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
           role: "system" as const,
           content: `You are a helpful meal planning assistant that creates organized grocery lists based on meal plans.
           
-          IMPORTANT: Pay careful attention to meal modifications and use the ingredients listed in each meal's 'ingredients' field.
-          If a meal has been modified (contains modifiedFrom or replacedFrom), make sure to use the NEW ingredients, not the original ones.
-          For example, if "Ground Chicken Tacos" was modified from "Rotisserie Chicken Tacos", use ground chicken in the grocery list, not rotisserie chicken.`
+          IMPORTANT INSTRUCTIONS:
+          1. Pay careful attention to meal modifications and use the ingredients listed in each meal's 'ingredients' field.
+          2. If a meal has been modified (contains modifiedFrom or replacedFrom), make sure to use the NEW ingredients, not the original ones.
+          3. For example, if "Ground Chicken Tacos" was modified from "Rotisserie Chicken Tacos", use ground chicken in the grocery list, not rotisserie chicken.
+          4. For EVERY grocery item, include specific quantities (e.g., "1 lb ground turkey", "2 cups rice", "3 cloves garlic").
+          5. If ingredient quantities are already included in the ingredients list, KEEP those exact quantities in the grocery list.
+          6. Consolidate duplicate ingredients across meals and add up their quantities.`
         },
         {
           role: "user" as const,
@@ -279,10 +292,13 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
           1. Pay special attention to any modified or replaced recipes - always use the ingredients from the CURRENT version.
           2. When a meal has a modificationRequest like "use ground chicken instead of rotisserie chicken", make sure to ONLY include ground chicken in the grocery list, not rotisserie chicken.
           3. For meals with replacedFrom field, these are completely different recipes, so you should ONLY use the current ingredients.
+          4. For EVERY grocery item, you MUST include specific quantities (e.g., "1 lb ground turkey", "2 cups rice", "3 cloves garlic").
+          5. If an ingredient already includes a quantity (like "1 lb ground turkey"), preserve that exact quantity.
+          6. Consolidate duplicate ingredients across meals and add up their quantities.
           
-          Organize items by store section (Produce, Meat & Seafood, Dairy, etc.) and include quantities when possible.
+          Organize items by store section (Produce, Meat & Seafood, Dairy, etc.).
           Return the list as a JSON object with sections array, where each section has a name and items array.
-          Each item should have an id, name, and optional quantity and mealId (to track which meal it's for).`
+          Each item should have an id, name (including quantity), and optional mealId (to track which meal it's for).`
         }
       ] as any, // Type assertion to fix TypeScript error
       response_format: { type: "json_object" },
