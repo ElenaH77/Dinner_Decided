@@ -5,7 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, RefreshCw, Utensils } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Meal } from "@/types";
+// Using inline type definition to ensure rationales is included
+interface Meal {
+  id: string;
+  name: string;
+  description?: string;
+  categories?: string[];
+  prepTime?: number;
+  servings?: number;
+  imageUrl?: string;
+  ingredients?: string[];
+  mainIngredients?: string[];
+  rationales?: string[];
+}
 
 interface MealCardProps {
   meal: Meal;
@@ -17,7 +29,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
   const [isReplacing, setIsReplacing] = useState(false);
   
   // Images for meal categories
-  const categoryImages = {
+  const categoryImages: { [key: string]: string } = {
     "quick": "https://images.unsplash.com/photo-1605851868183-7a4de52117fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
     "vegetarian": "https://images.unsplash.com/photo-1600803907087-f56d462fd26b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
     "slowCooker": "https://images.unsplash.com/photo-1591001889567-c0a790e8fb06?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
@@ -119,6 +131,18 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
           
           {!compact && meal.description && (
             <p className="text-sm text-[#8A8A8A] mt-2">{meal.description}</p>
+          )}
+          
+          {/* Show rationales if available */}
+          {!compact && meal.rationales && meal.rationales.length > 0 && (
+            <div className="mt-3 bg-teal-50 rounded-md p-3">
+              <h4 className="text-xs font-semibold text-[#21706D] mb-1.5">Why This Meal Fits Your Family:</h4>
+              <ul className="list-disc pl-4 space-y-1">
+                {meal.rationales.map((rationale, index) => (
+                  <li key={index} className="text-xs text-gray-700">{rationale}</li>
+                ))}
+              </ul>
+            </div>
           )}
           
           <div className="mt-3 flex justify-between items-center">
