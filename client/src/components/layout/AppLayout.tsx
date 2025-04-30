@@ -16,6 +16,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     if (location === "/this-week" || location === "/meals" || location === "/meal-plan") return "meals";
     if (location === "/grocery") return "grocery";
     if (location === "/profile") return "profile";
+    if (location === "/settings") return "settings";
     return "chat";
   };
   

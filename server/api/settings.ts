@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as dotenv from 'dotenv';
+import { storage } from '../storage';
 
 const router = Router();
 
@@ -58,6 +59,51 @@ router.post('/openai-api-key', (req, res) => {
   } catch (error) {
     console.error('[SETTINGS] Error setting OpenAI API key:', error);
     res.status(500).json({ error: 'Failed to set OpenAI API key' });
+  }
+});
+
+// Get user location
+router.get('/location', async (req, res) => {
+  try {
+    const household = await storage.getHousehold();
+    
+    if (!household) {
+      return res.status(404).json({ error: 'Household not found' });
+    }
+    
+    res.json({ location: household.location || null });
+  } catch (error) {
+    console.error('[SETTINGS] Error getting location:', error);
+    res.status(500).json({ error: 'Failed to get location' });
+  }
+});
+
+// Set user location
+router.post('/location', async (req, res) => {
+  try {
+    const { location } = req.body;
+    
+    if (!location) {
+      return res.status(400).json({ error: 'Location is required' });
+    }
+    
+    const household = await storage.getHousehold();
+    
+    if (!household) {
+      return res.status(404).json({ error: 'Household not found' });
+    }
+    
+    // Update household with the new location
+    const updatedHousehold = await storage.updateHousehold({
+      ...household,
+      location
+    });
+    
+    console.log('[SETTINGS] Location updated to:', location);
+    res.json({ success: true, location });
+  } catch (error) {
+    console.error('[SETTINGS] Error setting location:', error);
+    res.status(500).json({ error: 'Failed to set location' });
   }
 });
 
