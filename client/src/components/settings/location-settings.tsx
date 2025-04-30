@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useHousehold } from "@/contexts/household-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,31 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function LocationSettings() {
-  const { refreshHouseholdData, preferences } = useHousehold();
-  const [location, setLocation] = useState(preferences?.location || "");
+  const { refreshHouseholdData } = useHousehold();
+  const [location, setLocation] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchLocation() {
+      try {
+        setIsLoading(true);
+        const response = await apiRequest("GET", "/api/settings/location");
+        const data = await response.json();
+        
+        if (data.location) {
+          setLocation(data.location);
+        }
+      } catch (error) {
+        console.error("Failed to fetch location:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchLocation();
+  }, []);
 
   const updateLocation = async () => {
     if (!location || location.trim() === "") {
@@ -25,7 +46,7 @@ export default function LocationSettings() {
 
     setIsUpdating(true);
     try {
-      await apiRequest("PATCH", "/api/household", { location });
+      await apiRequest("POST", "/api/settings/location", { location });
       await refreshHouseholdData();
       
       toast({
@@ -57,26 +78,34 @@ export default function LocationSettings() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="location" className="text-sm font-medium">
-              Your Location
-            </label>
-            <Input
-              id="location"
-              placeholder="City, State or City, Country (e.g., Seattle, WA)"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-            <p className="text-xs text-gray-500">
-              Enter a city or region to receive weather-appropriate meal suggestions
-            </p>
-          </div>
+          {isLoading ? (
+            <div className="space-y-2">
+              <div className="h-5 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-3 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label htmlFor="location" className="text-sm font-medium">
+                Your Location
+              </label>
+              <Input
+                id="location"
+                placeholder="City, State or City, Country (e.g., Seattle, WA)"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                Enter a city or region to receive weather-appropriate meal suggestions
+              </p>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter>
         <Button 
           onClick={updateLocation} 
-          disabled={isUpdating}
+          disabled={isUpdating || isLoading}
           className="w-full"
         >
           {isUpdating ? "Updating..." : "Update Location"}
