@@ -3,7 +3,7 @@ import { apiRequest } from './queryClient';
 /**
  * Modify a meal based on user requirements
  */
-export async function modifyMeal(meal: any, modificationRequest: string, mealPlanId?: number): Promise<any> {
+export async function modifyMeal(meal: any, modificationRequest: string, mealPlanId?: number, currentMeals?: any[]): Promise<any> {
   try {
     const payload: any = {
       meal,
@@ -13,6 +13,12 @@ export async function modifyMeal(meal: any, modificationRequest: string, mealPla
     // Add meal plan ID if available for grocery list updates
     if (mealPlanId) {
       payload.mealPlanId = mealPlanId;
+    }
+    
+    // Add current meals from UI context if available
+    if (currentMeals && Array.isArray(currentMeals) && currentMeals.length > 0) {
+      payload.currentMeals = currentMeals;
+      console.log(`Including ${currentMeals.length} current meals in modification request`);
     }
     
     const response = await apiRequest('POST', '/api/meal/modify', payload);
@@ -32,13 +38,19 @@ export async function modifyMeal(meal: any, modificationRequest: string, mealPla
 /**
  * Generate a completely new replacement meal based on the criteria of the original
  */
-export async function replaceMeal(meal: any, mealPlanId?: number): Promise<any> {
+export async function replaceMeal(meal: any, mealPlanId?: number, currentMeals?: any[]): Promise<any> {
   try {
     const payload: any = { meal };
     
     // Add meal plan ID if available for grocery list updates
     if (mealPlanId) {
       payload.mealPlanId = mealPlanId;
+    }
+    
+    // Add current meals from UI context if available
+    if (currentMeals && Array.isArray(currentMeals) && currentMeals.length > 0) {
+      payload.currentMeals = currentMeals;
+      console.log(`Including ${currentMeals.length} current meals in replacement request`);
     }
     
     const response = await apiRequest('POST', '/api/meal/replace', payload);
