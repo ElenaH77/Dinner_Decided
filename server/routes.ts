@@ -539,6 +539,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new Error("Meal plan not found");
     }
     
+    // Log the meal plan being used for debugging
+    console.log(`[GROCERY] Generating list for meal plan ID ${mealPlanId}, name: ${mealPlan.name}`);
+    console.log(`[GROCERY] Meal plan contains ${mealPlan.meals.length} meals:`, 
+      mealPlan.meals.map(meal => meal.name).join(', '));
+    
     // Generate grocery list with OpenAI
     const generatedList = await generateGroceryList(mealPlan);
     
