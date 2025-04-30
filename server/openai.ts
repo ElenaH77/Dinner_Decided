@@ -401,6 +401,21 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
   }
 
   try {
+    // Get household data
+    const household = await getHouseholdData();
+    
+    // Get weather context if location is available
+    let weatherContext = "";
+    if (household && household.location) {
+      try {
+        weatherContext = await getWeatherContextForMealPlanning(household.location);
+        console.log(`[MEAL MODIFICATION] Retrieved weather context for ${household.location}`);
+      } catch (weatherError) {
+        console.error("[MEAL MODIFICATION] Error getting weather context:", weatherError);
+        weatherContext = "Weather information is not available.";
+      }
+    }
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -409,6 +424,17 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           content: `You are a helpful meal planning assistant tasked with modifying recipes.
           Your goal is to modify the provided recipe according to the user's request while keeping the same meal type and similar prep time.
           Maintain the general structure of the meal but accommodate their modification requests.
+          
+          Family profile:
+          ${household ? `- Family size: ${household.members.length} people
+          - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
+          - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
+          - Cooking skill level (1-5): ${household.cookingSkill || 3}
+          - Preferences: ${household.preferences || "Family-friendly meals"}
+          - Location: ${household.location || "Unknown location"}` : 'Family profile not available.'}
+          
+          ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
+          
           Respond in JSON format with the following fields:
           - name: the modified recipe name
           - description: brief description of the modified recipe
@@ -418,11 +444,17 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           - mainIngredients: array of ingredients WITH QUANTITIES (e.g., "1 lb ground turkey", "2 cups pasta")
           - instructions: array of step-by-step cooking instructions (at least 5-7 detailed steps)
           - appropriateDay: same as the original recipe day
+          - rationales: array of 3-4 specific reasons why this meal suits this family, including:
+             - How it accommodates their dietary needs
+             - Why it's appropriate for their cooking skill level
+             - How it works with their equipment
+             - Why it's suitable for the current weather conditions
           
           IMPORTANT NOTES:
           - Every ingredient MUST include specific quantities (e.g., "1 lb", "2 cups", "3 tablespoons")
           - The cooking instructions must be detailed and complete, explaining the entire cooking process from start to finish
           - Instructions should be in order and assume the reader needs guidance on all steps
+          - Rationales should be personalized to this specific family
           `
         },
         {
@@ -431,6 +463,8 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           ${JSON.stringify(meal, null, 2)}
           
           Please modify it according to this request: "${modificationRequest}"
+          
+          Make sure to include 3-4 personalized rationales that explain why this modified meal is appropriate for this specific family, including how it suits the current weather conditions.
           
           Return ONLY the JSON for the modified recipe.`
         }
@@ -463,6 +497,21 @@ export async function replaceMeal(meal: any): Promise<any> {
   }
 
   try {
+    // Get household data
+    const household = await getHouseholdData();
+    
+    // Get weather context if location is available
+    let weatherContext = "";
+    if (household && household.location) {
+      try {
+        weatherContext = await getWeatherContextForMealPlanning(household.location);
+        console.log(`[MEAL REPLACEMENT] Retrieved weather context for ${household.location}`);
+      } catch (weatherError) {
+        console.error("[MEAL REPLACEMENT] Error getting weather context:", weatherError);
+        weatherContext = "Weather information is not available.";
+      }
+    }
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -474,6 +523,17 @@ export async function replaceMeal(meal: any): Promise<any> {
           - Should have similar preparation time
           - Should be appropriate for the same day of the week
           - Should use different primary ingredients than the original
+          - Should be appropriate for the current weather and forecast
+          
+          Family profile:
+          ${household ? `- Family size: ${household.members.length} people
+          - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
+          - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
+          - Cooking skill level (1-5): ${household.cookingSkill || 3}
+          - Preferences: ${household.preferences || "Family-friendly meals"}
+          - Location: ${household.location || "Unknown location"}` : 'Family profile not available.'}
+          
+          ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
           Respond in JSON format with the following fields:
           - name: a new recipe name (must be different and creative)
@@ -484,11 +544,17 @@ export async function replaceMeal(meal: any): Promise<any> {
           - mainIngredients: array of ingredients WITH QUANTITIES (e.g., "1 lb ground turkey", "2 cups pasta") 
           - instructions: array of step-by-step cooking instructions (at least 5-7 detailed steps)
           - appropriateDay: same as the original recipe day
+          - rationales: array of 3-4 specific reasons why this meal suits this family, including:
+             - How it accommodates their dietary needs
+             - Why it's appropriate for their cooking skill level
+             - How it works with their equipment
+             - Why it's suitable for the current weather conditions
           
           IMPORTANT NOTES:
           - Every ingredient MUST include specific quantities (e.g., "1 lb", "2 cups", "3 tablespoons")
           - The cooking instructions must be detailed and complete, explaining the entire cooking process from start to finish
           - Instructions should be in order and assume the reader needs guidance on all steps
+          - Rationales should be personalized to this specific family
           `
         },
         {
@@ -498,6 +564,7 @@ export async function replaceMeal(meal: any): Promise<any> {
           
           Please create a completely different meal that meets the same criteria.
           The new meal should NOT be a variation of ${meal.name}, but a totally different dish.
+          Make sure to include 3-4 personalized rationales that explain why this meal is appropriate for this specific family, including how it suits the current weather conditions.
           
           Return ONLY the JSON for the new replacement recipe.`
         }
@@ -517,6 +584,19 @@ export async function replaceMeal(meal: any): Promise<any> {
   } catch (error) {
     console.error('Error replacing meal with AI:', error);
     throw new Error('Failed to generate replacement recipe. Please try again.');
+  }
+}
+
+// Helper function to get household data
+async function getHouseholdData() {
+  try {
+    // This will depend on your storage method - this is a placeholder
+    // Assuming your storage interface has a getHousehold method
+    const storage = require('./storage').storage;
+    return await storage.getHousehold();
+  } catch (error) {
+    console.error('Error getting household data:', error);
+    return null;
   }
 }
 
