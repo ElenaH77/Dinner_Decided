@@ -494,13 +494,22 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
   );
 };
 
+// Create a module-level variable to store meals between renders and navigations
+let cachedMeals: any[] = [];
+
 export default function SimpleMealPlan() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [mealType, setMealType] = useState("");
   const [preferences, setPreferences] = useState("");
   const [isAddingMeal, setIsAddingMeal] = useState(false);
-  const [meals, setMeals] = useState<any[]>([]);
+  // Initialize from either the cached meals or empty array
+  const [meals, setMeals] = useState<any[]>(() => {
+    const savedMeals = localStorage.getItem('current_meals');
+    const storedMeals = savedMeals ? JSON.parse(savedMeals) : [];
+    
+    return cachedMeals.length ? cachedMeals : storedMeals;
+  });
   
   // Fetch meal plan data
   const { data: mealPlan, isLoading } = useQuery({
@@ -529,6 +538,15 @@ export default function SimpleMealPlan() {
       console.log("No meals found in meal plan, reset to empty array");
     }
   }, [mealPlan]);
+  
+  // Update cached meals and localStorage whenever meals changes
+  useEffect(() => {
+    if (meals.length > 0) {
+      cachedMeals = [...meals]; // Update the module-level cache
+      localStorage.setItem('current_meals', JSON.stringify(meals)); // Also update localStorage
+      console.log('Cached', meals.length, 'meals for persistence between page navigations');
+    }
+  }, [meals]);
   
   // Add meal handler
   const handleAddMeal = () => {
