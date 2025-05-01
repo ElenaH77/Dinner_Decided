@@ -113,23 +113,47 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
     }
   };
 
-  const handleRemoveMeal = () => {
+  const handleRemoveMeal = async () => {
     try {
+      setIsRemoving(true);
       console.log("Before removal - active meal ID:", meal.id);
       
       // Create a local ID if none exists
       const mealId = meal.id || `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
-      // Remove directly from context - no async/await
+      // First update the UI via context for immediate feedback
       removeMeal(mealId);
       
-      // Show confirmation
-      toast({
-        title: "Meal removed",
-        description: "The meal has been removed from your plan."
+      // Then persist to the server
+      const response = await apiRequest("PATCH", "/api/meal-plan/current", {
+        meals: queryClient.getQueryData(['/api/meal-plan/current'])?.meals?.filter((m: any) => m.id !== mealId)
       });
       
-      console.log("Meal was removed with ID:", mealId);
+      // Make sure the query cache is updated
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        
+        // Show confirmation
+        toast({
+          title: "Meal removed",
+          description: "The meal has been removed from your plan."
+        });
+        
+        console.log("Meal was removed with ID:", mealId);
+      } else {
+        // If server update failed, show error and refresh data
+        const errorData = await response.json();
+        console.error("Server error removing meal:", errorData);
+        
+        toast({
+          title: "Error",
+          description: "Something went wrong on the server. Refreshing data.",
+          variant: "destructive"
+        });
+        
+        // Force refresh from server
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+      }
     } catch (error) {
       console.error("Error in handleRemoveMeal:", error);
       toast({
@@ -137,6 +161,11 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
         description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
+      
+      // Force refresh from server on error
+      queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+    } finally {
+      setIsRemoving(false);
     }
   };
 

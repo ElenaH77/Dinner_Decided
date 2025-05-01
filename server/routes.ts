@@ -868,6 +868,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update grocery list (for adding items manually)
+  app.patch("/api/meal-plan/current", async (req, res) => {
+    try {
+      const { meals } = req.body;
+      const currentPlan = await storage.getCurrentMealPlan();
+      
+      if (!currentPlan) {
+        return res.status(404).json({ message: "No active meal plan found" });
+      }
+      
+      console.log(`[DEBUG] Updating meal plan with ${meals ? meals.length : 0} meals`);
+      console.log(`[DEBUG] Current plan has ${currentPlan.meals ? currentPlan.meals.length : 0} meals`);
+      
+      // Update with the provided meals
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, {
+        ...currentPlan,
+        meals: meals || currentPlan.meals
+      });
+      
+      console.log(`[DEBUG] After update, plan has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
+      
+      // Update grocery list if needed
+      const household = await storage.getHousehold();
+      if (household) {
+        await generateAndSaveGroceryList(currentPlan.id, household.id);
+      }
+      
+      res.json(updatedPlan);
+    } catch (error) {
+      console.error("Error updating meal plan:", error);
+      res.status(500).json({ message: "Failed to update meal plan" });
+    }
+  });
+
   app.patch("/api/grocery-list/current", async (req, res) => {
     try {
       const { sections } = req.body;

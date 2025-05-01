@@ -187,7 +187,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     setCurrentPlan(updatedPlan);
   };
 
-  const removeMeal = (mealId: string) => {
+  const removeMeal = async (mealId: string) => {
     if (!currentPlan) return;
     
     console.log('Removing meal with ID:', mealId);
@@ -211,6 +211,15 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     
     // Update the state with our new filtered plan
     setCurrentPlan(updatedPlan);
+    
+    // Persist the change to localStorage for immediate stability between page changes
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPlan));
+    } catch (err) {
+      console.error('Failed to save meal plan to localStorage:', err);
+    }
+    
+    // The actual API call is handled by MealCard.tsx
   };
 
   return (
