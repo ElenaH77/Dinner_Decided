@@ -8,6 +8,8 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -230,6 +232,20 @@ export default function MealPlanBuilder() {
             </div>
           ))}
         </div>
+      </div>
+      
+      {/* Special notes section */}
+      <div className="bg-white p-4 rounded-md border border-gray-200">
+        <h2 className="text-lg font-medium mb-2">Anything else I need to know?</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Use this space to tell me about any special considerations (e.g. temporary dietary needs, additional mouths you're feeding this week, or the farmers market haul we need to use up)
+        </p>
+        <Textarea
+          value={additionalNotes}
+          onChange={(e) => setAdditionalNotes(e.target.value)}
+          placeholder="E.g., We have asparagus to use up, sister visiting on Saturday..."
+          className="min-h-[100px]"
+        />
       </div>
       
       {/* Action Buttons */}
