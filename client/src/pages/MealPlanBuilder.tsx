@@ -184,40 +184,42 @@ export default function MealPlanBuilder() {
       </Card>
       
       {/* Meal Selection Grid */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left p-2 w-28"></th>
-              {MEAL_TYPES.map(type => (
-                <th key={type.id} className="text-center p-2">
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="text-2xl">{type.icon}</span>
-                    <span className="text-sm font-medium">{type.name}</span>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {DAYS_OF_WEEK.map(day => (
-              <tr key={day} className="border-t border-gray-200">
-                <td className="py-4 px-2 font-medium">{day}</td>
+      <div className="w-full">
+        <div className="overflow-x-auto pb-2">
+          <table className="w-full border-collapse min-w-[600px]">
+            <thead>
+              <tr>
+                <th className="text-left p-2 w-28 sticky left-0 bg-white z-10"></th>
                 {MEAL_TYPES.map(type => (
-                  <td key={`${day}-${type.id}`} className="text-center p-2">
-                    <div className="flex justify-center">
-                      <Checkbox
-                        checked={isMealSelected(day, type.id)}
-                        onCheckedChange={() => handleMealSelection(day, type.id)}
-                        className="h-6 w-6"
-                      />
+                  <th key={type.id} className="text-center p-2 w-[140px]">
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="text-2xl">{type.icon}</span>
+                      <span className="text-sm font-medium">{type.name}</span>
                     </div>
-                  </td>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {DAYS_OF_WEEK.map(day => (
+                <tr key={day} className="border-t border-gray-200">
+                  <td className="py-4 px-2 font-medium sticky left-0 bg-white z-10">{day}</td>
+                  {MEAL_TYPES.map(type => (
+                    <td key={`${day}-${type.id}`} className="text-center p-2">
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={isMealSelected(day, type.id)}
+                          onCheckedChange={() => handleMealSelection(day, type.id)}
+                          className="h-6 w-6"
+                        />
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       
       {/* Summary */}
