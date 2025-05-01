@@ -20,7 +20,11 @@ interface Message {
 }
 
 export default function ChatOnboarding() {
-  const [, navigate] = useLocation();
+  // Parse URL search params to check for action parameter
+  const [locationPath, navigate] = useLocation();
+  const urlParams = new URLSearchParams(locationPath.split('?')[1] || '');
+  const action = urlParams.get('action');
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);

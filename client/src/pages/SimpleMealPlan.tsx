@@ -859,7 +859,7 @@ export default function SimpleMealPlan() {
             <p className="text-sm text-[#8A8A8A] mb-4">
               Start a conversation with the assistant to create your personalized meal plan.
             </p>
-            <Link href="/">
+            <Link href="/chat-onboarding?action=mealplan">
               <Button className="bg-[#21706D] hover:bg-[#195957]">Create Meal Plan</Button>
             </Link>
           </CardContent>
