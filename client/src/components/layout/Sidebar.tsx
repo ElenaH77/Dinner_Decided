@@ -7,7 +7,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab }: SidebarProps) {
-  const { data: household } = useQuery({
+  const { data: household } = useQuery<{
+    id: number;
+    name: string;
+    members: Array<{ id: string | number; name: string; }>
+  }>({
     queryKey: ['/api/household'],
   });
 
@@ -22,43 +26,33 @@ export default function Sidebar({ activeTab }: SidebarProps) {
       <nav className="flex-grow">
         <ul className="p-2">
           <li className="mb-1">
-            <Link href="/">
-              <a className={`flex items-center p-3 rounded-lg ${activeTab === 'chat' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
-                <MessageSquare className="w-5 h-5 mr-2" />
-                <span>Chat Assistant</span>
-              </a>
+            <Link href="/" className={`flex items-center p-3 rounded-lg ${activeTab === 'chat' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
+              <MessageSquare className="w-5 h-5 mr-2" />
+              <span>Chat Assistant</span>
             </Link>
           </li>
           <li className="mb-1">
-            <Link href="/this-week">
-              <a className={`flex items-center p-3 rounded-lg ${activeTab === 'meals' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
-                <Calendar className="w-5 h-5 mr-2" />
-                <span>This Week</span>
-              </a>
+            <Link href="/this-week" className={`flex items-center p-3 rounded-lg ${activeTab === 'meals' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
+              <Calendar className="w-5 h-5 mr-2" />
+              <span>This Week</span>
             </Link>
           </li>
           <li className="mb-1">
-            <Link href="/grocery">
-              <a className={`flex items-center p-3 rounded-lg ${activeTab === 'grocery' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
-                <ShoppingBasket className="w-5 h-5 mr-2" />
-                <span>Grocery List</span>
-              </a>
+            <Link href="/grocery" className={`flex items-center p-3 rounded-lg ${activeTab === 'grocery' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
+              <ShoppingBasket className="w-5 h-5 mr-2" />
+              <span>Grocery List</span>
             </Link>
           </li>
           <li className="mb-1">
-            <Link href="/profile">
-              <a className={`flex items-center p-3 rounded-lg ${activeTab === 'profile' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
-                <User className="w-5 h-5 mr-2" />
-                <span>Household Profile</span>
-              </a>
+            <Link href="/profile" className={`flex items-center p-3 rounded-lg ${activeTab === 'profile' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
+              <User className="w-5 h-5 mr-2" />
+              <span>Household Profile</span>
             </Link>
           </li>
           <li className="mb-1">
-            <Link href="/settings">
-              <a className={`flex items-center p-3 rounded-lg ${activeTab === 'settings' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
-                <Settings className="w-5 h-5 mr-2" />
-                <span>Settings</span>
-              </a>
+            <Link href="/settings" className={`flex items-center p-3 rounded-lg ${activeTab === 'settings' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
+              <Settings className="w-5 h-5 mr-2" />
+              <span>Settings</span>
             </Link>
           </li>
         </ul>
