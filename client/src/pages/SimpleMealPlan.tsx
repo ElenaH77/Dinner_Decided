@@ -451,13 +451,25 @@ export default function SimpleMealPlan() {
           if (newMeal) {
             // Add the new meal to our existing meals array with a unique ID
             const uniqueId = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-            const processedNewMeal = {
+            
+            // Ensure the meal has a category and prepTime
+            const enhancedMeal = {
               ...newMeal,
-              id: newMeal.id || uniqueId
+              id: newMeal.id || uniqueId,
+              category: newMeal.category || mealType,
+              prepTime: newMeal.prepTime || (mealType === "Quick & Easy" ? 15 : 30)
             };
             
+            // For crock pot meals, ensure the right category and prep time
+            if (preferences.toLowerCase().includes("crock pot") || 
+                preferences.toLowerCase().includes("crockpot") || 
+                preferences.toLowerCase().includes("slow cooker")) {
+              enhancedMeal.category = "Split Prep";
+              enhancedMeal.prepTime = 20; // 20 mins of actual prep work
+            }
+            
             // Add just this one new meal to our existing meals
-            setMeals(prevMeals => [...prevMeals, processedNewMeal]);
+            setMeals(prevMeals => [...prevMeals, enhancedMeal]);
             console.log("Added a single new meal to existing meals");
           }
         }
@@ -589,7 +601,7 @@ export default function SimpleMealPlan() {
               <Label htmlFor="preferences">Anything special we should know?</Label>
               <Textarea
                 id="preferences"
-                placeholder="Ingredients to use, dietary preferences, etc."
+                placeholder="Example: Use crockpot so I can prep in morning, include more vegetables, make it kid-friendly, etc."
                 value={preferences}
                 onChange={(e) => setPreferences(e.target.value)}
                 className="min-h-[80px]"
