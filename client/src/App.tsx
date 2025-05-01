@@ -1,8 +1,8 @@
 import { Route, Switch, useLocation } from "wouter";
 import AppLayout from "@/components/layout/AppLayout";
-import Home from "@/pages/home";
-import MealPlan from "@/pages/meal-plan";
-import GroceryList from "@/pages/grocery-list";
+import Home from "@/pages/Home";
+import MealPlan from "@/pages/MealPlan";
+import GroceryList from "@/pages/GroceryList";
 import Profile from "@/pages/household-profile";
 import Onboarding from "@/pages/onboarding";
 import ChatOnboarding from "@/pages/chat-onboarding";
@@ -17,14 +17,41 @@ import { Loader2 } from "lucide-react";
 
 function App() {
   const [location, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Handle initial loading state
+  useEffect(() => {
+    console.log('App component mounted');
+    // Add a slight delay to show loading indicator
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      console.log('App ready to render');
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Redirect to onboarding on first load for demo purposes
   useEffect(() => {
     // Only redirect if we're at the root path and want to simulate first-time use
-    if (location === "/") {
+    if (location === "/" && !isLoading) {
+      console.log('Redirecting to chat-onboarding');
       setLocation("/chat-onboarding");
     }
-  }, [location, setLocation]);
+  }, [location, setLocation, isLoading]);
+  
+  // Show loading indicator while app initializes
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <h1 className="mt-4 text-xl font-medium text-foreground">Loading Dinner, Decided</h1>
+          <p className="text-muted-foreground mt-2">Your meal planning assistant is getting ready...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <HouseholdProvider>
