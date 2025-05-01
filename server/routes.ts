@@ -752,6 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered meal modification endpoints
   // GET endpoint for meal modification (redirects to processing endpoint)
   app.get("/api/meal/modify", async (req, res) => {
+    console.log("Modification request received with query params:", req.query);
     const mealId = req.query.id as string;
     const modificationRequest = req.query.request as string;
     
@@ -907,6 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered meal replacement endpoint
   // GET endpoint for meal replacement (redirects to POST)
   app.get("/api/meal/replace", async (req, res) => {
+    console.log("Replacement request received with query params:", req.query);
     const mealId = req.query.id as string;
     if (!mealId) {
       return res.status(400).json({ error: 'Missing meal ID' });

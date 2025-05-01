@@ -147,12 +147,14 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
         onClose={() => setRecipeDialogOpen(false)} 
         onModify={(mealId, modificationRequest) => {
           // Handle meal modification via API
+          console.log('Modifying meal with ID:', meal.id, 'and request:', modificationRequest);
+          
           if (onReplace) {
             // If onReplace exists, use it as a generic handler
-            onReplace(mealId);
+            onReplace(meal.id);
           } else {
             // Fallback to direct URL navigation
-            window.location.href = `/api/meal/modify?id=${mealId}&request=${encodeURIComponent(modificationRequest)}`;
+            window.location.href = `/api/meal/modify?id=${meal.id}&request=${encodeURIComponent(modificationRequest)}`;
           }
         }}
       />
