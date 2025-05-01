@@ -391,15 +391,17 @@ export default function MealPlan() {
                         servings: meal.servingSize || meal.serving_size || 4,
                         day: mealDay
                       }}
-                      onReplace={(mealId) => {
-                        // Call the replace meal API
-                        console.log('Replacing meal with ID:', mealId);
+                      onReplace={() => {
+                        // Call the replace meal API directly with the spread meal's ID
+                        // This avoids relying on argument passing which might be causing the issue
+                        console.log('Original meal:', meal);
+                        console.log('Meal ID from original object:', meal.id); 
                         toast({
                           title: "Replacing meal",
                           description: `Generating a new alternative for ${meal.name}...`
                         });
                         // Make sure we have a valid ID
-                        if (!mealId) {
+                        if (!meal.id) {
                           console.error('Attempting to replace meal with undefined ID');
                           toast({
                             title: "Error",
@@ -408,8 +410,8 @@ export default function MealPlan() {
                           });
                           return;
                         }
-                        console.log('Navigating to replace meal with ID:', mealId);
-                        window.location.href = `/api/meal/replace?id=${mealId}`;
+                        console.log('Navigating to replace meal with ID:', meal.id);
+                        window.location.href = `/api/meal/replace?id=${meal.id}`;
                       }}
                     />
                   );

@@ -132,7 +132,10 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
         {onReplace && (
           <Button 
             className="w-full bg-teal-primary hover:bg-teal-dark"
-            onClick={() => onReplace(meal.id)}
+            onClick={() => {
+              console.log('Replace button clicked for meal with ID:', meal.id);
+              if (onReplace) onReplace(meal.id);
+            }}
           >
             <RefreshCw className="h-4 w-4 mr-2" /> 
             Replace
