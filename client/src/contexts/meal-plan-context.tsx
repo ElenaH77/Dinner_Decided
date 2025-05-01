@@ -190,12 +190,26 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   const removeMeal = (mealId: string) => {
     if (!currentPlan) return;
     
+    console.log('Removing meal with ID:', mealId);
+    console.log('Before removal, meals count:', currentPlan.meals?.length || 0);
+    
+    // Create a new plan object with the meal filtered out
     const updatedPlan = {
       ...currentPlan,
-      meals: (currentPlan.meals || []).filter(meal => meal.id !== mealId),
+      meals: (currentPlan.meals || []).filter(meal => {
+        const keepMeal = meal.id !== mealId;
+        if (!keepMeal) {
+          console.log('Filtered out meal:', meal.name);
+        }
+        return keepMeal;
+      }),
+      // Also filter from mealIds array if it exists
       mealIds: (currentPlan.mealIds || []).filter(id => id.toString() !== mealId)
     };
     
+    console.log('After removal, meals count:', updatedPlan.meals.length);
+    
+    // Update the state with our new filtered plan
     setCurrentPlan(updatedPlan);
   };
 

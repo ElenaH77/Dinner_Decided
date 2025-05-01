@@ -114,37 +114,29 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
   };
 
   const handleRemoveMeal = () => {
-    setIsRemoving(true);
     try {
-      // Log meal to debug
-      console.log("Removing meal:", meal);
-      console.log("Meal ID:", meal.id);
+      console.log("Before removal - active meal ID:", meal.id);
       
-      if (!meal.id) {
-        // Generate an ID if one doesn't exist
-        meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        console.log("Generated ID for meal:", meal.id);
-      }
+      // Create a local ID if none exists
+      const mealId = meal.id || `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
-      // Remove the meal from the local context 
-      removeMeal(meal.id);
+      // Remove directly from context - no async/await
+      removeMeal(mealId);
       
-      // Skip server sync for now - we've already removed it from the UI
-      // which is most important for user experience
-      
+      // Show confirmation
       toast({
         title: "Meal removed",
         description: "The meal has been removed from your plan."
       });
+      
+      console.log("Meal was removed with ID:", mealId);
     } catch (error) {
-      console.error("Error removing meal:", error);
+      console.error("Error in handleRemoveMeal:", error);
       toast({
         title: "Error",
-        description: "Failed to remove the meal. Please try again.",
+        description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsRemoving(false);
     }
   };
 

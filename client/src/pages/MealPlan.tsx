@@ -36,13 +36,16 @@ export default function MealPlan() {
     if (!mealPlan || !mealPlan.meals || !mealPlan.meals.length) {
       return [];
     }
-    // Ensure all meals have IDs
+    
+    // Create a new array and ensure all meals have IDs
     return mealPlan.meals.map((meal: any, index: number) => {
-      if (!meal.id) {
-        // Generate a unique ID for this meal if it doesn't have one
-        meal.id = `meal-${Date.now()}-${index}`;
-      }
-      return meal;
+      const uniqueId = `meal-${Date.now()}-${index}-${Math.floor(Math.random() * 1000)}`;
+      // Return a new object to avoid modifying the original
+      return {
+        ...meal,
+        // Always use the existing ID if available, otherwise generate a new one
+        id: meal.id || uniqueId
+      };
     });
   }, [mealPlan]);
 
