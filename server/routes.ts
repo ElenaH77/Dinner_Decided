@@ -941,17 +941,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Replacement request received with query params:", req.query);
     const mealId = req.query.id as string;
     if (!mealId) {
+      console.error('Missing meal ID in replacement request');
       return res.status(400).json({ error: 'Missing meal ID' });
     }
     
     try {
       // Get the meal from storage
+      console.log(`[MEAL REPLACEMENT] Looking for meal with ID: ${mealId}`);
       const allMeals = await storage.getAllMeals();
+      console.log(`[MEAL REPLACEMENT] Available meals:`, allMeals.map(m => ({ id: m.id, name: m.name })));
+      
       const meal = allMeals.find(m => m.id === mealId);
       
       if (!meal) {
+        console.error(`[MEAL REPLACEMENT] Meal not found with ID: ${mealId}`);
         return res.status(404).json({ error: 'Meal not found' });
       }
+      
+      console.log(`[MEAL REPLACEMENT] Found meal to replace: ${meal.name} (ID: ${meal.id})`);
       
       // Forward to the POST endpoint
       req.body = { mealId };
@@ -968,29 +975,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/meal/replace/process", async (req, res) => {
     const mealId = req.query.id as string;
     if (!mealId) {
+      console.error('[MEAL REPLACEMENT PROCESS] Missing meal ID in process request');
       return res.status(400).json({ error: 'Missing meal ID' });
     }
     
     try {
       // Get the meal from storage
+      console.log(`[MEAL REPLACEMENT PROCESS] Looking for meal with ID: ${mealId}`);
       const allMeals = await storage.getAllMeals();
+      console.log(`[MEAL REPLACEMENT PROCESS] Found ${allMeals.length} meals in storage`);
+      
       const meal = allMeals.find(m => m.id === mealId);
       
       if (!meal) {
+        console.error(`[MEAL REPLACEMENT PROCESS] Meal not found with ID: ${mealId}`);
+        console.log('Available meal IDs:', allMeals.map(m => m.id));
         return res.status(404).json({ error: 'Meal not found' });
       }
       
+      console.log(`[MEAL REPLACEMENT PROCESS] Found meal to replace: ${meal.name} (ID: ${meal.id})`);
+      
       // Replace the meal
+      console.log(`[MEAL REPLACEMENT PROCESS] Generating replacement for '${meal.name}'`);
       const replacementMeal = await replaceMeal(meal);
-      replacementMeal.id = meal.id;
+      replacementMeal.id = meal.id; // Preserve the original ID
+      
+      console.log(`[MEAL REPLACEMENT PROCESS] Generated replacement: '${replacementMeal.name}'`);
       
       // Update the meal in the database
+      console.log(`[MEAL REPLACEMENT PROCESS] Updating meal in storage`);
       await storage.updateMeal(mealId, replacementMeal);
       
       // Redirect back to the meal plan page
+      console.log(`[MEAL REPLACEMENT PROCESS] Successfully replaced meal, redirecting to meal plan page`);
       res.redirect('/this-week?updated=true');
     } catch (error) {
-      console.error('Error processing meal replacement:', error);
+      console.error('[MEAL REPLACEMENT PROCESS] Error processing meal replacement:', error);
       res.redirect('/this-week?error=replacement');
     }
   });
