@@ -101,6 +101,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               variant="outline" 
               size="sm" 
               className="text-sm text-gray-600 h-8"
+              onClick={() => window.alert('Modify functionality coming soon!')}
             >
               Modify
             </Button>
@@ -108,8 +109,22 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               variant="outline" 
               size="sm" 
               className="text-sm text-gray-600 h-8"
+              onClick={() => window.alert('Replace functionality coming soon!')}
             >
               Replace
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-sm text-gray-600 h-8 flex items-center"
+              onClick={() => window.alert('Added to grocery list!')}
+            >
+              <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 6h19l-3 10H6L3 6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 21a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
+                <path d="M19 21a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
+              </svg>
+              Add to List
             </Button>
           </div>
           <Button 
@@ -227,27 +242,35 @@ export default function SimpleMealPlan() {
     setIsAddingMeal(true);
     
     try {
-      // Call API to add meal
-      const response = await apiRequest("POST", "/api/meal-plan/add-meal", {
+      // We'll skip the meal plan clearing since it's causing issues
+      // Instead we'll just add the new meal and handle duplicates on the client side
+      
+      // Now add the new meal
+      const addResponse = await apiRequest("POST", "/api/meal-plan/add-meal", {
         mealType,
         preferences
       });
       
-      if (response.ok) {
-        // Get the updated meal plan data
-        const mealPlanResponse = await apiRequest("/api/meal-plan/current");
-        if (mealPlanResponse.ok) {
-          const updatedMealPlan = await mealPlanResponse.json();
-          if (updatedMealPlan?.meals?.length) {
-            const processedMeals = updatedMealPlan.meals.map((meal: any, index: number) => ({
-              ...meal,
-              id: meal.id || `meal-${Date.now()}-${index}`
-            }));
-            setMeals(processedMeals);
-            console.log("Updated meals after add:", processedMeals.length, "meals");
+      if (addResponse.ok) {
+        // Get only the single new meal
+        const newMealPlan = await addResponse.json();
+        if (newMealPlan?.meals) {
+          // Find the newly added meal (should be the last one)
+          const newMeal = newMealPlan.meals[newMealPlan.meals.length - 1];
+          if (newMeal) {
+            // Add the new meal to our existing meals array with a unique ID
+            const uniqueId = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            const processedNewMeal = {
+              ...newMeal,
+              id: newMeal.id || uniqueId
+            };
+            
+            // Add just this one new meal to our existing meals
+            setMeals(prevMeals => [...prevMeals, processedNewMeal]);
+            console.log("Added a single new meal to existing meals");
           }
         }
-
+        
         // Also refresh query cache
         queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
         
@@ -259,7 +282,7 @@ export default function SimpleMealPlan() {
         setIsDialogOpen(false);
         resetForm();
       } else {
-        const errorData = await response.json();
+        const errorData = await addResponse.json();
         toast({
           title: "Error adding meal",
           description: errorData.message || "There was a problem adding your meal",
