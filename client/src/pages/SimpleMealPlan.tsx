@@ -576,18 +576,33 @@ export default function SimpleMealPlan() {
         return JSON.parse(JSON.stringify(meal));
       });
       
-      // Get the current plan from the query cache
-      const currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
+      // First make a direct API call to get the current meal plan
+      // This ensures we're not relying on the cache which might be stale
+      let currentPlan;
+      try {
+        const planResponse = await apiRequest("GET", "/api/meal-plan/current");
+        if (planResponse.ok) {
+          currentPlan = await planResponse.json();
+        } else {
+          // If API call fails, try the cache as a fallback
+          currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
+        }
+      } catch (err) {
+        // If API call fails, try the cache as a fallback
+        currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
+      }
       
+      // If we still don't have a plan, create a basic one with the meals we have
       if (!currentPlan || !currentPlan.id) {
-        console.error('No current meal plan found in cache');
-        setMeals(prevMeals); // Restore previous state
-        toast({
-          title: "Error",
-          description: "Could not find current meal plan. Please refresh and try again.",
-          variant: "destructive"
-        });
-        return;
+        console.error('No current meal plan found, constructing a temporary one');
+        currentPlan = {
+          id: 1, // Temporary ID
+          name: "Weekly Meal Plan",
+          householdId: 1,
+          isActive: true,
+          meals: prevMeals, // Use the meals we had before removal
+          createdAt: new Date().toISOString()
+        };
       }
       
       // Create an updated plan with the meal filtered out
@@ -702,9 +717,63 @@ export default function SimpleMealPlan() {
               enhancedMeal.prepTime = 20; // 20 mins of actual prep work
             }
             
-            // Add just this one new meal to our existing meals
-            setMeals(prevMeals => [...prevMeals, enhancedMeal]);
-            console.log("Added a single new meal to existing meals");
+            // First get the current plan from the server to make sure we have the latest data
+            const planResponse = await apiRequest("GET", "/api/meal-plan/current");
+            let currentPlan;
+            
+            if (planResponse.ok) {
+              currentPlan = await planResponse.json();
+              console.log('Retrieved current plan with', currentPlan.meals?.length || 0, 'meals');
+            } else {
+              console.warn('Could not fetch current plan, using cached data');
+              currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
+            }
+            
+            // If we still don't have a plan, create a basic one
+            if (!currentPlan || !currentPlan.id) {
+              console.warn('No current meal plan found, constructing a new one');
+              currentPlan = {
+                id: 1,
+                name: "Weekly Meal Plan",
+                householdId: 1,
+                isActive: true,
+                meals: [],
+                createdAt: new Date().toISOString()
+              };
+            }
+            
+            // Create a copy of the current meals and add the new one
+            const updatedMeals = [...(currentPlan.meals || []), enhancedMeal];
+            
+            // Update the plan on the server with ALL meals including the new one
+            const updateResponse = await apiRequest("PATCH", "/api/meal-plan/current", {
+              updatedPlanData: {
+                ...currentPlan,
+                meals: updatedMeals
+              }
+            });
+            
+            if (updateResponse.ok) {
+              console.log('Successfully updated plan with new meal');
+              
+              // Update the local meals state including the new meal
+              setMeals(prevMeals => [...prevMeals, enhancedMeal]);
+              console.log("Added a single new meal to existing meals");
+              
+              // Also update cached meals to ensure persistence
+              cachedMeals = [...cachedMeals, enhancedMeal];
+              localStorage.setItem('current_meals', JSON.stringify([...cachedMeals]));
+            } else {
+              console.error('Failed to update plan with new meal');
+              toast({
+                title: "Warning",
+                description: "The meal was added but may not persist between pages. Please refresh.",
+                variant: "destructive"
+              });
+              
+              // Still update local state for immediate feedback
+              setMeals(prevMeals => [...prevMeals, enhancedMeal]);
+            }
           }
         }
         
