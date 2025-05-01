@@ -899,6 +899,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         meals: meals || (updatedPlanData?.meals || currentPlan.meals)
       };
       
+      // Handle date format issues
+      if (updateData.createdAt && typeof updateData.createdAt === 'string') {
+        try {
+          // Convert string date back to Date object for database
+          updateData.createdAt = new Date(updateData.createdAt);
+        } catch (err) {
+          console.warn('Failed to parse createdAt date:', updateData.createdAt);
+          // Use current date as fallback to avoid TypeErrors
+          updateData.createdAt = new Date();
+        }
+      }
+      
       // IMPORTANT: Force the meals to have unique IDs to prevent reference issues
       if (updateData.meals && Array.isArray(updateData.meals)) {
         updateData.meals = updateData.meals.map((meal: any) => {

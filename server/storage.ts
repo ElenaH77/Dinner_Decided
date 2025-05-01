@@ -396,10 +396,24 @@ export class MemStorage implements IStorage {
       console.log(`[STORAGE] Processed ${processedMeals.length} meals for plan ${id}`);
     }
     
+    // Process data to handle date conversion issues
+    const processedData = { ...data };
+    
+    // If createdAt is a string, convert it to a Date object
+    if (processedData.createdAt && typeof processedData.createdAt === 'string') {
+      try {
+        processedData.createdAt = new Date(processedData.createdAt);
+      } catch (err) {
+        console.warn('[STORAGE] Failed to parse createdAt date from string:', processedData.createdAt);
+        // Use existing date from the plan or current date as fallback
+        processedData.createdAt = existingPlan.createdAt || new Date();
+      }
+    }
+    
     // Create the updated plan with the processed meals
     const updatedPlan = {
       ...existingPlan,
-      ...data,
+      ...processedData,
       meals: processedMeals
     };
     
