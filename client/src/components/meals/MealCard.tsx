@@ -108,6 +108,14 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
   const handleRemoveMeal = async () => {
     setIsRemoving(true);
     try {
+      // Log meal to debug
+      console.log("Removing meal:", meal);
+      console.log("Meal ID:", meal.id);
+      
+      if (!meal.id) {
+        throw new Error("Meal ID is undefined");
+      }
+      
       // Call the API endpoint to remove the meal from the server
       await apiRequest("DELETE", `/api/meal-plan/remove-meal/${meal.id}`, {});
       
@@ -125,7 +133,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       console.error("Error removing meal:", error);
       toast({
         title: "Error",
-        description: "Failed to remove the meal",
+        description: "Failed to remove the meal. Please try again.",
         variant: "destructive"
       });
     } finally {

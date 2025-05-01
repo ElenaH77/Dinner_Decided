@@ -325,21 +325,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/meal-plan/remove-meal/:mealId", async (req, res) => {
     try {
       const { mealId } = req.params;
+      console.log('Removing meal with ID:', mealId); 
+      
       const currentPlan = await storage.getCurrentMealPlan();
       
       if (!currentPlan) {
         return res.status(404).json({ message: "No active meal plan found" });
       }
       
+      console.log('Current plan meals:', currentPlan.meals);
+      
+      // Ensure all meals have IDs before removal
+      const mealsWithIds = currentPlan.meals.map((meal, index) => {
+        if (!meal.id) {
+          meal.id = `meal-${Date.now()}-${index}`;
+        }
+        return meal;
+      });
+      
       // Find the meal to remove
-      const mealIndex = currentPlan.meals.findIndex(meal => meal.id === mealId);
+      const mealIndex = mealsWithIds.findIndex(meal => meal.id === mealId);
       
       if (mealIndex === -1) {
         return res.status(404).json({ message: "Meal not found in current plan" });
       }
       
       // Update the meal plan by filtering out the removed meal
-      const updatedMeals = currentPlan.meals.filter(meal => meal.id !== mealId);
+      const updatedMeals = mealsWithIds.filter(meal => meal.id !== mealId);
       
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
         ...currentPlan, 
@@ -381,8 +393,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to generate new meal" });
       }
       
+      // Assign ID to the new meal
+      const newMeal = newMeals[0];
+      if (!newMeal.id) {
+        newMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      }
+      
+      console.log('Generated new meal with ID:', newMeal.id);
+      
       // Add the new meal to the plan
-      const updatedMeals = [...currentPlan.meals, newMeals[0]];
+      const updatedMeals = [...currentPlan.meals, newMeal];
       
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
         ...currentPlan, 
@@ -390,7 +410,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Update grocery list
-      await generateAndSaveGroceryList(currentPlan.id, household.id);
+      if (household) {
+        await generateAndSaveGroceryList(currentPlan.id, household.id);
+      }
       
       res.json(updatedPlan);
     } catch (error) {
@@ -402,6 +424,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meal-plan/replace-meal/:mealId", async (req, res) => {
     try {
       const { mealId } = req.params;
+      console.log('Replacing meal with ID:', mealId);
+      
       const currentPlan = await storage.getCurrentMealPlan();
       const household = await storage.getHousehold();
       
@@ -409,15 +433,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No active meal plan found" });
       }
       
+      // Ensure all meals have IDs first
+      const mealsWithIds = currentPlan.meals.map((meal, index) => {
+        if (!meal.id) {
+          meal.id = `meal-${Date.now()}-${index}`;
+        }
+        return meal;
+      });
+      
       // Find the meal to replace
-      const mealIndex = currentPlan.meals.findIndex(meal => meal.id === mealId);
+      const mealIndex = mealsWithIds.findIndex(meal => meal.id === mealId);
       
       if (mealIndex === -1) {
         return res.status(404).json({ message: "Meal not found in current plan" });
       }
       
       // Get meal categories to maintain consistency
-      const mealToReplace = currentPlan.meals[mealIndex];
+      const mealToReplace = mealsWithIds[mealIndex];
       
       // Generate a replacement meal with OpenAI
       const replacementMeals = await generateMealPlan(household, { 
@@ -430,9 +462,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to generate replacement meal" });
       }
       
+      // Ensure replacement meal has an ID - keep original ID for continuity
+      const replacementMeal = replacementMeals[0];
+      replacementMeal.id = mealId;
+      
+      console.log('Generated replacement meal with ID:', replacementMeal.id);
+      
       // Update the meal plan
-      const updatedMeals = [...currentPlan.meals];
-      updatedMeals[mealIndex] = replacementMeals[0];
+      const updatedMeals = [...mealsWithIds];
+      updatedMeals[mealIndex] = replacementMeal;
       
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
         ...currentPlan, 
@@ -440,7 +478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Update grocery list
-      await generateAndSaveGroceryList(currentPlan.id, household.id);
+      if (household) {
+        await generateAndSaveGroceryList(currentPlan.id, household.id);
+      }
       
       res.json(updatedPlan);
     } catch (error) {

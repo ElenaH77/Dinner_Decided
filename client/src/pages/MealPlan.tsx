@@ -33,7 +33,17 @@ export default function MealPlan() {
   });
 
   const currentMeals = useMemo(() => {
-    return mealPlan?.meals || [];
+    if (!mealPlan || !mealPlan.meals || !mealPlan.meals.length) {
+      return [];
+    }
+    // Ensure all meals have IDs
+    return mealPlan.meals.map((meal: any, index: number) => {
+      if (!meal.id) {
+        // Generate a unique ID for this meal if it doesn't have one
+        meal.id = `meal-${Date.now()}-${index}`;
+      }
+      return meal;
+    });
   }, [mealPlan]);
 
   // Open dialog to start creating a meal plan from scratch
