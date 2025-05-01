@@ -377,12 +377,38 @@ export class MemStorage implements IStorage {
       throw new Error(`Meal plan with id ${id} not found`);
     }
     
+    // Ensure data.meals is a new array with new copies of each meal object to prevent shared references
+    let processedMeals = existingPlan.meals || [];
+    
+    if (data.meals && Array.isArray(data.meals)) {
+      // Create deep copies of the meal objects to avoid reference sharing between meals
+      processedMeals = data.meals.map(meal => {
+        // Ensure the meal has an ID
+        if (!meal.id) {
+          meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          console.log(`[STORAGE] Added missing ID to meal: ${meal.id}`);
+        }
+        
+        // Create a deep copy of the meal to avoid reference sharing
+        return JSON.parse(JSON.stringify(meal));
+      });
+      
+      console.log(`[STORAGE] Processed ${processedMeals.length} meals for plan ${id}`);
+    }
+    
+    // Create the updated plan with the processed meals
     const updatedPlan = {
       ...existingPlan,
-      ...data
+      ...data,
+      meals: processedMeals
     };
     
     this.mealPlans.set(id, updatedPlan);
+    
+    // Set this as the current meal plan if it's active
+    if (updatedPlan.isActive) {
+      this.currentMealPlanId = id;
+    }
     
     // Ensure it's saved persistently
     this.saveToPersistentStore();
@@ -391,12 +417,19 @@ export class MemStorage implements IStorage {
     if (updatedPlan.meals && Array.isArray(updatedPlan.meals)) {
       for (const meal of updatedPlan.meals) {
         if (meal && meal.id) {
-          this.allMeals.set(meal.id, meal);
+          this.allMeals.set(meal.id, JSON.parse(JSON.stringify(meal))); // Store a deep copy
         }
       }
     }
     
     console.log(`[STORAGE] Updated meal plan ${id} with ${updatedPlan.meals?.length || 0} meals`);
+    
+    // Log full details of meals to aid in debugging
+    if (process.env.DEBUG) {
+      console.log('[STORAGE] Updated meal plan contents:', 
+                updatedPlan.meals.map((m: any) => ({ id: m.id, name: m.name })));
+    }
+    
     return updatedPlan;
   }
 

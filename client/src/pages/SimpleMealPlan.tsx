@@ -509,13 +509,24 @@ export default function SimpleMealPlan() {
   
   // Process meals when data is loaded
   useEffect(() => {
-    if (mealPlan?.meals?.length) {
-      const processedMeals = mealPlan.meals.map((meal: any, index: number) => ({
-        ...meal,
-        id: meal.id || `static-meal-${index}`
-      }));
+    if (mealPlan && Array.isArray(mealPlan.meals)) {
+      // Create deep copies of the meals to prevent reference sharing
+      const processedMeals = mealPlan.meals.map((meal: any, index: number) => {
+        // Ensure each meal has a valid ID
+        const mealId = meal.id || `static-meal-${Date.now()}-${index}`;
+        
+        // Create a complete copy of the meal to prevent reference issues
+        const mealCopy = JSON.parse(JSON.stringify({ ...meal, id: mealId }));
+        
+        return mealCopy;
+      });
+      
       setMeals(processedMeals);
       console.log("Updated meals from meal plan:", processedMeals.length, "meals");
+    } else {
+      // Reset the meals array if no meals are found
+      setMeals([]);
+      console.log("No meals found in meal plan, reset to empty array");
     }
   }, [mealPlan]);
   
@@ -535,18 +546,40 @@ export default function SimpleMealPlan() {
     console.log('Before removal, meals count:', meals.length);
     
     try {
+      // Make a copy of the current meals before removal
+      const prevMeals = [...meals];
+      
       // Update local state immediately for responsive UI
       setMeals(meals.filter(meal => meal.id !== mealId));
       
       // Persist to the server
-      const updatedMeals = meals.filter(meal => meal.id !== mealId);
+      const updatedMeals = meals.filter(meal => meal.id !== mealId).map(meal => {
+        // Create a deep copy of each meal to ensure no reference issues
+        return JSON.parse(JSON.stringify(meal));
+      });
+      
+      // Get the current plan from the query cache
       const currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
       
+      if (!currentPlan || !currentPlan.id) {
+        console.error('No current meal plan found in cache');
+        setMeals(prevMeals); // Restore previous state
+        toast({
+          title: "Error",
+          description: "Could not find current meal plan. Please refresh and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Create an updated plan with the meal filtered out
-      const updatedPlan = {
+      // Use deep copy to ensure no reference issues
+      const updatedPlan = JSON.parse(JSON.stringify({
         ...currentPlan,
         meals: updatedMeals
-      };
+      }));
+      
+      console.log('Sending updated plan to server with', updatedMeals.length, 'meals');
       
       // Send the complete updated plan to the server
       const response = await apiRequest("PATCH", "/api/meal-plan/current", {
@@ -555,12 +588,19 @@ export default function SimpleMealPlan() {
       
       if (response.ok) {
         // Force refresh the query cache
-        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
         
         toast({
           title: "Meal removed",
           description: "The meal has been removed from your plan"
         });
+        
+        // Make a direct server request to confirm the update was applied
+        const verifyResponse = await apiRequest("GET", "/api/meal-plan/current");
+        if (verifyResponse.ok) {
+          const verifiedPlan = await verifyResponse.json();
+          console.log('Verified plan after update has', verifiedPlan.meals?.length || 0, 'meals');
+        }
       } else {
         // If server update fails, revert the local change
         const errorData = await response.json();

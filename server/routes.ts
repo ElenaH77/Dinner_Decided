@@ -877,8 +877,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No active meal plan found" });
       }
       
-      console.log(`[DEBUG] Updating meal plan with ${meals ? meals.length : 0} meals`);
+      // Log the incoming request in detail
+      console.log(`[DEBUG] Meal plan update request with ${meals ? meals.length : 0} meals or ${updatedPlanData ? 'updatedPlanData provided' : 'no updatedPlanData'}`);
       console.log(`[DEBUG] Current plan has ${currentPlan.meals ? currentPlan.meals.length : 0} meals`);
+      
+      // Log a snapshot of the current meals to help troubleshoot
+      if (currentPlan.meals && currentPlan.meals.length > 0) {
+        console.log('[DEBUG] Current meals before update:', 
+                  currentPlan.meals.map((m: any) => ({ id: m.id, name: m.name })));
+      }
+      
+      if (meals && meals.length > 0) {
+        console.log('[DEBUG] New meals in request:', 
+                  meals.map((m: any) => ({ id: m.id, name: m.name })));
+      }
       
       // Build update data - either use explicit meals array or use the updatedPlanData
       const updateData = {
@@ -886,6 +898,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(updatedPlanData || {}),
         meals: meals || (updatedPlanData?.meals || currentPlan.meals)
       };
+      
+      // IMPORTANT: Force the meals to have unique IDs to prevent reference issues
+      if (updateData.meals && Array.isArray(updateData.meals)) {
+        updateData.meals = updateData.meals.map((meal: any) => {
+          if (!meal.id) {
+            meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            console.log(`[DEBUG] Added missing ID to meal in storage: ${meal.id}`);
+          }
+          // Ensure we return a new object, not a reference to an existing one
+          return { ...meal };
+        });
+      }
       
       // Perform database update with complete update data
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, updateData);
