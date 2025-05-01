@@ -107,13 +107,22 @@ export default function MealPlan() {
       
       if (!mealPlanToUse) return;
       
-      // Filter meals to only those in the current meal plan
-      console.log("Filtering meals from API data:", mealsApiData, "with meal plan:", mealPlanToUse);
-      const planMeals = Array.isArray(mealsApiData) ? mealsApiData.filter((meal: Meal) => 
-        mealPlanToUse.mealIds && mealPlanToUse.mealIds.includes(meal.id)
-      ) : [];
-      console.log("Filtered meals:", planMeals);
-      setMeals(planMeals);
+      // Instead of filtering, directly use the meals from the meal plan
+      console.log("Using meals from meal plan:", mealPlanToUse);
+      
+      // Check if the meal plan has meals directly embedded
+      if (mealPlanToUse.meals && Array.isArray(mealPlanToUse.meals) && mealPlanToUse.meals.length > 0) {
+        console.log("Using embedded meals from meal plan, count:", mealPlanToUse.meals.length);
+        // Log to check if meals have IDs
+        console.log("Meal IDs:", mealPlanToUse.meals.map(m => m.id));
+        setMeals(mealPlanToUse.meals);
+      } else {
+        // Fallback to filtering if needed
+        console.log("No embedded meals in meal plan, falling back to filtering from API data");
+        const planMeals = Array.isArray(mealsApiData) ? mealsApiData : [];
+        console.log("Using all available meals, count:", planMeals.length);
+        setMeals(planMeals);
+      }
     }
   }, [mealsApiData, currentMealPlan, mealPlanApiData, setMeals]);
 
@@ -384,6 +393,7 @@ export default function MealPlan() {
                     <MealCard 
                       key={meal.id} 
                       meal={{
+                        id: meal.id || `meal-${index + 1}`, // Ensure we always have an ID by generating one if missing
                         ...meal,
                         // Ensure required properties are available
                         ingredients: meal.ingredients || meal.mainIngredients || meal.main_ingredients || [],
@@ -401,7 +411,8 @@ export default function MealPlan() {
                           description: `Generating a new alternative for ${meal.name}...`
                         });
                         // Make sure we have a valid ID
-                        if (!meal.id) {
+                        const mealIdToUse = meal.id || `meal-${index + 1}`;
+                        if (!mealIdToUse) {
                           console.error('Attempting to replace meal with undefined ID');
                           toast({
                             title: "Error",
@@ -410,8 +421,8 @@ export default function MealPlan() {
                           });
                           return;
                         }
-                        console.log('Navigating to replace meal with ID:', meal.id);
-                        window.location.href = `/api/meal/replace?id=${meal.id}`;
+                        console.log('Navigating to replace meal with ID:', mealIdToUse);
+                        window.location.href = `/api/meal/replace?id=${encodeURIComponent(mealIdToUse)}`;
                       }}
                     />
                   );
