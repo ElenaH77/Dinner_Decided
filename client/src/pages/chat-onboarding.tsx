@@ -34,7 +34,7 @@ export default function ChatOnboarding() {
   const [dietary, setDietary] = useState('');
   const [equipment, setEquipment] = useState<string[]>([]);
   const [skillLevel, setSkillLevel] = useState('');
-  const [location, setLocation] = useState('');
+  const [userLocation, setUserLocation] = useState('');
   const [challenges, setChallenges] = useState('');
   
   // Messages state - with a unique welcome message ID
@@ -60,6 +60,16 @@ export default function ChatOnboarding() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (currentStep === 0) {
+        // If action=mealplan is present in the URL, show a specialized message first
+        if (action === 'mealplan') {
+          const mealPlanId = `mealplan-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: mealPlanId,
+            role: 'assistant',
+            content: "Let's create a meal plan for you! First, I'd like to understand your household a bit better."
+          }]);
+        }
+        // Add the first question regardless of action
         addQuestion(0);
       }
     }, 1000);
@@ -178,7 +188,7 @@ export default function ChatOnboarding() {
         break;
       case 'location':
         userResponse = inputValue;
-        setLocation(inputValue);
+        setUserLocation(inputValue);
         break;
       case 'challenges':
         userResponse = inputValue;
@@ -220,7 +230,7 @@ export default function ChatOnboarding() {
         responseContent = ONBOARDING_RESPONSES.skill_response(skillLevel);
         break;
       case 'location':
-        responseContent = ONBOARDING_RESPONSES.location_response(location);
+        responseContent = ONBOARDING_RESPONSES.location_response(userLocation);
         break;
       case 'challenges':
         responseContent = ONBOARDING_RESPONSES.challenges_response(challenges);
@@ -264,7 +274,7 @@ export default function ChatOnboarding() {
                             skillLevel === "I can follow a recipe" ? 2 : 1,
               preferences: dietary || "No special dietary preferences",
               challenges: challengeTextRef.current || "None specified",
-              location: location || "Unknown",
+              location: userLocation || "Unknown",
               appliances: equipment
             };
             
@@ -356,7 +366,36 @@ export default function ChatOnboarding() {
   
   // Handle navigation to meal plan after completion
   const handleFinish = () => {
-    navigate('/this-week');
+    // If we got here through the mealplan action, immediately create a meal plan
+    if (action === 'mealplan') {
+      // Show loading toast
+      toast({
+        title: "Creating meal plan",
+        description: "We're generating your personalized meal plan based on your preferences...",
+      });
+
+      // Create a meal plan request
+      apiRequest('POST', '/api/meal-plan/generate', {})
+        .then((response) => {
+          toast({
+            title: "Meal plan created",
+            description: "Your personalized meal plan is ready!",
+          });
+          navigate('/this-week');
+        })
+        .catch((error) => {
+          console.error("Error creating meal plan:", error);
+          toast({
+            title: "Error",
+            description: "Failed to create meal plan. Please try again.",
+            variant: "destructive"
+          });
+          navigate('/this-week');
+        });
+    } else {
+      // Standard navigation to meal plan page
+      navigate('/this-week');
+    }
   };
   
   return (
