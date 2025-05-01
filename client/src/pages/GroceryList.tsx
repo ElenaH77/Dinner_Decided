@@ -1,18 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Plus, RefreshCw } from "lucide-react";
+import { ShoppingBag, Plus, RefreshCw, Trash2, PlusCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function GroceryList() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [clearListOpen, setClearListOpen] = useState(false);
+  const [newItem, setNewItem] = useState({ name: '', quantity: '', section: 'Produce' });
   
   const { data: groceryList, isLoading } = useQuery({
     queryKey: ['/api/grocery-list/current'],
@@ -28,6 +36,7 @@ export default function GroceryList() {
   const handleRegenerateList = async () => {
     try {
       await apiRequest("POST", "/api/grocery-list/regenerate", {});
+      queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
       toast({
         title: "List regenerated",
         description: "Your grocery list has been updated based on your current meal plan."
@@ -36,6 +45,83 @@ export default function GroceryList() {
       toast({
         title: "Error",
         description: "Failed to regenerate grocery list",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAddItem = async () => {
+    if (!newItem.name.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide an item name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // In a real app, you'd make an API call here to add the item to the grocery list
+      // For now, we'll simulate this with a mock function that simply adds the item to the local list
+      const updatedList = { ...groceryList };
+      const sectionIndex = updatedList.sections.findIndex(s => s.name === newItem.section);
+      
+      if (sectionIndex === -1) {
+        // Create a new section if it doesn't exist
+        updatedList.sections.push({
+          name: newItem.section,
+          items: [{
+            id: `item-${Date.now()}`,
+            name: newItem.name,
+            quantity: newItem.quantity || undefined
+          }]
+        });
+      } else {
+        // Add to existing section
+        updatedList.sections[sectionIndex].items.push({
+          id: `item-${Date.now()}`,
+          name: newItem.name,
+          quantity: newItem.quantity || undefined
+        });
+      }
+      
+      // Replace the existing data with our updated list
+      queryClient.setQueryData(['/api/grocery-list/current'], updatedList);
+      
+      // Reset the form
+      setNewItem({ name: '', quantity: '', section: 'Produce' });
+      setAddItemOpen(false);
+      
+      toast({
+        title: "Item added",
+        description: `${newItem.name} has been added to your grocery list`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to the grocery list",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleClearList = async () => {
+    try {
+      // In a real app, we'd make an API call here to clear the grocery list
+      // For this implementation, we'll just update the local data
+      const clearedList = { ...groceryList, sections: [] };
+      queryClient.setQueryData(['/api/grocery-list/current'], clearedList);
+      setCheckedItems({});
+      setClearListOpen(false);
+      
+      toast({
+        title: "List cleared",
+        description: "Your grocery list has been cleared. Add some items or refresh the list from your meal plan."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear the grocery list",
         variant: "destructive"
       });
     }
@@ -51,6 +137,115 @@ export default function GroceryList() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-[#212121]">Grocery List</h1>
         <div className="flex space-x-2">
+          <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="border-[#21706D] text-[#21706D]"
+                disabled={isLoading}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add to Grocery List</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Item
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g. Milk"
+                    className="col-span-3"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="quantity" className="text-right">
+                    Quantity
+                  </Label>
+                  <Input
+                    id="quantity"
+                    placeholder="e.g. 1 gallon"
+                    className="col-span-3"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="section" className="text-right">
+                    Section
+                  </Label>
+                  <Select 
+                    value={newItem.section}
+                    onValueChange={(value) => setNewItem({...newItem, section: value})}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Produce">Produce</SelectItem>
+                      <SelectItem value="Dairy">Dairy</SelectItem>
+                      <SelectItem value="Meat">Meat</SelectItem>
+                      <SelectItem value="Bakery">Bakery</SelectItem>
+                      <SelectItem value="Pantry">Pantry</SelectItem>
+                      <SelectItem value="Frozen">Frozen</SelectItem>
+                      <SelectItem value="Snacks">Snacks</SelectItem>
+                      <SelectItem value="Beverages">Beverages</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  onClick={handleAddItem} 
+                  className="bg-[#21706D] hover:bg-[#195957]"
+                >
+                  Add Item
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={clearListOpen} onOpenChange={setClearListOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="border-red-500 text-red-500 hover:bg-red-50"
+                disabled={isLoading || sections.length === 0}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear All
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Clear Grocery List</DialogTitle>
+              </DialogHeader>
+              <p className="py-4">Are you sure you want to clear your entire grocery list? This action cannot be undone.</p>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setClearListOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleClearList} 
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  Clear List
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
           <Button 
             variant="outline" 
             onClick={handleRegenerateList}
