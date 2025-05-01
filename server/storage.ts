@@ -674,8 +674,40 @@ export class DatabaseStorage implements IStorage {
         .set({ isActive: false })
         .where(eq(mealPlans.isActive, true));
     }
+    
+    // Process data to handle date conversion issues
+    const processedData = { ...data };
+    
+    // Ensure createdAt is a valid Date object
+    if (processedData.createdAt && typeof processedData.createdAt === 'string') {
+      try {
+        processedData.createdAt = new Date(processedData.createdAt);
+      } catch (err) {
+        console.warn('[DATABASE] Failed to parse createdAt date from string in createMealPlan:', processedData.createdAt);
+        // Use current date as fallback
+        processedData.createdAt = new Date();
+      }
+    }
+    
+    // Ensure we always have a valid Date object for createdAt
+    if (!processedData.createdAt || !(processedData.createdAt instanceof Date)) {
+      console.log('[DATABASE] Setting default creation date for meal plan');
+      processedData.createdAt = new Date();
+    }
+    
+    // Ensure meals array is properly formatted
+    if (processedData.meals && Array.isArray(processedData.meals)) {
+      processedData.meals = processedData.meals.map(meal => {
+        // Ensure each meal has an ID
+        if (!meal.id) {
+          meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          console.log(`[DATABASE] Added missing ID to meal: ${meal.id}`);
+        }
+        return meal;
+      });
+    }
 
-    const [mealPlan] = await db.insert(mealPlans).values(data).returning();
+    const [mealPlan] = await db.insert(mealPlans).values(processedData).returning();
     return mealPlan;
   }
 
@@ -688,9 +720,32 @@ export class DatabaseStorage implements IStorage {
         .where(eq(mealPlans.isActive, true));
     }
 
+    // Process data to handle date conversion issues
+    const processedData = { ...data };
+    
+    // If createdAt is a string, convert it to a Date object
+    if (processedData.createdAt && typeof processedData.createdAt === 'string') {
+      try {
+        processedData.createdAt = new Date(processedData.createdAt);
+      } catch (err) {
+        console.warn('[DATABASE] Failed to parse createdAt date from string:', processedData.createdAt);
+        // Use current date as fallback
+        processedData.createdAt = new Date();
+      }
+    }
+    
+    // Remove createdAt from update if it's not a proper Date object
+    // This will prevent SQL errors in DB update
+    if (processedData.createdAt && !(processedData.createdAt instanceof Date)) {
+      console.warn('[DATABASE] Removing invalid createdAt from update data to prevent SQL errors');
+      delete processedData.createdAt;
+    }
+
+    console.log('[DATABASE] Updating meal plan:', id, 'with processed data');
+
     const [updatedMealPlan] = await db
       .update(mealPlans)
-      .set(data)
+      .set(processedData)
       .where(eq(mealPlans.id, id))
       .returning();
     
@@ -725,14 +780,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createGroceryList(data: InsertGroceryList): Promise<GroceryList> {
-    const [groceryList] = await db.insert(groceryLists).values(data).returning();
+    // Process data to handle date conversion issues
+    const processedData = { ...data };
+    
+    // Ensure createdAt is a valid Date object
+    if (processedData.createdAt && typeof processedData.createdAt === 'string') {
+      try {
+        processedData.createdAt = new Date(processedData.createdAt);
+      } catch (err) {
+        console.warn('[DATABASE] Failed to parse createdAt date from string in createGroceryList:', processedData.createdAt);
+        // Use current date as fallback
+        processedData.createdAt = new Date();
+      }
+    }
+    
+    // Ensure we always have a valid Date object for createdAt
+    if (!processedData.createdAt || !(processedData.createdAt instanceof Date)) {
+      console.log('[DATABASE] Setting default creation date for grocery list');
+      processedData.createdAt = new Date();
+    }
+
+    const [groceryList] = await db.insert(groceryLists).values(processedData).returning();
     return groceryList;
   }
 
   async updateGroceryList(id: number, data: Partial<GroceryList>): Promise<GroceryList> {
+    // Process data to handle date conversion issues
+    const processedData = { ...data };
+    
+    // If createdAt is a string, convert it to a Date object
+    if (processedData.createdAt && typeof processedData.createdAt === 'string') {
+      try {
+        processedData.createdAt = new Date(processedData.createdAt);
+      } catch (err) {
+        console.warn('[DATABASE] Failed to parse createdAt date from string in grocery list:', processedData.createdAt);
+        // Use current date as fallback
+        processedData.createdAt = new Date();
+      }
+    }
+    
+    // Remove createdAt from update if it's not a proper Date object
+    if (processedData.createdAt && !(processedData.createdAt instanceof Date)) {
+      console.warn('[DATABASE] Removing invalid createdAt from grocery list update data');
+      delete processedData.createdAt;
+    }
+
     const [updatedGroceryList] = await db
       .update(groceryLists)
-      .set(data)
+      .set(processedData)
       .where(eq(groceryLists.id, id))
       .returning();
     

@@ -224,9 +224,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Meal plan routes
   app.get("/api/meal-plan/current", async (req, res) => {
     try {
-      const mealPlan = await storage.getCurrentMealPlan();
+      let mealPlan = await storage.getCurrentMealPlan();
+      
+      // If no meal plan exists, return 404
+      if (!mealPlan) {
+        return res.status(404).json({ message: "No active meal plan found" });
+      }
+      
+      // Ensure the plan has a meals array even if it's empty
+      if (!mealPlan.meals) {
+        mealPlan.meals = [];
+      }
+      
+      // Ensure each meal has an ID to prevent reference issues
+      if (Array.isArray(mealPlan.meals)) {
+        mealPlan.meals = mealPlan.meals.map(meal => {
+          if (!meal.id) {
+            meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            console.log(`[API] Added missing ID to meal in response: ${meal.id}`);
+          }
+          return meal;
+        });
+      }
+      
       res.json(mealPlan);
     } catch (error) {
+      console.error("Error fetching current meal plan:", error);
       res.status(500).json({ message: "Failed to get current meal plan" });
     }
   });
