@@ -92,7 +92,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
         </div>
       </div>
       
-      {/* Recipe dialog would be here but we're keeping it simple for now */}
+      {/* Recipe dialog */}
       {isRecipeOpen && (
         <Dialog open={isRecipeOpen} onOpenChange={setIsRecipeOpen}>
           <DialogContent className="sm:max-w-[600px]">
@@ -137,7 +137,7 @@ export default function SimpleMealPlan() {
   
   // Fetch meal plan data
   const { data: mealPlan, isLoading } = useQuery({
-    queryKey: ['/api/meal-plan/current'],
+    queryKey: ["/api/meal-plan/current"],
   });
   
   // Process meals when data is loaded
@@ -203,7 +203,7 @@ export default function SimpleMealPlan() {
       
       if (response.ok) {
         // Refresh meal plan data
-        queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
         
         toast({
           title: "Meal added",
