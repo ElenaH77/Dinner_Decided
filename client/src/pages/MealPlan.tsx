@@ -6,7 +6,7 @@ import MealCard from "@/components/meals/MealCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,22 +32,35 @@ export default function MealPlan() {
     queryKey: ['/api/meal-plan/current'],
   });
 
-  const currentMeals = useMemo(() => {
-    if (!mealPlan || !mealPlan.meals || !mealPlan.meals.length) {
-      return [];
-    }
-    
-    // Create a new array and ensure all meals have IDs
-    return mealPlan.meals.map((meal: any, index: number) => {
-      const uniqueId = `meal-${Date.now()}-${index}-${Math.floor(Math.random() * 1000)}`;
-      // Return a new object to avoid modifying the original
-      return {
+  // Direct state management for meals
+  const [localMeals, setLocalMeals] = useState<any[]>([]);
+  
+  // Initialize or update local meals when mealPlan changes
+  useEffect(() => {
+    if (mealPlan?.meals?.length) {
+      // Create a new array with guaranteed IDs
+      const processedMeals = mealPlan.meals.map((meal: any, index: number) => ({
         ...meal,
-        // Always use the existing ID if available, otherwise generate a new one
-        id: meal.id || uniqueId
-      };
-    });
+        id: meal.id || `static-meal-${index}-${Math.random().toString(36).substr(2, 9)}`
+      }));
+      
+      console.log('Setting local meals:', processedMeals.length);
+      setLocalMeals(processedMeals);
+    } else {
+      setLocalMeals([]);
+    }
   }, [mealPlan]);
+  
+  // Custom meal removal handler
+  const handleRemoveMeal = (mealId: string) => {
+    console.log('Local meal removal triggered:', mealId);
+    // Filter out the meal with the specified ID
+    setLocalMeals(prev => prev.filter(meal => meal.id !== mealId));
+    toast({
+      title: "Meal removed",
+      description: "The meal has been removed from your plan."
+    });
+  };
 
   // Open dialog to start creating a meal plan from scratch
   const handleCreateNewPlan = () => {
@@ -155,9 +168,9 @@ export default function MealPlan() {
             </Card>
           ))}
         </div>
-      ) : currentMeals.length > 0 ? (
+      ) : localMeals.length > 0 ? (
         <div className="space-y-4">
-          {currentMeals.map((meal) => (
+          {localMeals.map((meal) => (
             <MealCard key={meal.id} meal={meal} />
           ))}
         </div>
