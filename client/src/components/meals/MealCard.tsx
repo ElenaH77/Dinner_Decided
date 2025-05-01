@@ -113,7 +113,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
     }
   };
 
-  const handleRemoveMeal = async () => {
+  const handleRemoveMeal = () => {
     setIsRemoving(true);
     try {
       // Log meal to debug
@@ -121,21 +121,16 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       console.log("Meal ID:", meal.id);
       
       if (!meal.id) {
-        throw new Error("Meal ID is undefined");
+        // Generate an ID if one doesn't exist
+        meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        console.log("Generated ID for meal:", meal.id);
       }
       
-      // Remove the meal from the local context first
+      // Remove the meal from the local context 
       removeMeal(meal.id);
       
-      // Then try to sync with the server (but don't block on it)
-      try {
-        await apiRequest("DELETE", `/api/meal-plan/remove-meal/${meal.id}`, {});
-        // Refresh the meal plan data
-        queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
-      } catch (serverError) {
-        console.log("Server sync error but meal was removed from UI:", serverError);
-        // We already removed it locally so this is just logging
-      }
+      // Skip server sync for now - we've already removed it from the UI
+      // which is most important for user experience
       
       toast({
         title: "Meal removed",

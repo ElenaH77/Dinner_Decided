@@ -47,6 +47,16 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
         meals: []
       };
     } else {
+      // Ensure all meals have IDs
+      if (plan.meals && Array.isArray(plan.meals)) {
+        plan.meals = plan.meals.map(meal => {
+          if (!meal.id) {
+            meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            console.log('Added missing ID to meal in context:', meal.id);
+          }
+          return meal;
+        });
+      }
       processedPlan = plan;
     }
     
