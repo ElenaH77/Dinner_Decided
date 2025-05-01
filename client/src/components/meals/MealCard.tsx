@@ -125,8 +125,18 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       removeMeal(mealId);
       
       // Then persist to the server
+      // Get current plan data from the query cache
+      const currentPlan = queryClient.getQueryData(['/api/meal-plan/current']);
+      
+      // Create an updated plan with the meal filtered out
+      const updatedPlan = {
+        ...currentPlan,
+        meals: currentPlan?.meals?.filter((m: any) => m.id !== mealId) || []
+      };
+      
+      // Send the complete updated plan to the server
       const response = await apiRequest("PATCH", "/api/meal-plan/current", {
-        meals: queryClient.getQueryData(['/api/meal-plan/current'])?.meals?.filter((m: any) => m.id !== mealId)
+        updatedPlanData: updatedPlan
       });
       
       // Make sure the query cache is updated

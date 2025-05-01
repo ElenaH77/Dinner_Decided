@@ -870,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update grocery list (for adding items manually)
   app.patch("/api/meal-plan/current", async (req, res) => {
     try {
-      const { meals } = req.body;
+      const { meals, updatedPlanData } = req.body;
       const currentPlan = await storage.getCurrentMealPlan();
       
       if (!currentPlan) {
@@ -880,11 +880,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[DEBUG] Updating meal plan with ${meals ? meals.length : 0} meals`);
       console.log(`[DEBUG] Current plan has ${currentPlan.meals ? currentPlan.meals.length : 0} meals`);
       
-      // Update with the provided meals
-      const updatedPlan = await storage.updateMealPlan(currentPlan.id, {
+      // Build update data - either use explicit meals array or use the updatedPlanData
+      const updateData = {
         ...currentPlan,
-        meals: meals || currentPlan.meals
-      });
+        ...(updatedPlanData || {}),
+        meals: meals || (updatedPlanData?.meals || currentPlan.meals)
+      };
+      
+      // Perform database update with complete update data
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, updateData);
       
       console.log(`[DEBUG] After update, plan has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
       

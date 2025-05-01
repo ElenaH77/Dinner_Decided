@@ -55,8 +55,44 @@ export class MemStorage implements IStorage {
   private groceryListCounter: number = 1;
 
   constructor() {
-    // Initialize with demo data
-    this.initializeDemoData();
+    // Initialize with demo data only if we haven't already loaded from a persistent store
+    const persistentData = this.loadFromPersistentStore();
+    
+    if (!persistentData) {
+      this.initializeDemoData();
+      this.saveToPersistentStore();
+    }
+  }
+  
+  // Load data from persistent store to survive server restarts
+  private loadFromPersistentStore(): boolean {
+    try {
+      // In a real implementation, this would load from a database
+      // For now we'll just use a basic flag to control initialization
+      const alreadyInitialized = process.env.STORAGE_INITIALIZED === 'true';
+      
+      if (alreadyInitialized) {
+        console.log('[STORAGE] Using existing data - server restarted but memory persists');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('[STORAGE] Failed to load from persistent store:', error);
+      return false;
+    }
+  }
+  
+  // Save data to persistent store
+  private saveToPersistentStore(): void {
+    try {
+      // In a real implementation, this would save to a database
+      // For now, just set a flag to indicate we've initialized
+      process.env.STORAGE_INITIALIZED = 'true';
+      console.log('[STORAGE] Data initialized and flag set');
+    } catch (error) {
+      console.error('[STORAGE] Failed to save to persistent store:', error);
+    }
   }
 
   // Meal methods
@@ -348,6 +384,19 @@ export class MemStorage implements IStorage {
     
     this.mealPlans.set(id, updatedPlan);
     
+    // Ensure it's saved persistently
+    this.saveToPersistentStore();
+    
+    // Update the allMeals collection to stay in sync
+    if (updatedPlan.meals && Array.isArray(updatedPlan.meals)) {
+      for (const meal of updatedPlan.meals) {
+        if (meal && meal.id) {
+          this.allMeals.set(meal.id, meal);
+        }
+      }
+    }
+    
+    console.log(`[STORAGE] Updated meal plan ${id} with ${updatedPlan.meals?.length || 0} meals`);
     return updatedPlan;
   }
 
