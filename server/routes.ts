@@ -866,6 +866,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to clear grocery list" });
     }
   });
+  
+  // Update grocery list (for adding items manually)
+  app.patch("/api/grocery-list/current", async (req, res) => {
+    try {
+      const { sections } = req.body;
+      const currentList = await storage.getCurrentGroceryList();
+      
+      if (!currentList) {
+        return res.status(404).json({ message: "No active grocery list found" });
+      }
+      
+      // Update with the provided sections
+      const updatedList = await storage.updateGroceryList(currentList.id, {
+        ...currentList,
+        sections: sections || currentList.sections
+      });
+      
+      res.json(updatedList);
+    } catch (error) {
+      console.error("Error updating grocery list:", error);
+      res.status(500).json({ message: "Failed to update grocery list" });
+    }
+  });
 
   // Helper function to generate and save grocery list
   async function generateAndSaveGroceryList(mealPlanId: number, householdId: number) {

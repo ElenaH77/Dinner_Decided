@@ -61,17 +61,27 @@ export default function GroceryList() {
     }
 
     try {
-      // In a real app, you'd make an API call here to add the item to the grocery list
-      // For now, we'll simulate this with a mock function that simply adds the item to the local list
-      const updatedList = { ...groceryList };
-      const sectionIndex = updatedList.sections.findIndex(s => s.name === newItem.section);
+      // Get the current list from the query cache or create an empty one
+      const currentList = groceryList || { sections: [] };
+      let updatedList = { ...currentList };
+      
+      // Make sure sections array exists
+      if (!updatedList.sections) {
+        updatedList.sections = [];
+      }
+      
+      // Find the section index
+      const sectionIndex = updatedList.sections.findIndex((s) => s.name === newItem.section);
+      
+      // Generate a unique ID for the new item
+      const newItemId = `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       if (sectionIndex === -1) {
         // Create a new section if it doesn't exist
         updatedList.sections.push({
           name: newItem.section,
           items: [{
-            id: `item-${Date.now()}`,
+            id: newItemId,
             name: newItem.name,
             quantity: newItem.quantity || undefined
           }]
@@ -79,27 +89,41 @@ export default function GroceryList() {
       } else {
         // Add to existing section
         updatedList.sections[sectionIndex].items.push({
-          id: `item-${Date.now()}`,
+          id: newItemId,
           name: newItem.name,
           quantity: newItem.quantity || undefined
         });
       }
       
-      // Replace the existing data with our updated list
-      queryClient.setQueryData(['/api/grocery-list/current'], updatedList);
+      // Send the updated list to the server
+      const response = await apiRequest("PATCH", "/api/grocery-list/current", updatedList);
       
-      // Reset the form
-      setNewItem({ name: '', quantity: '', section: 'Produce' });
-      setAddItemOpen(false);
-      
-      toast({
-        title: "Item added",
-        description: `${newItem.name} has been added to your grocery list`
-      });
+      if (response.ok) {
+        // Get the server-updated list and update the cache
+        const serverUpdatedList = await response.json();
+        queryClient.setQueryData(['/api/grocery-list/current'], serverUpdatedList);
+        
+        // Reset the form
+        setNewItem({ name: '', quantity: '', section: 'Produce' });
+        setAddItemOpen(false);
+        
+        toast({
+          title: "Item added",
+          description: `${newItem.name} has been added to your grocery list`
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to add item to grocery list",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error("Error adding item to grocery list:", error);
       toast({
         title: "Error",
-        description: "Failed to add item to the grocery list",
+        description: "Failed to add item to the grocery list. Please try again.",
         variant: "destructive"
       });
     }
