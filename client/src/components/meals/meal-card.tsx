@@ -134,7 +134,21 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
             className="w-full bg-teal-primary hover:bg-teal-dark"
             onClick={() => {
               console.log('Replace button clicked for meal with ID:', meal.id);
-              if (onReplace) onReplace(meal.id);
+              // Make sure we handle properly
+              if (meal.id) {
+                // If we have an onReplace handler, use it
+                if (onReplace) {
+                  onReplace(meal.id);
+                } else {
+                  // Direct navigation with explicit URL path to ensure ID is included properly
+                  const replaceUrl = `/api/meal/replace?id=${encodeURIComponent(meal.id)}`;
+                  console.log('Navigating to:', replaceUrl);
+                  window.location.href = replaceUrl;
+                }
+              } else {
+                console.error('Meal has no ID, cannot replace');
+                alert('Error: Cannot replace this meal because it has no ID');
+              }
             }}
           >
             <RefreshCw className="h-4 w-4 mr-2" /> 
@@ -150,14 +164,22 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
         onClose={() => setRecipeDialogOpen(false)} 
         onModify={(mealId, modificationRequest) => {
           // Handle meal modification via API
-          console.log('Modifying meal with ID:', meal.id, 'and request:', modificationRequest);
+          console.log('Modifying meal with ID:', mealId, 'and request:', modificationRequest);
           
-          if (onReplace) {
-            // If onReplace exists, use it as a generic handler
-            onReplace(meal.id);
+          // Ensure we have a valid ID
+          if (mealId) {
+            if (onReplace) {
+              // If onReplace exists, use it as a generic handler
+              onReplace(mealId);
+            } else {
+              // Fallback to direct URL navigation with explicit path and query parameters
+              const modifyUrl = `/api/meal/modify?id=${encodeURIComponent(mealId)}&request=${encodeURIComponent(modificationRequest)}`;
+              console.log('Navigating to:', modifyUrl);
+              window.location.href = modifyUrl;
+            }
           } else {
-            // Fallback to direct URL navigation
-            window.location.href = `/api/meal/modify?id=${meal.id}&request=${encodeURIComponent(modificationRequest)}`;
+            console.error('Cannot modify meal: Missing meal ID');
+            alert('Error: Cannot modify this meal because it has no ID');
           }
         }}
       />

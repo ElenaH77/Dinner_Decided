@@ -191,6 +191,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User meals endpoints
+  app.get("/api/users/:userId/meals", async (req, res) => {
+    try {
+      // Get all meals from storage
+      const allMeals = await storage.getAllMeals();
+      console.log(`[MEALS] Get all meals: found ${allMeals.length} meals`);
+      
+      // Return all meals for the user
+      // The client will filter these based on the meal plan
+      res.json(allMeals);
+    } catch (error) {
+      console.error('[MEALS] Error getting user meals:', error);
+      res.status(500).json({ message: "Failed to get user meals" });
+    }
+  });
+
+  // User meal plans endpoint
+  app.get("/api/users/:userId/meal-plans/current", async (req, res) => {
+    try {
+      // Get the current meal plan
+      const mealPlan = await storage.getCurrentMealPlan();
+      console.log(`[MEAL PLAN] Get current meal plan for user ${req.params.userId}`);
+      
+      res.json(mealPlan);
+    } catch (error) {
+      console.error('[MEAL PLAN] Error getting current meal plan:', error);
+      res.status(500).json({ message: "Failed to get current meal plan" });
+    }
+  });
+
   // Meal plan routes
   app.get("/api/meal-plan/current", async (req, res) => {
     try {
