@@ -68,7 +68,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
         )}
         
         {/* Rationales section - if available */}
-        {meal.rationales && meal.rationales.length > 0 && (
+        {meal.rationales && meal.rationales.length > 0 ? (
           <div className="mt-2 mb-3 bg-teal-50 rounded-md p-3">
             <h4 className="text-xs font-semibold text-[#21706D] mb-1.5">Why This Meal Fits Your Family:</h4>
             <ul className="list-disc pl-4 space-y-1">
@@ -77,10 +77,41 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               ))}
             </ul>
           </div>
+        ) : (
+          <div className="mt-2 mb-3 bg-teal-50 rounded-md p-3">
+            <h4 className="text-xs font-semibold text-[#21706D] mb-1.5">Why This Meal Fits Your Family:</h4>
+            <ul className="list-disc pl-4 space-y-1">
+              {meal.category && meal.category.includes('Quick') && (
+                <li className="text-xs text-gray-700">Quick and easy to prepare, perfect for busy weeknights.</li>
+              )}
+              {meal.name && meal.name.toLowerCase().includes('pot') && (
+                <li className="text-xs text-gray-700">Using the Instant Pot, this dish is quick and convenient, fitting the family's cooking confidence level.</li>
+              )}
+              {meal.name && meal.name.toLowerCase().includes('vegetarian') && (
+                <li className="text-xs text-gray-700">This meal is vegetarian, supporting the family's weekly dietary preference.</li>
+              )}
+            </ul>
+          </div>
         )}
         
         {/* Bottom actions */}
-        <div className="flex justify-end mt-2">
+        <div className="flex justify-between items-center mt-2">
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-sm text-gray-600 h-8"
+            >
+              Modify
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-sm text-gray-600 h-8"
+            >
+              Replace
+            </Button>
+          </div>
           <Button 
             variant="link" 
             size="sm" 
@@ -148,6 +179,7 @@ export default function SimpleMealPlan() {
         id: meal.id || `static-meal-${index}`
       }));
       setMeals(processedMeals);
+      console.log("Updated meals from meal plan:", processedMeals.length, "meals");
     }
   }, [mealPlan]);
   
@@ -202,7 +234,21 @@ export default function SimpleMealPlan() {
       });
       
       if (response.ok) {
-        // Refresh meal plan data
+        // Get the updated meal plan data
+        const mealPlanResponse = await apiRequest("/api/meal-plan/current");
+        if (mealPlanResponse.ok) {
+          const updatedMealPlan = await mealPlanResponse.json();
+          if (updatedMealPlan?.meals?.length) {
+            const processedMeals = updatedMealPlan.meals.map((meal: any, index: number) => ({
+              ...meal,
+              id: meal.id || `meal-${Date.now()}-${index}`
+            }));
+            setMeals(processedMeals);
+            console.log("Updated meals after add:", processedMeals.length, "meals");
+          }
+        }
+
+        // Also refresh query cache
         queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
         
         toast({
