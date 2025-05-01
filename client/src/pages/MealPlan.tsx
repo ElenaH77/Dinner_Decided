@@ -6,10 +6,27 @@ import MealCard from "@/components/meals/MealCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+
+// Meal types with their descriptions
+const MEAL_TYPES = [
+  { value: "Quick & Easy", label: "Quick & Easy ⚡", description: "Ready in 30 minutes or less" },
+  { value: "Weeknight Meals", label: "Weeknight Meals 🍽️", description: "Balanced dinners for busy evenings" },
+  { value: "Batch Cooking", label: "Batch Cooking 📦", description: "Make once, eat multiple times" },
+  { value: "Split Prep", label: "Split Prep ⏰", description: "Prep ahead, cook later" }
+];
 
 export default function MealPlan() {
   const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [mealType, setMealType] = useState<string>("");
+  const [preferences, setPreferences] = useState<string>("");
+  const [isAddingMeal, setIsAddingMeal] = useState(false);
   
   const { data: mealPlan, isLoading } = useQuery({
     queryKey: ['/api/meal-plan/current'],
@@ -19,6 +36,7 @@ export default function MealPlan() {
     return mealPlan?.meals || [];
   }, [mealPlan]);
 
+  // Open dialog to start creating a meal plan from scratch
   const handleCreateNewPlan = () => {
     toast({
       title: "Starting new meal plan",
@@ -29,17 +47,89 @@ export default function MealPlan() {
     window.location.href = "/";
   };
 
+  // Open dialog to add a single meal
+  const handleAddMeal = () => {
+    setIsDialogOpen(true);
+  };
+
+  // Reset form state
+  const resetForm = () => {
+    setMealType("");
+    setPreferences("");
+  };
+
+  // Submit the new meal request to be generated
+  const handleSubmitMeal = async () => {
+    if (!mealType) {
+      toast({
+        title: "Missing information",
+        description: "Please select a meal type",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAddingMeal(true);
+
+    try {
+      // Call API to add a new meal
+      const response = await apiRequest("POST", "/api/meal-plan/add-meal", {
+        mealType,
+        preferences
+      });
+
+      if (response.ok) {
+        // Refresh meal plan data
+        queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+        
+        toast({
+          title: "Meal added",
+          description: "A new meal has been added to your plan"
+        });
+
+        // Close dialog and reset form
+        setIsDialogOpen(false);
+        resetForm();
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error adding meal",
+          description: errorData.message || "There was a problem adding your meal",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error adding meal:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add a new meal. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAddingMeal(false);
+    }
+  };
+
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>
-        <Button 
-          onClick={handleCreateNewPlan}
-          className="bg-[#21706D] hover:bg-[#195957]"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Plan
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            onClick={handleAddMeal}
+            className="bg-[#21706D] hover:bg-[#195957]"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Meal
+          </Button>
+          <Button 
+            onClick={handleCreateNewPlan}
+            variant="outline"
+            className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white"
+          >
+            New Plan
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -47,11 +137,8 @@ export default function MealPlan() {
           {[1, 2, 3].map((i) => (
             <Card key={i} className="w-full">
               <CardContent className="p-0">
-                <div className="flex flex-col md:flex-row">
-                  <div className="w-full md:w-1/4">
-                    <Skeleton className="h-32 md:h-full w-full" />
-                  </div>
-                  <div className="p-4 w-full md:w-3/4">
+                <div className="flex flex-col">
+                  <div className="p-4 w-full">
                     <Skeleton className="h-6 w-3/4 mb-2" />
                     <Skeleton className="h-4 w-1/3 mb-4" />
                     <Skeleton className="h-4 w-full mb-4" />
@@ -82,6 +169,83 @@ export default function MealPlan() {
           </CardContent>
         </Card>
       )}
+
+      {/* Add Meal Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add a Meal to Your Plan</DialogTitle>
+            <DialogDescription>
+              Let's create a new meal that fits your family's needs.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="meal-type">What kind of meal?</Label>
+              <Select value={mealType} onValueChange={setMealType}>
+                <SelectTrigger id="meal-type">
+                  <SelectValue placeholder="Select meal type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEAL_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex flex-col">
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {mealType && (
+                <p className="text-sm text-muted-foreground">
+                  {MEAL_TYPES.find(t => t.value === mealType)?.description}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="preferences">Anything special we should know?</Label>
+              <Textarea
+                id="preferences"
+                placeholder="Ingredients to use, dietary preferences, etc."
+                value={preferences}
+                onChange={(e) => setPreferences(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDialogOpen(false);
+                resetForm();
+              }}
+              disabled={isAddingMeal}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitMeal} 
+              disabled={isAddingMeal || !mealType}
+              className="bg-[#21706D] hover:bg-[#195957] relative"
+            >
+              {isAddingMeal ? (
+                <>
+                  <span className="opacity-0">Create Meal</span>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-5 w-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  </span>
+                </>
+              ) : (
+                "Create Meal"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
