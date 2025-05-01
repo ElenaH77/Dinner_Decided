@@ -860,65 +860,11 @@ export default function SimpleMealPlan() {
             <p className="text-sm text-[#8A8A8A] mb-4">
               Start a conversation with the assistant to create your personalized meal plan.
             </p>
-            <Button 
-              className="bg-[#21706D] hover:bg-[#195957]"
-              onClick={() => {
-                // Show loading toast
-                toast({
-                  title: "Creating meal plan",
-                  description: "We're generating your personalized meal plan based on your preferences...",
-                });
-                
-                // Create a meal plan directly instead of going to chat
-                apiRequest('POST', '/api/meal-plan/generate', {})
-                  .then((response) => {
-                    if (!response.ok) {
-                      throw new Error('Failed to create meal plan');
-                    }
-                    return response.json();
-                  })
-                  .then((data) => {
-                    toast({
-                      title: "Meal plan created",
-                      description: "Your personalized meal plan is ready!",
-                    });
-                    queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
-                  })
-                  .catch(async (error) => {
-                    console.error("Error creating meal plan:", error);
-                    
-                    // Try to extract error message from response if it exists
-                    let errorMessage = "Unknown error";
-                    try {
-                      if (error.response) {
-                        const errorData = await error.response.json();
-                        errorMessage = errorData.message || "Failed to create meal plan";
-                      } else if (error.message) {
-                        errorMessage = error.message;
-                      }
-                    } catch (parseError) {
-                      console.error("Error parsing error response:", parseError);
-                    }
-                    
-                    // If there's no household data yet, redirect to onboarding
-                    if (errorMessage.includes('Household not found') || errorMessage.includes('household')) {
-                      toast({
-                        title: "Household setup needed",
-                        description: "We need some information about your household first.",
-                      });
-                      navigate('/chat-onboarding');
-                    } else {
-                      toast({
-                        title: "Error",
-                        description: errorMessage || "Failed to create meal plan. Please try again.",
-                        variant: "destructive"
-                      });
-                    }
-                  });
-              }}
-            >
-              Create Meal Plan
-            </Button>
+            <Link href="/meal-plan-builder">
+              <Button className="bg-[#21706D] hover:bg-[#195957]">
+                Create Meal Plan
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       )}
