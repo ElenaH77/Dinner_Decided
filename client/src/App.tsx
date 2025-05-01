@@ -10,9 +10,10 @@ import TestErrorHandling from "@/pages/test-error-handling";
 import NotFound from "@/pages/not-found";
 import ShowMealPlan from "@/pages/show-meal-plan";
 import Settings from "@/pages/settings";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { HouseholdProvider } from "@/contexts/household-context";
 import { MealPlanProvider } from "@/contexts/meal-plan-context";
+import { Loader2 } from "lucide-react";
 
 function App() {
   const [location, setLocation] = useLocation();
