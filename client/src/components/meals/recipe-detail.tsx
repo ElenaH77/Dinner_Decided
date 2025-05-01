@@ -112,6 +112,39 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     ];
   }
   
+  // Set up toast for modification actions
+  const { toast } = useToast();
+  
+  // State for modification input
+  const [isModifying, setIsModifying] = useState(false);
+  const [modificationRequest, setModificationRequest] = useState('');
+
+  // Handle requesting meal modification
+  const handleModifyMeal = () => {
+    if (!modificationRequest.trim()) {
+      toast({
+        title: "Modification needed",
+        description: "Please describe how you'd like to modify this recipe.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (onModify) {
+      onModify(meal.id, modificationRequest);
+      setIsModifying(false);
+      setModificationRequest('');
+      onClose();
+    } else {
+      // Fallback if no onModify handler provided
+      toast({
+        title: "Modifying recipe",
+        description: `Generating a modified version of ${meal.name}...`
+      });
+      window.location.href = `/api/meal/modify?id=${meal.id}&request=${encodeURIComponent(modificationRequest)}`;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -185,13 +218,56 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
           </div>
         )}
 
-        <DialogFooter className="mt-6">
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-          >
-            Close
-          </Button>
+        {/* Meal Modification Section */}
+        {isModifying && (
+          <div className="border-t border-gray-200 pt-4">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-teal-primary">
+              <MessageSquare className="h-5 w-5 mr-2" /> Modify This Recipe
+            </h3>
+            <textarea 
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-primary focus:border-transparent"
+              rows={3}
+              placeholder="Describe how you'd like to modify this recipe (e.g., 'Make it vegetarian', 'Use less spice', 'Add more protein')..."
+              value={modificationRequest}
+              onChange={(e) => setModificationRequest(e.target.value)}
+            />
+          </div>
+        )}
+
+        <DialogFooter className="mt-6 gap-3 flex">
+          {isModifying ? (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsModifying(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-teal-primary hover:bg-teal-dark"
+                onClick={handleModifyMeal}
+              >
+                Submit Modification
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={onClose}
+              >
+                Close
+              </Button>
+              <Button 
+                variant="outline"
+                className="bg-white text-teal-primary border-teal-primary hover:bg-teal-light/10"
+                onClick={() => setIsModifying(true)}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Modify Recipe
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
