@@ -540,8 +540,17 @@ export default function SimpleMealPlan() {
       
       // Persist to the server
       const updatedMeals = meals.filter(meal => meal.id !== mealId);
-      const response = await apiRequest("PATCH", "/api/meal-plan/current", {
+      const currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
+      
+      // Create an updated plan with the meal filtered out
+      const updatedPlan = {
+        ...currentPlan,
         meals: updatedMeals
+      };
+      
+      // Send the complete updated plan to the server
+      const response = await apiRequest("PATCH", "/api/meal-plan/current", {
+        updatedPlanData: updatedPlan
       });
       
       if (response.ok) {
