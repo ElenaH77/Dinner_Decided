@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,14 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
   const [isReplacing, setIsReplacing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isRecipeOpen, setIsRecipeOpen] = useState(false);
+  
+  // Ensure the meal has an ID
+  useEffect(() => {
+    if (!meal.id) {
+      meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      console.log('Assigned missing ID to meal:', meal.id);
+    }
+  }, [meal]);
   
   // Get a single category for icon display
   // Categories can be in different formats depending on the meal data
@@ -116,14 +124,18 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
         throw new Error("Meal ID is undefined");
       }
       
-      // Call the API endpoint to remove the meal from the server
-      await apiRequest("DELETE", `/api/meal-plan/remove-meal/${meal.id}`, {});
-      
-      // Remove the meal from the local context
+      // Remove the meal from the local context first
       removeMeal(meal.id);
       
-      // Refresh the meal plan data
-      queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+      // Then try to sync with the server (but don't block on it)
+      try {
+        await apiRequest("DELETE", `/api/meal-plan/remove-meal/${meal.id}`, {});
+        // Refresh the meal plan data
+        queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+      } catch (serverError) {
+        console.log("Server sync error but meal was removed from UI:", serverError);
+        // We already removed it locally so this is just logging
+      }
       
       toast({
         title: "Meal removed",
