@@ -2,6 +2,7 @@ import { Route, Switch, useLocation } from "wouter";
 import AppLayout from "@/components/layout/AppLayout";
 import Home from "@/pages/Home";
 import MealPlan from "@/pages/MealPlan";
+import SimpleMealPlan from "@/pages/SimpleMealPlan";
 import GroceryList from "@/pages/GroceryList";
 import Profile from "@/pages/household-profile";
 import Onboarding from "@/pages/onboarding";
@@ -65,9 +66,10 @@ function App() {
             <AppLayout>
               <Switch>
                 <Route path="/" component={Home} />
-                <Route path="/this-week" component={MealPlan} />
-                <Route path="/meal-plan" component={MealPlan} /> {/* Alias for backward compatibility */}
-                <Route path="/meals" component={MealPlan} /> {/* Alias for backward compatibility */}
+                <Route path="/this-week" component={SimpleMealPlan} />
+                <Route path="/meal-plan" component={SimpleMealPlan} /> {/* Alias for backward compatibility */}
+                <Route path="/meals" component={SimpleMealPlan} /> {/* Alias for backward compatibility */}
+                <Route path="/old-meal-plan" component={MealPlan} /> {/* Old version in case we need to revert */}
                 <Route path="/grocery" component={GroceryList} />
                 <Route path="/profile" component={Profile} />
                 <Route path="/settings" component={Settings} />
