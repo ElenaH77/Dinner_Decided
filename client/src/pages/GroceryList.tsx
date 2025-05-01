@@ -107,18 +107,32 @@ export default function GroceryList() {
 
   const handleClearList = async () => {
     try {
-      // In a real app, we'd make an API call here to clear the grocery list
-      // For this implementation, we'll just update the local data
-      const clearedList = { ...groceryList, sections: [] };
-      queryClient.setQueryData(['/api/grocery-list/current'], clearedList);
-      setCheckedItems({});
-      setClearListOpen(false);
+      // Call the API to clear the grocery list
+      const response = await apiRequest("POST", "/api/grocery-list/clear", {});
       
-      toast({
-        title: "List cleared",
-        description: "Your grocery list has been cleared. Add some items or refresh the list from your meal plan."
-      });
+      if (response.ok) {
+        // Update the query cache with the empty list returned from the server
+        const clearedList = await response.json();
+        queryClient.setQueryData(['/api/grocery-list/current'], clearedList);
+        
+        // Reset checked items
+        setCheckedItems({});
+        setClearListOpen(false);
+        
+        toast({
+          title: "List cleared",
+          description: "Your grocery list has been cleared. Add some items or refresh the list from your meal plan."
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to clear the grocery list",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error("Error clearing grocery list:", error);
       toast({
         title: "Error",
         description: "Failed to clear the grocery list",

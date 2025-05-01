@@ -810,30 +810,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/grocery-list/add-meal", async (req, res) => {
     try {
-      const { mealId } = req.body;
+      // Allow both approaches: sending mealId or the complete meal object
+      const { mealId, meal: mealData } = req.body;
       const currentPlan = await storage.getCurrentMealPlan();
       const currentList = await storage.getCurrentGroceryList();
       
-      if (!currentPlan || !currentList) {
-        return res.status(404).json({ message: "No active meal plan or grocery list found" });
+      if (!currentList) {
+        return res.status(404).json({ message: "No active grocery list found" });
       }
+
+      let meal;
       
-      // Find the meal
-      const meal = currentPlan.meals.find(m => m.id === mealId);
-      
-      if (!meal) {
-        return res.status(404).json({ message: "Meal not found in current plan" });
+      if (mealData) {
+        // Use the provided meal data directly
+        meal = mealData;
+      } else if (mealId && currentPlan) {
+        // Find the meal by ID in the current plan
+        meal = currentPlan.meals.find(m => m.id === mealId);
+        
+        if (!meal) {
+          return res.status(404).json({ message: "Meal not found in current plan" });
+        }
+      } else {
+        return res.status(400).json({ message: "Either mealId or meal data is required" });
       }
       
       // Get current grocery list and ensure the meal's ingredients are included
-      // This is a simple implementation - in real application, it would need to update
-      // based on specific ingredients
       const groceryList = await storage.ensureMealInGroceryList(currentList.id, meal);
       
       res.json(groceryList);
     } catch (error) {
       console.error("Error adding meal to grocery list:", error);
       res.status(500).json({ message: "Failed to add meal to grocery list" });
+    }
+  });
+  
+  // Clear grocery list
+  app.post("/api/grocery-list/clear", async (req, res) => {
+    try {
+      const currentList = await storage.getCurrentGroceryList();
+      
+      if (!currentList) {
+        return res.status(404).json({ message: "No active grocery list found" });
+      }
+      
+      // Update with empty sections
+      const updatedList = await storage.updateGroceryList(currentList.id, {
+        ...currentList,
+        sections: []
+      });
+      
+      res.json(updatedList);
+    } catch (error) {
+      console.error("Error clearing grocery list:", error);
+      res.status(500).json({ message: "Failed to clear grocery list" });
     }
   });
 

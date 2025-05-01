@@ -216,12 +216,30 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
   // Handle add to grocery list
   const handleAddToGroceryList = async () => {
     try {
-      // Here would be the API call to add to grocery list
-      toast({
-        title: "Added to grocery list",
-        description: `${meal.name} has been added to your grocery list`
+      // Make API call to add meal to grocery list
+      const response = await apiRequest("POST", "/api/grocery-list/add-meal", {
+        mealId: meal.id,
+        meal: meal // Send complete meal data
       });
+      
+      if (response.ok) {
+        // Invalidate grocery list cache to refresh data
+        queryClient.invalidateQueries({ queryKey: ["/api/grocery-list/current"] });
+        
+        toast({
+          title: "Added to grocery list",
+          description: `${meal.name} has been added to your grocery list`
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to add to grocery list",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error("Error adding to grocery list:", error);
       toast({
         title: "Error",
         description: "Failed to add the meal to your grocery list. Please try again.",
@@ -507,7 +525,7 @@ export default function SimpleMealPlan() {
   };
   
   // Remove meal handler
-  const handleRemoveMeal = (mealId: string) => {
+  const handleRemoveMeal = async (mealId: string) => {
     if (!mealId) {
       console.error("Cannot remove meal with undefined ID");
       return;
@@ -516,13 +534,50 @@ export default function SimpleMealPlan() {
     console.log('Removing meal with ID:', mealId);
     console.log('Before removal, meals count:', meals.length);
     
-    // Update local state
-    setMeals(meals.filter(meal => meal.id !== mealId));
-    
-    toast({
-      title: "Meal removed",
-      description: "The meal has been removed from your plan"
-    });
+    try {
+      // Update local state immediately for responsive UI
+      setMeals(meals.filter(meal => meal.id !== mealId));
+      
+      // Persist to the server
+      const updatedMeals = meals.filter(meal => meal.id !== mealId);
+      const response = await apiRequest("PATCH", "/api/meal-plan/current", {
+        meals: updatedMeals
+      });
+      
+      if (response.ok) {
+        // Force refresh the query cache
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        
+        toast({
+          title: "Meal removed",
+          description: "The meal has been removed from your plan"
+        });
+      } else {
+        // If server update fails, revert the local change
+        const errorData = await response.json();
+        console.error("Failed to remove meal:", errorData);
+        
+        // Restore the previous meals state
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        
+        toast({
+          title: "Error",
+          description: "Failed to remove meal from your plan",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error removing meal:", error);
+      
+      // Revert local state and refresh from server
+      queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+      
+      toast({
+        title: "Error",
+        description: "Something went wrong when removing the meal",
+        variant: "destructive"
+      });
+    }
   };
   
   // Reset form state
