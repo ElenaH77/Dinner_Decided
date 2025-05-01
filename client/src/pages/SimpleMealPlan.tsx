@@ -34,6 +34,118 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
     else if (meal.category.includes('Split')) categoryIcon = '⏰';
   }
   
+  // Ensure meal has ingredients data
+  if (!meal.mainIngredients || !meal.mainIngredients.length) {
+    // Create placeholder ingredients based on meal name if not available
+    const dishName = meal.name.toLowerCase();
+    meal.mainIngredients = [];
+    
+    // Common base ingredients for most dishes
+    meal.mainIngredients.push('Salt and pepper to taste');
+    meal.mainIngredients.push('2 tablespoons olive oil');
+    
+    // Add ingredients based on dish name keywords
+    if (dishName.includes('chicken')) {
+      meal.mainIngredients.push('1.5 pounds boneless chicken breast or thighs');
+      meal.mainIngredients.push('1 medium onion, diced');
+      meal.mainIngredients.push('2 cloves garlic, minced');
+    }
+    
+    if (dishName.includes('pasta') || dishName.includes('spaghetti') || dishName.includes('linguine')) {
+      meal.mainIngredients.push('1 pound pasta of choice');
+      meal.mainIngredients.push('1/2 cup parmesan cheese, grated');
+      meal.mainIngredients.push('1/4 cup fresh herbs (basil, parsley)');
+    }
+    
+    if (dishName.includes('vegetable') || dishName.includes('veggies')) {
+      meal.mainIngredients.push('1 zucchini, sliced');
+      meal.mainIngredients.push('1 bell pepper, diced');
+      meal.mainIngredients.push('2 cups mixed vegetables of choice');
+    }
+    
+    if (dishName.includes('beef') || dishName.includes('steak')) {
+      meal.mainIngredients.push('1.5 pounds ground beef or steak');
+      meal.mainIngredients.push('1 medium onion, diced');
+      meal.mainIngredients.push('2 cloves garlic, minced');
+    }
+    
+    if (dishName.includes('rice')) {
+      meal.mainIngredients.push('2 cups rice');
+      meal.mainIngredients.push('4 cups broth or water');
+    }
+    
+    if (dishName.includes('soup') || dishName.includes('stew')) {
+      meal.mainIngredients.push('6 cups vegetable or chicken broth');
+      meal.mainIngredients.push('1 medium onion, diced');
+      meal.mainIngredients.push('2 stalks celery, chopped');
+      meal.mainIngredients.push('2 carrots, chopped');
+    }
+    
+    if (dishName.includes('taco') || dishName.includes('mexican') || dishName.includes('enchilada')) {
+      meal.mainIngredients.push('8-10 corn or flour tortillas');
+      meal.mainIngredients.push('1 cup shredded cheese (cheddar or Mexican blend)');
+      meal.mainIngredients.push('1 can black beans or pinto beans, drained and rinsed');
+    }
+    
+    if (dishName.includes('cheese') || dishName.includes('cheesy')) {
+      meal.mainIngredients.push('2 cups shredded cheese (cheddar, mozzarella, or blend)');
+    }
+    
+    if (dishName.includes('creamy') || dishName.includes('cream')) {
+      meal.mainIngredients.push('1 cup heavy cream or milk');
+    }
+  }
+  
+  // Add placeholder meal prep tips if missing
+  if (!meal.mealPrepTips) {
+    if (meal.category?.includes('Split Prep')) {
+      meal.mealPrepTips = "Prep ingredients in the morning by chopping vegetables and measuring spices.";
+    } else if (meal.category?.includes('Quick')) {
+      meal.mealPrepTips = "Consider pre-chopping vegetables or using pre-cut ones to save time.";
+    } else if (meal.category?.includes('Batch')) {
+      meal.mealPrepTips = "Portion leftovers for future meals. Can be frozen for up to 3 months.";
+    } else {
+      meal.mealPrepTips = "Read the recipe before starting and prep all ingredients for smoother cooking.";
+    }
+  }
+  
+  // Add placeholder directions if missing
+  if (!meal.directions || !meal.directions.length) {
+    meal.directions = [];
+    const dishName = meal.name.toLowerCase();
+    
+    // Common steps for most recipes
+    meal.directions.push('Prepare all ingredients according to the ingredients list - wash, chop, and measure everything before starting.');
+    
+    // Add specific directions based on dish type
+    if (dishName.includes('pasta')) {
+      meal.directions.push('Bring a large pot of salted water to a boil and cook pasta according to package directions until al dente.');
+      meal.directions.push('While pasta is cooking, prepare the sauce by combining remaining ingredients in a large pan.');
+      meal.directions.push('Drain the pasta and combine with sauce. Toss well to coat evenly.');
+      meal.directions.push('Serve hot with grated cheese and fresh herbs if desired.');
+    } else if (dishName.includes('chicken') && (dishName.includes('bake') || dishName.includes('roast') || dishName.includes('oven'))) {
+      meal.directions.push('Preheat your oven to 375°F (190°C).');
+      meal.directions.push('Season chicken with salt, pepper, and other spices as per the ingredients list.');
+      meal.directions.push('Place in a baking dish with vegetables surrounding the chicken.');
+      meal.directions.push('Bake for 25-30 minutes until chicken reaches an internal temperature of 165°F (74°C).');
+    } else if (dishName.includes('soup') || dishName.includes('stew')) {
+      meal.directions.push('In a large pot, heat oil over medium heat. Add onions, carrots, and celery, cooking until softened.');
+      meal.directions.push('Add garlic and other aromatics, cooking for another minute until fragrant.');
+      meal.directions.push('Pour in broth and add main ingredients. Bring to a boil, then reduce to a simmer.');
+      meal.directions.push('Simmer covered for 20-30 minutes until all ingredients are tender and flavors have melded.');
+    } else if (dishName.includes('slow cooker') || dishName.includes('crockpot')) {
+      meal.directions.push('Add all ingredients to your slow cooker in the morning, starting with liquids at the bottom.');
+      meal.directions.push('Cover and cook on low for 6-8 hours or on high for 3-4 hours.');
+      meal.directions.push('About 30 minutes before serving, check seasoning and adjust as needed.');
+      meal.directions.push('Serve directly from the slow cooker or transfer to a serving dish.');
+    } else {
+      meal.directions.push('Preheat your oven or stovetop as needed for this recipe.');
+      meal.directions.push('Combine the ingredients according to the main ingredients list.');
+      meal.directions.push('Cook following standard procedures for this type of dish until all components are thoroughly cooked.');
+      meal.directions.push('Serve hot and enjoy with your family!');
+    }
+  }
+  
   // Dialog states
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
