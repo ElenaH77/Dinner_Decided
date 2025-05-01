@@ -321,6 +321,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remove meal from meal plan
+  app.delete("/api/meal-plan/remove-meal/:mealId", async (req, res) => {
+    try {
+      const { mealId } = req.params;
+      const currentPlan = await storage.getCurrentMealPlan();
+      
+      if (!currentPlan) {
+        return res.status(404).json({ message: "No active meal plan found" });
+      }
+      
+      // Find the meal to remove
+      const mealIndex = currentPlan.meals.findIndex(meal => meal.id === mealId);
+      
+      if (mealIndex === -1) {
+        return res.status(404).json({ message: "Meal not found in current plan" });
+      }
+      
+      // Update the meal plan by filtering out the removed meal
+      const updatedMeals = currentPlan.meals.filter(meal => meal.id !== mealId);
+      
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
+        ...currentPlan, 
+        meals: updatedMeals 
+      });
+      
+      // Update grocery list
+      const household = await storage.getHousehold();
+      if (household) {
+        await generateAndSaveGroceryList(currentPlan.id, household.id);
+      }
+      
+      res.json(updatedPlan);
+    } catch (error) {
+      console.error("Error removing meal:", error);
+      res.status(500).json({ message: "Failed to remove meal" });
+    }
+  });
+
+  // Add a single meal to meal plan
+  app.post("/api/meal-plan/add-meal", async (req, res) => {
+    try {
+      const { mealType, preferences } = req.body;
+      const currentPlan = await storage.getCurrentMealPlan();
+      const household = await storage.getHousehold();
+      
+      if (!currentPlan) {
+        return res.status(404).json({ message: "No active meal plan found" });
+      }
+      
+      // Generate a single meal with OpenAI
+      const newMeals = await generateMealPlan(household, { 
+        singleMeal: true, 
+        mealType,
+        additionalPreferences: preferences 
+      });
+      
+      if (!newMeals || !newMeals.length) {
+        return res.status(500).json({ message: "Failed to generate new meal" });
+      }
+      
+      // Add the new meal to the plan
+      const updatedMeals = [...currentPlan.meals, newMeals[0]];
+      
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
+        ...currentPlan, 
+        meals: updatedMeals 
+      });
+      
+      // Update grocery list
+      await generateAndSaveGroceryList(currentPlan.id, household.id);
+      
+      res.json(updatedPlan);
+    } catch (error) {
+      console.error("Error adding meal:", error);
+      res.status(500).json({ message: "Failed to add meal" });
+    }
+  });
+
   app.post("/api/meal-plan/replace-meal/:mealId", async (req, res) => {
     try {
       const { mealId } = req.params;
