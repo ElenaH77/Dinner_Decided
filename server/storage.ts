@@ -16,6 +16,9 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
+  // Meal methods
+  getAllMeals(): Promise<any[]>;
+  updateMeal(id: string, data: any): Promise<any>;
   // Household methods
   getHousehold(): Promise<Household | undefined>;
   createHousehold(data: InsertHousehold): Promise<Household>;
@@ -41,6 +44,8 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  // Collection of all meals across meal plans
+  private allMeals: Map<string, any> = new Map();
   private household: Household | undefined;
   private messages: Message[] = [];
   private mealPlans: Map<number, MealPlan> = new Map();
@@ -54,6 +59,59 @@ export class MemStorage implements IStorage {
     this.initializeDemoData();
   }
 
+  // Meal methods
+  async getAllMeals(): Promise<any[]> {
+    // Collect meals from all meal plans
+    const allMeals: any[] = [];
+    
+    // Iterate through all meal plans and extract meals
+    for (const mealPlan of this.mealPlans.values()) {
+      if (mealPlan.meals && Array.isArray(mealPlan.meals)) {
+        for (const meal of mealPlan.meals) {
+          // Add or update meal in the map
+          this.allMeals.set(meal.id, meal);
+        }
+      }
+    }
+    
+    // Return all meals as an array
+    return Array.from(this.allMeals.values());
+  }
+  
+  async updateMeal(id: string, data: any): Promise<any> {
+    // Update the meal in our collection
+    const existingMeal = this.allMeals.get(id);
+    
+    if (!existingMeal) {
+      throw new Error(`Meal with id ${id} not found`);
+    }
+    
+    const updatedMeal = {
+      ...existingMeal,
+      ...data
+    };
+    
+    // Update in the all meals collection
+    this.allMeals.set(id, updatedMeal);
+    
+    // Now update the meal in any meal plans that contain it
+    for (const [planId, mealPlan] of this.mealPlans.entries()) {
+      if (mealPlan.meals && Array.isArray(mealPlan.meals)) {
+        const updatedMeals = mealPlan.meals.map(meal => 
+          meal.id === id ? updatedMeal : meal
+        );
+        
+        // Update the meal plan with the updated meals
+        this.mealPlans.set(planId, {
+          ...mealPlan,
+          meals: updatedMeals
+        });
+      }
+    }
+    
+    return updatedMeal;
+  }
+  
   private initializeDemoData() {
     // Create demo household
     this.household = {
@@ -399,6 +457,52 @@ export class MemStorage implements IStorage {
 // Database implementation
 
 export class DatabaseStorage implements IStorage {
+  // Meal methods
+  async getAllMeals(): Promise<any[]> {
+    try {
+      // Get the current meal plan
+      const currentMealPlan = await this.getCurrentMealPlan();
+      
+      if (!currentMealPlan || !currentMealPlan.meals) {
+        return [];
+      }
+      
+      // Return meals from the current meal plan
+      return Array.isArray(currentMealPlan.meals) ? currentMealPlan.meals : [];
+    } catch (error) {
+      console.error('Error getting all meals:', error);
+      return [];
+    }
+  }
+  
+  async updateMeal(id: string, data: any): Promise<any> {
+    try {
+      // Get the current meal plan
+      const currentMealPlan = await this.getCurrentMealPlan();
+      
+      if (!currentMealPlan || !currentMealPlan.meals) {
+        throw new Error('No current meal plan found');
+      }
+      
+      // Update the meal in the current meal plan
+      const updatedMeals = Array.isArray(currentMealPlan.meals) ? 
+        currentMealPlan.meals.map(meal => 
+          meal.id === id ? { ...meal, ...data } : meal
+        ) : [];
+      
+      // Save the updated meal plan
+      await this.updateMealPlan(currentMealPlan.id, {
+        ...currentMealPlan,
+        meals: updatedMeals
+      });
+      
+      // Return the updated meal
+      return updatedMeals.find(meal => meal.id === id);
+    } catch (error) {
+      console.error(`Error updating meal ${id}:`, error);
+      throw error;
+    }
+  }
   async getHousehold(): Promise<Household | undefined> {
     // Get the most recently created household (highest ID)
     const [household] = await db

@@ -750,6 +750,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // AI-powered meal modification endpoints
+  // GET endpoint for meal modification (redirects to processing endpoint)
+  app.get("/api/meal/modify", async (req, res) => {
+    const mealId = req.query.id as string;
+    const modificationRequest = req.query.request as string;
+    
+    if (!mealId) {
+      return res.status(400).json({ error: 'Missing meal ID' });
+    }
+    
+    if (!modificationRequest) {
+      return res.status(400).json({ error: 'Missing modification request' });
+    }
+    
+    try {
+      // Get the meal from storage
+      const allMeals = await storage.getAllMeals();
+      const meal = allMeals.find(m => m.id === mealId);
+      
+      if (!meal) {
+        return res.status(404).json({ error: 'Meal not found' });
+      }
+      
+      // Redirect to the processing endpoint
+      res.redirect(`/api/meal/modify/process?id=${mealId}&request=${encodeURIComponent(modificationRequest)}`);
+    } catch (error) {
+      console.error('Error in meal modification GET route:', error);
+      res.status(500).json({ error: 'Failed to process meal modification request' });
+    }
+  });
+  
+  // Process endpoint that redirects back to UI after modification
+  app.get("/api/meal/modify/process", async (req, res) => {
+    const mealId = req.query.id as string;
+    const modificationRequest = req.query.request as string;
+    
+    if (!mealId || !modificationRequest) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    try {
+      // Get the meal from storage
+      const allMeals = await storage.getAllMeals();
+      const meal = allMeals.find(m => m.id === mealId);
+      
+      if (!meal) {
+        return res.status(404).json({ error: 'Meal not found' });
+      }
+      
+      // Modify the meal
+      const modifiedMeal = await modifyMeal(meal, modificationRequest);
+      modifiedMeal.id = meal.id;
+      
+      // Update the meal in the database
+      await storage.updateMeal(mealId, modifiedMeal);
+      
+      // Redirect back to the meal plan page
+      res.redirect('/this-week?updated=true');
+    } catch (error) {
+      console.error('Error processing meal modification:', error);
+      res.redirect('/this-week?error=modification');
+    }
+  });
+
   app.post("/api/meal/modify", async (req, res) => {
     try {
       const { meal, modificationRequest, mealPlanId, currentMeals } = req.body;
@@ -842,6 +905,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-powered meal replacement endpoint
+  // GET endpoint for meal replacement (redirects to POST)
+  app.get("/api/meal/replace", async (req, res) => {
+    const mealId = req.query.id as string;
+    if (!mealId) {
+      return res.status(400).json({ error: 'Missing meal ID' });
+    }
+    
+    try {
+      // Get the meal from storage
+      const allMeals = await storage.getAllMeals();
+      const meal = allMeals.find(m => m.id === mealId);
+      
+      if (!meal) {
+        return res.status(404).json({ error: 'Meal not found' });
+      }
+      
+      // Forward to the POST endpoint
+      req.body = { mealId };
+      
+      // Redirect to the meal plan page after replacement is done
+      res.redirect(`/api/meal/replace/process?id=${mealId}`);
+    } catch (error) {
+      console.error('Error in meal replacement GET route:', error);
+      res.status(500).json({ error: 'Failed to process meal replacement request' });
+    }
+  });
+  
+  // Process endpoint that redirects back to UI after replacement
+  app.get("/api/meal/replace/process", async (req, res) => {
+    const mealId = req.query.id as string;
+    if (!mealId) {
+      return res.status(400).json({ error: 'Missing meal ID' });
+    }
+    
+    try {
+      // Get the meal from storage
+      const allMeals = await storage.getAllMeals();
+      const meal = allMeals.find(m => m.id === mealId);
+      
+      if (!meal) {
+        return res.status(404).json({ error: 'Meal not found' });
+      }
+      
+      // Replace the meal
+      const replacementMeal = await replaceMeal(meal);
+      replacementMeal.id = meal.id;
+      
+      // Update the meal in the database
+      await storage.updateMeal(mealId, replacementMeal);
+      
+      // Redirect back to the meal plan page
+      res.redirect('/this-week?updated=true');
+    } catch (error) {
+      console.error('Error processing meal replacement:', error);
+      res.redirect('/this-week?error=replacement');
+    }
+  });
+  
   app.post("/api/meal/replace", async (req, res) => {
     try {
       const { meal, mealPlanId, currentMeals } = req.body;
