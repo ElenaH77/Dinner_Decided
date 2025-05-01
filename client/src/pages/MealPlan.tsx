@@ -111,23 +111,16 @@ export default function MealPlan() {
   };
 
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>
-        <div className="flex space-x-2">
+    <div className="container max-w-4xl mx-auto py-6 px-4 overflow-hidden">
+      <div className="sticky top-0 z-10 bg-white py-4 border-b border-gray-100 mb-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>
           <Button 
             onClick={handleAddMeal}
             className="bg-[#21706D] hover:bg-[#195957]"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Meal
-          </Button>
-          <Button 
-            onClick={handleCreateNewPlan}
-            variant="outline"
-            className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white"
-          >
-            New Plan
           </Button>
         </div>
       </div>

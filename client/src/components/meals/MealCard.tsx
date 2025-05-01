@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, RefreshCw, Utensils, X, FileText } from "lucide-react";
+import { Edit, RefreshCw, Utensils, X, FileText, ShoppingCart } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMealPlan } from "@/contexts/meal-plan-context";
@@ -48,8 +48,42 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
   const [isRecipeOpen, setIsRecipeOpen] = useState(false);
   
   // Get a single category for icon display
-  const primaryCategory = meal.category || (meal.categories && meal.categories[0]);
-  const categoryIcon = primaryCategory ? (MEAL_CATEGORY_ICONS[primaryCategory] || '') : '';
+  // Categories can be in different formats depending on the meal data
+  let primaryCategory = meal.category || '';
+  if (!primaryCategory && meal.categories && meal.categories.length > 0) {
+    primaryCategory = meal.categories[0];
+  }
+  
+  // Try to match category with known category patterns
+  let categoryIcon = '';
+  if (primaryCategory) {
+    // Check for exact match first
+    categoryIcon = MEAL_CATEGORY_ICONS[primaryCategory] || '';
+    
+    // If no direct match, try to find partial matches
+    if (!categoryIcon) {
+      const lowerCategory = primaryCategory.toLowerCase();
+      if (lowerCategory.includes('quick') || lowerCategory.includes('easy')) {
+        categoryIcon = '⚡';
+        primaryCategory = 'Quick & Easy';
+      } else if (lowerCategory.includes('weeknight')) {
+        categoryIcon = '🍽️';
+        primaryCategory = 'Weeknight Meals';
+      } else if (lowerCategory.includes('batch')) {
+        categoryIcon = '📦';
+        primaryCategory = 'Batch Cooking';
+      } else if (lowerCategory.includes('split') || lowerCategory.includes('prep')) {
+        categoryIcon = '⏰';
+        primaryCategory = 'Split Prep';
+      }
+    }
+  }
+  
+  // If still no icon/category, use a default
+  if (!primaryCategory) {
+    primaryCategory = 'Weeknight Meals';
+    categoryIcon = '🍽️';
+  }
 
   const handleReplaceMeal = async () => {
     setIsReplacing(true);
@@ -187,12 +221,12 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
             </div>
           )}
           
-          <div className="mt-3 flex justify-between items-center">
+          <div className="mt-3 flex flex-col md:flex-row justify-between gap-2">
             <div className="text-sm text-[#212121] flex items-center">
               <Utensils className="h-4 w-4 mr-1 text-[#21706D]" />
               <span>Serves {meal.servings || 4}</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-3">
               <Button 
                 variant="link" 
                 size="sm" 
@@ -204,10 +238,10 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
               <Button 
                 variant="link" 
                 size="sm" 
-                className="text-[#21706D] hover:text-[#195957] text-sm font-medium p-0"
+                className="text-[#21706D] hover:text-[#195957] text-sm font-medium p-0 flex items-center"
                 onClick={handleAddToGroceryList}
               >
-                Add to grocery list
+                <ShoppingCart className="h-4 w-4 mr-1" /> Add to Grocery List
               </Button>
             </div>
           </div>
