@@ -21,50 +21,108 @@ const MEAL_TYPES = [
   { value: "Split Prep", label: "Split Prep ⏰", description: "Prep ahead, cook later" }
 ];
 
-// Simple meal card component (defined inline)
-const SimpleMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string) => void }) => {
+// Enhanced meal card component (defined inline)
+const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string) => void }) => {
+  const [isRecipeOpen, setIsRecipeOpen] = useState(false);
+
+  // Get category icon
+  let categoryIcon = '';
+  if (meal.category) {
+    if (meal.category.includes('Quick')) categoryIcon = '⚡';
+    else if (meal.category.includes('Weeknight')) categoryIcon = '🍽️';
+    else if (meal.category.includes('Batch')) categoryIcon = '📦';
+    else if (meal.category.includes('Split')) categoryIcon = '⏰';
+  }
+  
   return (
-    <Card className="w-full relative shadow-sm hover:shadow transition-shadow duration-300">
-      <button 
-        onClick={() => onRemove(meal.id)}
-        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors z-10"
-        aria-label="Remove meal"
-      >
-        <X className="h-5 w-5" />
-      </button>
-      <CardContent className="p-4">
-        <div className="flex flex-wrap gap-2 mb-2">
-          {meal.category && (
-            <Badge className="bg-[#21706D] text-white px-3 py-1 flex items-center gap-1">
-              {meal.category.includes('Quick') && '⚡'}
-              {meal.category.includes('Weeknight') && '🍽️'}
-              {meal.category.includes('Batch') && '📦'}
-              {meal.category.includes('Split') && '⏰'}
-              <span>{meal.category}</span>
-            </Badge>
-          )}
-          {meal.prepTime && (
-            <Badge className="bg-[#F25C05] bg-opacity-80 text-white px-3 py-1">
-              {meal.prepTime} min
-            </Badge>
-          )}
+    <Card className="border border-[#E2E2E2] overflow-hidden bg-[#F9F9F9] hover:shadow-md transition-all">
+      <div className="p-4 w-full">
+        {/* Top section with badges */}
+        <div className="flex justify-between items-start">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {meal.category && (
+              <Badge className="bg-[#21706D] text-white px-3 py-1 flex items-center gap-1">
+                {categoryIcon && <span>{categoryIcon}</span>}
+                <span>{meal.category}</span>
+              </Badge>
+            )}
+            {meal.prepTime && (
+              <Badge className="bg-[#F25C05] bg-opacity-80 text-white px-3 py-1">
+                {meal.prepTime} min
+              </Badge>
+            )}
+          </div>
+          <button 
+            onClick={() => onRemove(meal.id)}
+            className="text-gray-400 hover:text-red-500 transition-colors z-10 h-8 w-8 flex items-center justify-center"
+            aria-label="Remove meal"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         
+        {/* Meal title and description */}
         <h3 className="font-semibold text-lg mb-2">{meal.name}</h3>
         {meal.description && (
           <p className="text-sm text-[#8A8A8A] mb-3">{meal.description}</p>
         )}
         
-        <div className="flex justify-end">
+        {/* Rationales section - if available */}
+        {meal.rationales && meal.rationales.length > 0 && (
+          <div className="mt-2 mb-3 bg-teal-50 rounded-md p-3">
+            <h4 className="text-xs font-semibold text-[#21706D] mb-1.5">Why This Meal Fits Your Family:</h4>
+            <ul className="list-disc pl-4 space-y-1">
+              {meal.rationales.slice(0, 2).map((rationale: string, index: number) => (
+                <li key={index} className="text-xs text-gray-700">{rationale}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {/* Bottom actions */}
+        <div className="flex justify-end mt-2">
           <Button 
             variant="link" 
             size="sm" 
             className="text-[#21706D] hover:text-[#195957] text-sm font-medium p-0 flex items-center"
+            onClick={() => setIsRecipeOpen(true)}
           >
             <FileText className="h-4 w-4 mr-1" /> View Recipe
           </Button>
         </div>
-      </CardContent>
+      </div>
+      
+      {/* Recipe dialog would be here but we're keeping it simple for now */}
+      {isRecipeOpen && (
+        <Dialog open={isRecipeOpen} onOpenChange={setIsRecipeOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{meal.name}</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <h3 className="font-medium text-lg mb-2">Description</h3>
+              <p className="text-sm text-gray-600 mb-4">{meal.description}</p>
+              
+              <h3 className="font-medium text-lg mb-2">Main Ingredients</h3>
+              {meal.mainIngredients ? (
+                <ul className="list-disc pl-5 mb-4">
+                  {meal.mainIngredients.map((ingredient: string, i: number) => (
+                    <li key={i} className="text-sm text-gray-600">{ingredient}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-600 mb-4">Ingredient information not available</p>
+              )}
+              
+              <h3 className="font-medium text-lg mb-2">Meal Prep Tips</h3>
+              <p className="text-sm text-gray-600">{meal.mealPrepTips || "No specific meal prep tips available."}</p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setIsRecipeOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 };
@@ -211,7 +269,7 @@ export default function SimpleMealPlan() {
       ) : meals.length > 0 ? (
         <div className="space-y-4">
           {meals.map((meal) => (
-            <SimpleMealCard 
+            <EnhancedMealCard 
               key={meal.id} 
               meal={meal} 
               onRemove={handleRemoveMeal} 
