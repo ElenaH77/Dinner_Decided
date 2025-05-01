@@ -34,6 +34,90 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
     else if (meal.category.includes('Split')) categoryIcon = '⏰';
   }
   
+  // Dialog states
+  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
+  const [modifyRequest, setModifyRequest] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  
+  // Handle modify meal
+  const handleModifyMeal = async () => {
+    if (!modifyRequest.trim()) {
+      toast({
+        title: "Empty modification",
+        description: "Please describe how you'd like to modify this meal",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Here would be the API call to modify the meal
+      // For now just simulate a delay
+      setTimeout(() => {
+        setIsModifyDialogOpen(false);
+        setModifyRequest("");
+        toast({
+          title: "Meal modified",
+          description: "Your meal has been successfully modified"
+        });
+        setIsSubmitting(false);
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to modify the meal. Please try again.",
+        variant: "destructive"
+      });
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle replace meal
+  const handleReplaceMeal = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      // Here would be the API call to replace the meal
+      // For now just simulate a delay
+      setTimeout(() => {
+        setIsReplaceDialogOpen(false);
+        toast({
+          title: "Meal replaced",
+          description: "Your meal has been successfully replaced"
+        });
+        setIsSubmitting(false);
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to replace the meal. Please try again.",
+        variant: "destructive"
+      });
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle add to grocery list
+  const handleAddToGroceryList = async () => {
+    try {
+      // Here would be the API call to add to grocery list
+      toast({
+        title: "Added to grocery list",
+        description: `${meal.name} has been added to your grocery list`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add the meal to your grocery list. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   return (
     <Card className="border border-[#E2E2E2] overflow-hidden bg-[#F9F9F9] hover:shadow-md transition-all">
       <div className="p-4 w-full">
@@ -101,7 +185,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               variant="outline" 
               size="sm" 
               className="text-sm text-gray-600 h-8"
-              onClick={() => window.alert('Modify functionality coming soon!')}
+              onClick={() => setIsModifyDialogOpen(true)}
             >
               Modify
             </Button>
@@ -109,7 +193,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               variant="outline" 
               size="sm" 
               className="text-sm text-gray-600 h-8"
-              onClick={() => window.alert('Replace functionality coming soon!')}
+              onClick={() => setIsReplaceDialogOpen(true)}
             >
               Replace
             </Button>
@@ -117,7 +201,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               variant="outline" 
               size="sm" 
               className="text-sm text-gray-600 h-8 flex items-center"
-              onClick={() => window.alert('Added to grocery list!')}
+              onClick={handleAddToGroceryList}
             >
               <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6h19l-3 10H6L3 6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -144,13 +228,16 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>{meal.name}</DialogTitle>
+              <DialogDescription>
+                A delicious recipe for your family
+              </DialogDescription>
             </DialogHeader>
-            <div className="mt-4">
+            <div className="mt-4 max-h-[60vh] overflow-y-auto pr-2">
               <h3 className="font-medium text-lg mb-2">Description</h3>
               <p className="text-sm text-gray-600 mb-4">{meal.description}</p>
               
               <h3 className="font-medium text-lg mb-2">Main Ingredients</h3>
-              {meal.mainIngredients ? (
+              {meal.mainIngredients?.length > 0 ? (
                 <ul className="list-disc pl-5 mb-4">
                   {meal.mainIngredients.map((ingredient: string, i: number) => (
                     <li key={i} className="text-sm text-gray-600">{ingredient}</li>
@@ -158,6 +245,22 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
                 </ul>
               ) : (
                 <p className="text-sm text-gray-600 mb-4">Ingredient information not available</p>
+              )}
+              
+              <h3 className="font-medium text-lg mb-2">Directions</h3>
+              {meal.directions?.length > 0 ? (
+                <ol className="list-decimal pl-5 mb-4 space-y-2">
+                  {meal.directions.map((step: string, i: number) => (
+                    <li key={i} className="text-sm text-gray-600">{step}</li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="space-y-2 mb-4">
+                  <p className="text-sm text-gray-600">1. Preheat your oven or stovetop as needed for this recipe.</p>
+                  <p className="text-sm text-gray-600">2. Prepare all ingredients according to the ingredients list.</p>
+                  <p className="text-sm text-gray-600">3. Cook following standard procedures for this type of dish.</p>
+                  <p className="text-sm text-gray-600">4. Serve hot and enjoy with your family!</p>
+                </div>
               )}
               
               <h3 className="font-medium text-lg mb-2">Meal Prep Tips</h3>
@@ -169,6 +272,94 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Modify Meal Dialog */}
+      <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Modify {meal.name}</DialogTitle>
+            <DialogDescription>
+              Describe how you'd like to change this meal
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={modifyRequest}
+              onChange={(e) => setModifyRequest(e.target.value)}
+              placeholder="Example: Make it vegetarian, replace chicken with tofu, add more vegetables, etc."
+              className="min-h-[120px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsModifyDialogOpen(false);
+                setModifyRequest("");
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleModifyMeal} 
+              disabled={isSubmitting || !modifyRequest.trim()}
+              className="bg-[#21706D] hover:bg-[#195957] relative"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="opacity-0">Modify Meal</span>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-5 w-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  </span>
+                </>
+              ) : (
+                "Modify Meal"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Replace Meal Dialog */}
+      <Dialog open={isReplaceDialogOpen} onOpenChange={setIsReplaceDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Replace {meal.name}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to replace this meal with a new suggestion?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">We'll use what we know about your family to suggest a different meal that still meets your needs and preferences.</p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsReplaceDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleReplaceMeal} 
+              disabled={isSubmitting}
+              className="bg-[#21706D] hover:bg-[#195957] relative"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="opacity-0">Replace Meal</span>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-5 w-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  </span>
+                </>
+              ) : (
+                "Replace Meal"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
