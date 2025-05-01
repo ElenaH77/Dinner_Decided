@@ -372,19 +372,36 @@ export default function MealPlan() {
               </div>
               
               {/* Meal cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {meals.map((meal) => (
-                  <MealCard 
-                    key={meal.id} 
-                    meal={{
-                      ...meal,
-                      // Ensure required properties are available
-                      ingredients: meal.ingredients || meal.mainIngredients || meal.main_ingredients || [],
-                      prepTime: meal.prepTime || meal.prep_time || 30,
-                      servings: meal.servingSize || meal.serving_size || 4
-                    }}
-                  />
-                ))}
+              <div className="flex flex-col space-y-6">
+                {meals.map((meal, index) => {
+                  // Generate day information if not available
+                  const currentDate = new Date();
+                  const startDate = startOfWeek(currentDate);
+                  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  const mealDay = meal.day || meal.dayOfWeek || dayNames[index % 7];
+                  
+                  return (
+                    <MealCard 
+                      key={meal.id} 
+                      meal={{
+                        ...meal,
+                        // Ensure required properties are available
+                        ingredients: meal.ingredients || meal.mainIngredients || meal.main_ingredients || [],
+                        prepTime: meal.prepTime || meal.prep_time || 30,
+                        servings: meal.servingSize || meal.serving_size || 4,
+                        day: mealDay
+                      }}
+                      onReplace={() => {
+                        // Call the replace meal API
+                        toast({
+                          title: "Replacing meal",
+                          description: `Generating a new alternative for ${meal.name}...`
+                        });
+                        window.location.href = `/api/meal/replace?id=${meal.id}`;
+                      }}
+                    />
+                  );
+                })}
 
                 {/* Add Meal Card */}
                 <div className="border-2 border-dashed border-neutral-gray rounded-xl flex items-center justify-center h-48 bg-white cursor-pointer hover:border-teal-primary transition-colors">

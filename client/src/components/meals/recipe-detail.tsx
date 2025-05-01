@@ -8,13 +8,15 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Clock, Users, Tag, ChefHat, Info, ListOrdered } from 'lucide-react';
+import { Clock, Users, Tag, ChefHat, Info, ListOrdered, MessageSquare, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 interface RecipeDetailProps {
   meal: any;
   isOpen: boolean;
   onClose: () => void;
+  onModify?: (mealId: string, instructions: string) => void;
 }
 
 interface Ingredient {
@@ -22,7 +24,7 @@ interface Ingredient {
   name: string;
 }
 
-export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProps) {
+export default function RecipeDetail({ meal, isOpen, onClose, onModify }: RecipeDetailProps) {
   if (!meal) return null;
 
   // Handle different property name structures
