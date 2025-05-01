@@ -391,13 +391,25 @@ export default function MealPlan() {
                         servings: meal.servingSize || meal.serving_size || 4,
                         day: mealDay
                       }}
-                      onReplace={() => {
+                      onReplace={(mealId) => {
                         // Call the replace meal API
+                        console.log('Replacing meal with ID:', mealId);
                         toast({
                           title: "Replacing meal",
                           description: `Generating a new alternative for ${meal.name}...`
                         });
-                        window.location.href = `/api/meal/replace?id=${meal.id}`;
+                        // Make sure we have a valid ID
+                        if (!mealId) {
+                          console.error('Attempting to replace meal with undefined ID');
+                          toast({
+                            title: "Error",
+                            description: "Could not replace this meal because it has no ID.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        console.log('Navigating to replace meal with ID:', mealId);
+                        window.location.href = `/api/meal/replace?id=${mealId}`;
                       }}
                     />
                   );

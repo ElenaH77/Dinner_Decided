@@ -130,6 +130,8 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
       return;
     }
     
+    console.log('Recipe detail modifying meal with ID:', meal.id, 'and request:', modificationRequest);
+    
     if (onModify) {
       onModify(meal.id, modificationRequest);
       setIsModifying(false);
@@ -141,7 +143,16 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
         title: "Modifying recipe",
         description: `Generating a modified version of ${meal.name}...`
       });
-      window.location.href = `/api/meal/modify?id=${meal.id}&request=${encodeURIComponent(modificationRequest)}`;
+      // Add check to ensure meal.id is defined
+      if (meal.id) {
+        window.location.href = `/api/meal/modify?id=${meal.id}&request=${encodeURIComponent(modificationRequest)}`;
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not modify this meal because it has no ID.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
