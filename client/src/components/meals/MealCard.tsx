@@ -42,10 +42,11 @@ interface MealCardProps {
 
 export default function MealCard({ meal, compact = false }: MealCardProps) {
   const { toast } = useToast();
-  const { removeMeal } = useMealPlan();
+  const { removeMeal, refetchMealPlan } = useMealPlan();
   const [isReplacing, setIsReplacing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isRecipeOpen, setIsRecipeOpen] = useState(false);
+  const [isModified, setIsModified] = useState(false);
   
   // Ensure the meal has an ID
   useEffect(() => {
@@ -95,14 +96,20 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
 
   const handleReplaceMeal = async () => {
     setIsReplacing(true);
+    setIsModified(true);
     try {
       await apiRequest("POST", `/api/meal-plan/replace-meal/${meal.id}`, {});
-      queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+      
+      // Update both the query cache and the context data
+      await queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+      await refetchMealPlan(); // This will update the context with fresh data
+      
       toast({
         title: "Meal replaced",
         description: "Your meal has been updated with a new suggestion."
       });
     } catch (error) {
+      console.error("Error replacing meal:", error);
       toast({
         title: "Error",
         description: "Failed to replace meal",
@@ -110,12 +117,14 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       });
     } finally {
       setIsReplacing(false);
+      setIsModified(false);
     }
   };
 
   const handleRemoveMeal = async () => {
     try {
       setIsRemoving(true);
+      setIsModified(true);
       console.log("Before removal - active meal ID:", meal.id);
       
       // Create a local ID if none exists
@@ -141,7 +150,9 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       
       // Make sure the query cache is updated
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        // Update both the query cache and the context data
+        await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        await refetchMealPlan(); // Ensure context has fresh data
         
         // Show confirmation
         toast({
@@ -162,7 +173,8 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
         });
         
         // Force refresh from server
-        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        await refetchMealPlan();
       }
     } catch (error) {
       console.error("Error in handleRemoveMeal:", error);
@@ -173,9 +185,11 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       });
       
       // Force refresh from server on error
-      queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+      await refetchMealPlan();
     } finally {
       setIsRemoving(false);
+      setIsModified(false);
     }
   };
 

@@ -38,14 +38,58 @@ export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProp
   const [activeTab, setActiveTab] = useState("ingredients");
 
   // Format the ingredients into a list with checkboxes
-  const ingredientsList = meal.ingredients || meal.mainIngredients || [];
+  // Handle both string arrays and object arrays with item/quantity properties
+  const rawIngredients = meal.ingredients || meal.mainIngredients || [];
+  
+  // Convert ingredients to a consistent format
+  const ingredientsList = rawIngredients.map((ingredient) => {
+    // If ingredient is an object with item and quantity properties
+    if (typeof ingredient === 'object' && ingredient !== null && 'item' in ingredient) {
+      const { item, quantity } = ingredient;
+      return quantity ? `${quantity} ${item}` : item;
+    }
+    // If ingredient is a simple string
+    return ingredient;
+  });
+  
+  console.log('Processed ingredients:', ingredientsList);
 
-  // Create a simple list of recipe steps if instructions aren't available
-  const instructions = meal.instructions || [
-    `Prepare the ${meal.name}.`,
-    `Cook according to your preference.`,
-    `Serve and enjoy!`
-  ];
+  // Handle instructions which could be a string array or a string or object format
+  let instructions;
+  
+  if (meal.instructions) {
+    // If instructions exist, process them
+    if (Array.isArray(meal.instructions)) {
+      // If it's already an array, use it directly
+      instructions = meal.instructions;
+    } else if (typeof meal.instructions === 'string') {
+      // If it's a string, split by newlines or periods to create steps
+      instructions = meal.instructions
+        .split(/\n|\. /)
+        .filter(step => step.trim().length > 0)
+        .map(step => step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`);
+    } else if (typeof meal.instructions === 'object' && meal.instructions !== null) {
+      // If it's an object, extract steps
+      const steps = [];
+      Object.entries(meal.instructions).forEach(([key, value]) => {
+        if (key.includes('step') && typeof value === 'string') {
+          steps.push(value);
+        }
+      });
+      instructions = steps.length > 0 ? steps : [`Prepare the ${meal.name}.`];
+    }
+  }
+  
+  // If we couldn't extract instructions or none were provided, use defaults
+  if (!instructions || instructions.length === 0) {
+    instructions = [
+      `1. Prepare all ingredients for ${meal.name}.`,
+      `2. Cook according to your preference and family's tastes.`,
+      `3. Serve hot and enjoy!`
+    ];
+  }
+  
+  console.log('Processed instructions:', instructions);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
