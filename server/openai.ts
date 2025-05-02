@@ -127,19 +127,17 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       const mealSelections = [];
       const days = Object.keys(preferences.mealsByDay);
       
+      // Each day has one category in the mealsByDay object (not an array)
       for (const day of days) {
-        const categories = preferences.mealsByDay[day] || [];
-        if (categories.length > 0) {
-          const categoryDescriptions = categories.map((cat: string) => 
-            preferences.categoryDefinitions?.[cat] || cat
-          );
-          mealSelections.push(`- ${day}: ${categoryDescriptions.join(", ")}`);
+        const category = preferences.mealsByDay[day];
+        if (category) {
+          const categoryDescription = preferences.categoryDefinitions?.[category] || category;
+          mealSelections.push(`- ${day}: ${categoryDescription}`);
         }
       }
       
-      // Count total meals requested
-      const totalMeals = Object.values(preferences.mealsByDay)
-        .reduce((sum: number, catArray: any) => sum + (catArray?.length || 0), 0);
+      // Count total meals requested (one per day)
+      const totalMeals = Object.keys(preferences.mealsByDay).length;
       
       promptContent = `Create a personalized meal plan with ${totalMeals} dinner ideas for a family with the following profile:
         - Family size: ${household.members.length} people
@@ -741,24 +739,28 @@ function generateDummyMeals(preferences: any): any[] {
             break;
             
           default:
-            // Create more variety in meal names based on day
-            const dayMeals: Record<string, string[]> = {
-              Monday: ["Meatless Monday Stir Fry", "Monday Meatballs & Pasta", "Mediterranean Monday Bowl"],
-              Tuesday: ["Taco Tuesday Fiesta", "Tuesday Teriyaki Chicken", "Tuscan Tuesday Soup"],
-              Wednesday: ["Wednesday Wok Stir Fry", "Wild Wednesday Salmon", "Warm Wednesday Casserole"],
-              Thursday: ["Thursday Tray Bake", "Tangy Thursday Chicken", "Thoughtful Thursday Curry"],
-              Friday: ["Friday Fish Special", "Fast Friday Pizza Night", "Festive Friday Fajitas"],
-              Saturday: ["Saturday Special Roast", "Sizzling Saturday Burgers", "Savory Saturday Pasta"],
-              Sunday: ["Sunday Slow Cooker Meal", "Simple Sunday Stew", "Spectacular Sunday Roast"]
-            };
+            // Create generic meal names that don't mention specific days
+            const genericMealNames = [
+              "Homestyle Roast Chicken",
+              "Family Favorite Stir Fry",
+              "Classic Pasta Dinner",
+              "Hearty Beef Stew",
+              "Vegetable Curry Bowl",
+              "Simple Sheet Pan Dinner",
+              "Easy Taco Night",
+              "Creamy Pasta with Vegetables",
+              "Teriyaki Chicken with Rice",
+              "Garden Vegetable Soup",
+              "Southwest Bean Bowl",
+              "Mediterranean Baked Fish"
+            ];
             
-            // Select a name based on day and unique index
-            const mealOptions = dayMeals[day] || [`${day} Dinner Special`];
-            const mealIndex = Math.floor(Math.random() * mealOptions.length);
-            meal.name = mealOptions[mealIndex];
+            // Select a random meal name
+            const mealIndex = Math.floor(Math.random() * genericMealNames.length);
+            meal.name = genericMealNames[mealIndex];
             
             // Create more descriptive content
-            meal.description = `A balanced ${day.toLowerCase()} meal that's family-friendly and easy to prepare.`;
+            meal.description = `A balanced family-friendly meal that's easy to prepare and great for busy weeknights.`;
             meal.prepTime = 20 + Math.floor(Math.random() * 20); // 20-40 minutes
             
             // More specific ingredients
