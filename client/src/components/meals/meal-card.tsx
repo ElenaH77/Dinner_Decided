@@ -55,7 +55,7 @@ const MEAL_CATEGORY_ICONS: { [key: string]: string } = {
   'split': '⏰'
 };
 
-export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: MealCardProps) {
+export default function MealCard({ meal, onViewDetails, onRemove, onReplace, onModify }: MealCardProps) {
   const [recipeDialogOpen, setRecipeDialogOpen] = useState(false);
   
   // Get category and icon
@@ -172,21 +172,20 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
             onModify(mealId, modificationRequest);
           }
           
-          // Ensure we have a valid ID
-          if (mealId) {
-            if (onReplace) {
-              // If onReplace exists, use it as a generic handler
-              onReplace(mealId);
-            } else {
-              // Fallback to direct URL navigation with explicit path and query parameters
-              const modifyUrl = `/api/meal/modify?id=${encodeURIComponent(mealId)}&request=${encodeURIComponent(modificationRequest)}`;
-              console.log('Navigating to:', modifyUrl);
-              window.location.href = modifyUrl;
-            }
-          } else {
+          // Ensure we have a valid ID - the above onModify handler is called if available
+          // Here we handle the case where no parent handler exists
+          if (mealId && !onModify) {
+            // Fallback to direct URL navigation with explicit path and query parameters
+            const modifyUrl = `/api/meal/modify?id=${encodeURIComponent(mealId)}&request=${encodeURIComponent(modificationRequest)}`;
+            console.log('Navigating to:', modifyUrl);
+            window.location.href = modifyUrl;
+          } else if (!mealId) {
             console.error('Cannot modify meal: Missing meal ID');
             alert('Error: Cannot modify this meal because it has no ID');
           }
+          
+          // Close the recipe detail dialog after submitting modification
+          setRecipeDialogOpen(false);
         }}
       />
     </Card>
