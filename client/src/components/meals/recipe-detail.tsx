@@ -37,20 +37,50 @@ interface RecipeDetailProps {
 export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProps) {
   const [activeTab, setActiveTab] = useState("ingredients");
 
+  // First, log the raw ingredients to see what we're dealing with
+  console.log('Raw Ingredients:', JSON.stringify(meal.ingredients || meal.mainIngredients || []));
+
   // Format the ingredients into a list with checkboxes
   // Handle both string arrays and object arrays with item/quantity properties
   const rawIngredients = meal.ingredients || meal.mainIngredients || [];
   
-  // Convert ingredients to a consistent format
-  const ingredientsList = rawIngredients.map((ingredient) => {
-    // If ingredient is an object with item and quantity properties
-    if (typeof ingredient === 'object' && ingredient !== null && 'item' in ingredient) {
-      const { item, quantity } = ingredient;
-      return quantity ? `${quantity} ${item}` : item;
-    }
-    // If ingredient is a simple string
-    return ingredient;
-  });
+  // Convert ingredients to a consistent format - ensure we have an array of strings
+  const ingredientsList = [];
+  
+  // Check if it's an array first
+  if (Array.isArray(rawIngredients)) {
+    rawIngredients.forEach((ingredient) => {
+      if (typeof ingredient === 'string') {
+        // If it's a string, just add it
+        ingredientsList.push(ingredient);
+      } else if (ingredient && typeof ingredient === 'object') {
+        // If it's an object, try to extract the relevant parts
+        if ('item' in ingredient && 'quantity' in ingredient) {
+          // Handle {item, quantity} format
+          const item = String(ingredient.item);
+          const quantity = ingredient.quantity ? String(ingredient.quantity) : '';
+          ingredientsList.push(quantity ? `${quantity} ${item}` : item);
+        } else {
+          // Handle other object formats - convert to string representation
+          ingredientsList.push(JSON.stringify(ingredient));
+        }
+      } else if (ingredient !== null && ingredient !== undefined) {
+        // For any other non-null value, convert to string
+        ingredientsList.push(String(ingredient));
+      }
+    });
+  } else if (typeof rawIngredients === 'object' && rawIngredients !== null) {
+    // If ingredients is an object (not an array), extract its values
+    Object.values(rawIngredients).forEach(value => {
+      if (typeof value === 'string') {
+        ingredientsList.push(value);
+      } else if (value && typeof value === 'object') {
+        ingredientsList.push(JSON.stringify(value));
+      } else if (value !== null && value !== undefined) {
+        ingredientsList.push(String(value));
+      }
+    });
+  }
   
   console.log('Processed ingredients:', ingredientsList);
 
