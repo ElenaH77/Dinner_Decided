@@ -128,6 +128,86 @@ export default function MealPlan() {
 
   const isLoading = isMealPlanLoading || isMealsLoading;
 
+  // Handle meal modification requests (both replacements and modifications)
+  const handleMealModification = async (mealId: string, modificationRequest: string) => {
+    if (!mealId) {
+      toast({
+        title: "Error",
+        description: "Could not modify this meal because it has no ID.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      // Show loading toast
+      toast({
+        title: modificationRequest === 'replace' ? "Replacing meal" : "Modifying meal",
+        description: modificationRequest === 'replace' 
+          ? "Generating a new alternative meal..." 
+          : `Applying changes: ${modificationRequest}`,
+      });
+      
+      // Find the meal being modified
+      const mealToModify = meals.find(m => m.id === mealId);
+      if (!mealToModify) {
+        throw new Error(`Meal with ID ${mealId} not found`);
+      }
+      
+      console.log('Modifying meal:', mealToModify);
+      console.log('Modification request:', modificationRequest);
+      
+      // Call the appropriate API endpoint based on the request type
+      const endpoint = modificationRequest === 'replace' 
+        ? `/api/meal/replace` 
+        : `/api/meal/modify`;
+      
+      const response = await apiRequest('POST', endpoint, {
+        mealId,
+        meal: mealToModify,
+        modification: modificationRequest,
+        mealPlanId: currentMealPlan?.id,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+      
+      const updatedMeal = await response.json();
+      console.log('Received updated meal:', updatedMeal);
+      
+      // Update the meal plan with the new meal
+      if (currentMealPlan && currentMealPlan.meals) {
+        const updatedMeals = currentMealPlan.meals.map(meal => 
+          meal.id === mealId ? updatedMeal : meal
+        );
+        
+        const updatedPlan = {
+          ...currentMealPlan,
+          meals: updatedMeals
+        };
+        
+        // Update context and localStorage
+        setCurrentMealPlan(updatedPlan);
+        localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+        
+        toast({
+          title: "Success",
+          description: modificationRequest === 'replace' 
+            ? "Meal replaced successfully" 
+            : "Meal modified successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error modifying meal:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${modificationRequest === 'replace' ? 'replace' : 'modify'} meal: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   // Add a direct check for localStorage data on render for debugging
   useEffect(() => {
     // If we don't have a plan yet or are loading, try to get from localStorage directly
@@ -401,29 +481,8 @@ export default function MealPlan() {
                         servings: meal.servingSize || meal.serving_size || 4,
                         day: mealDay
                       }}
-                      onReplace={() => {
-                        // Call the replace meal API directly with the spread meal's ID
-                        // This avoids relying on argument passing which might be causing the issue
-                        console.log('Original meal:', meal);
-                        console.log('Meal ID from original object:', meal.id); 
-                        toast({
-                          title: "Replacing meal",
-                          description: `Generating a new alternative for ${meal.name}...`
-                        });
-                        // Make sure we have a valid ID
-                        const mealIdToUse = meal.id || `meal-${index + 1}`;
-                        if (!mealIdToUse) {
-                          console.error('Attempting to replace meal with undefined ID');
-                          toast({
-                            title: "Error",
-                            description: "Could not replace this meal because it has no ID.",
-                            variant: "destructive"
-                          });
-                          return;
-                        }
-                        console.log('Navigating to replace meal with ID:', mealIdToUse);
-                        window.location.href = `/api/meal/replace?id=${encodeURIComponent(mealIdToUse)}`;
-                      }}
+                      onReplace={(mealId) => handleMealModification(mealId, 'replace')}
+                      onModify={(mealId, modificationRequest) => handleMealModification(mealId, modificationRequest)}
                     />
                   );
                 })}

@@ -38,6 +38,7 @@ interface MealCardProps {
     serving_size?: number;
   };
   onViewDetails?: (mealId: string) => void;
+  onModify?: (mealId: string, modification: string) => void;
   onRemove?: (mealId: string) => void;
   onReplace?: (mealId: string) => void;
 }
