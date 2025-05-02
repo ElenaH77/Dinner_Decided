@@ -67,9 +67,9 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
   // Handle different property names for servings
   const servings = meal.servings || meal.servingSize || meal.serving_size || 4;
   
-  // Limit rationales to just 1 or 2 for the card
+  // Limit rationales to just 2 for the card
   const limitedRationales = meal.rationales && meal.rationales.length > 0 
-    ? meal.rationales.slice(0, 1) 
+    ? meal.rationales.slice(0, 2) 
     : [];
   
   return (
@@ -81,7 +81,7 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
         
         <div className="flex justify-between items-start">
           <CardTitle className="text-2xl font-bold">{meal.name}</CardTitle>
-          {icon && <span className="text-xl">{icon}</span>}
+          {icon && <Badge className="bg-[#21706D] text-white px-3 py-1 flex items-center">{icon}</Badge>}
         </div>
         
         <CardDescription className="mt-3 text-base">
