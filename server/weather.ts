@@ -43,6 +43,18 @@ interface WeatherData {
 // Default fallback location if user doesn't provide one
 const DEFAULT_LOCATION = 'San Francisco';
 
+// Import household storage
+let storage: any;
+
+// Import storage dynamically to avoid circular dependencies
+async function getStorage() {
+  if (!storage) {
+    const { storage: storageModule } = await import('./storage');
+    storage = storageModule;
+  }
+  return storage;
+}
+
 // Weather API options
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const WEATHER_API_URL = 'https://api.weatherapi.com/v1';
@@ -108,8 +120,16 @@ export async function getWeatherForecast(location: string = DEFAULT_LOCATION, da
  * Get weather information formatted for meal planning
  * Returns weather context as a string that can be used in prompts
  */
-export async function getWeatherContextForMealPlanning(location: string = DEFAULT_LOCATION): Promise<string> {
+export async function getWeatherContextForMealPlanning(location?: string): Promise<string> {
   try {
+    // If no location is provided, try to get it from the household profile
+    if (!location) {
+      const storageInstance = await getStorage();
+      const household = await storageInstance.getHousehold();
+      location = household?.location || DEFAULT_LOCATION;
+      console.log(`[WEATHER] Using location from household profile: ${location}`);
+    }
+    
     const weatherData = await getWeatherForecast(location);
     
     if (!weatherData) {
