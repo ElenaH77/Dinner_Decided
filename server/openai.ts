@@ -485,21 +485,38 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
     const content = response.choices[0].message.content || '{}';
     const modifiedMeal = JSON.parse(content);
     
-    // Keep the original ID and other metadata if present, but ensure consistent field names
+    // Start with critical original fields that need to be preserved
     const result = {
-      ...meal,
-      ...modifiedMeal,
+      id: meal.id, // Preserve ID
+      day: meal.day || modifiedMeal.day || modifiedMeal.appropriateDay, // Keep or set day
+      category: modifiedMeal.mealCategory || meal.category, // Favor new category if available
       modifiedFrom: meal.name,
       modificationRequest
     };
     
-    // Ensure ingredients are properly formatted and consistent
+    // Apply the modified meal data (modified meal takes priority for most fields)
+    Object.assign(result, {
+      name: modifiedMeal.name,
+      description: modifiedMeal.description,
+      prepTime: modifiedMeal.prepTime,
+      servings: modifiedMeal.servingSize || meal.servings,
+      mealPrepTips: modifiedMeal.mealPrepTips,
+      instructions: modifiedMeal.instructions
+    });
+    
+    // Critical: Ensure ingredients are properly formatted and consistent - use both properties
     if (modifiedMeal.mainIngredients && Array.isArray(modifiedMeal.mainIngredients)) {
-      result.ingredients = modifiedMeal.mainIngredients;
-      
-      // For consistency, also keep the mainIngredients property
-      result.mainIngredients = modifiedMeal.mainIngredients;
+      result.ingredients = [...modifiedMeal.mainIngredients]; // Clone the array
+      result.mainIngredients = [...modifiedMeal.mainIngredients]; // Clone the array
     }
+    
+    // Preserve rationales
+    if (modifiedMeal.rationales && Array.isArray(modifiedMeal.rationales)) {
+      result.rationales = [...modifiedMeal.rationales];
+    }
+    
+    // Add a timestamp for the modification
+    result.lastModified = new Date().toISOString();
     
     console.log('[MEAL MODIFICATION] Modified meal result:', JSON.stringify(result, null, 2));
     return result;
@@ -596,20 +613,37 @@ export async function replaceMeal(meal: any): Promise<any> {
     const content = response.choices[0].message.content || '{}';
     const replacementMeal = JSON.parse(content);
     
-    // Keep the original ID and other metadata if present
+    // Start with critical original fields that need to be preserved
     const result = {
-      ...meal,
-      ...replacementMeal,
+      id: meal.id, // Preserve ID
+      day: meal.day || replacementMeal.day || replacementMeal.appropriateDay, // Keep or set day
+      category: replacementMeal.mealCategory || meal.category, // Favor new category if available
       replacedFrom: meal.name
     };
     
-    // Ensure ingredients are properly formatted and consistent
+    // Apply the replacement meal data (replacement meal takes priority for most fields)
+    Object.assign(result, {
+      name: replacementMeal.name,
+      description: replacementMeal.description,
+      prepTime: replacementMeal.prepTime,
+      servings: replacementMeal.servingSize || meal.servings,
+      mealPrepTips: replacementMeal.mealPrepTips,
+      instructions: replacementMeal.instructions
+    });
+    
+    // Critical: Ensure ingredients are properly formatted and consistent - use both properties
     if (replacementMeal.mainIngredients && Array.isArray(replacementMeal.mainIngredients)) {
-      result.ingredients = replacementMeal.mainIngredients;
-      
-      // For consistency, also keep the mainIngredients property
-      result.mainIngredients = replacementMeal.mainIngredients;
+      result.ingredients = [...replacementMeal.mainIngredients]; // Clone the array
+      result.mainIngredients = [...replacementMeal.mainIngredients]; // Clone the array
     }
+    
+    // Preserve rationales
+    if (replacementMeal.rationales && Array.isArray(replacementMeal.rationales)) {
+      result.rationales = [...replacementMeal.rationales];
+    }
+    
+    // Add a timestamp for the replacement
+    result.lastModified = new Date().toISOString();
     
     console.log('[MEAL REPLACEMENT] Replacement meal result:', JSON.stringify(result, null, 2));
     return result;

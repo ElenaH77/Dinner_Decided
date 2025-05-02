@@ -55,6 +55,7 @@ export default function MealPlan() {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTab, setSelectedTab] = useState<string>('meals');
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Get the current week's dates
   const today = new Date();
@@ -162,12 +163,16 @@ export default function MealPlan() {
         ? `/api/meal/replace` 
         : `/api/meal/modify`;
       
-      const response = await apiRequest('POST', endpoint, {
-        mealId,
-        meal: mealToModify,
-        modification: modificationRequest,
+      // The payload format needs to match client/src/lib/meal-ai.ts expectations
+      const payload = {
+        meal: mealToModify, // This is the full meal object
+        modificationRequest, // The request string for modify, or just 'replace' for replacement
         mealPlanId: currentMealPlan?.id,
-      });
+        currentMeals: meals // Include all current meals for context
+      };
+      
+      console.log('Sending meal modification request with payload:', JSON.stringify(payload, null, 2));
+      const response = await apiRequest('POST', endpoint, payload);
       
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
@@ -182,23 +187,51 @@ export default function MealPlan() {
         console.log('Meal ID to update:', mealId);
         console.log('Updated meal data:', JSON.stringify(updatedMeal));
         
+        // Create a new array of meals with the modified one
         const updatedMeals = currentMealPlan.meals.map(meal => {
           console.log(`Comparing meal ID: ${meal.id} with ${mealId}, match: ${meal.id === mealId}`);
-          return meal.id === mealId ? updatedMeal : meal;
+          
+          if (meal.id === mealId) {
+            // Keep the day if it's not in the updated meal
+            if (meal.day && !updatedMeal.day) {
+              updatedMeal.day = meal.day;
+            }
+            
+            // Log what's being replaced
+            console.log('Replacing:', meal);
+            console.log('With:', updatedMeal);
+            
+            return updatedMeal;
+          }
+          
+          return meal;
         });
         
-        console.log('Updated meals array:', JSON.stringify(updatedMeals));
+        console.log('Updated meals array length:', updatedMeals.length);
         
+        // Create new plan object (don't mutate existing)
         const updatedPlan = {
           ...currentMealPlan,
-          meals: updatedMeals
+          meals: updatedMeals,
+          lastUpdated: new Date().toISOString()
         };
         
-        console.log('Updated plan to save:', JSON.stringify(updatedPlan));
+        console.log('Updated plan to save, ID:', updatedPlan.id);
         
-        // Update context and localStorage
-        setCurrentMealPlan(updatedPlan);
-        localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+        // Force a deep clone when updating state to avoid reference issues
+        const planClone = JSON.parse(JSON.stringify(updatedPlan));
+        
+        // Update context with the cloned object
+        setCurrentMealPlan(planClone);
+        
+        // Also update meals array state directly to ensure UI refreshes
+        setMeals(updatedMeals);
+        
+        // Update localStorage for persistence
+        localStorage.setItem('current_meal_plan', JSON.stringify(planClone));
+        
+        // Force UI refresh by triggering re-render
+        setRefreshCounter(prev => prev + 1);
         
         toast({
           title: "Success",
@@ -241,7 +274,7 @@ export default function MealPlan() {
         console.error("Error loading meal plan from localStorage fallback:", error);
       }
     }
-  }, [currentMealPlan, meals, isLoading, setCurrentMealPlan, setMeals]);
+  }, [currentMealPlan, meals, isLoading, setCurrentMealPlan, setMeals, refreshCounter]);
 
   const generateMealPlan = async () => {
     if (!preferences || !equipment) {
