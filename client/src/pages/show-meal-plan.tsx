@@ -19,6 +19,8 @@ const MEAL_CATEGORY_ICONS: { [key: string]: string } = {
   'split': '⏰'
 };
 
+import { useMealPlan } from '@/contexts/meal-plan-context';
+
 // Enhanced MealCard component with modification capabilities
 const MealCard = ({ 
   meal, 
@@ -31,6 +33,8 @@ const MealCard = ({
   mealPlanId?: number,
   currentMeals?: any[] 
 }) => {
+  // Access the meal plan context for better state management
+  const { updateMeal: updateMealInContext, refreshUI } = useMealPlan();
   const day = meal.day || meal.dayOfWeek || meal.appropriateDay || '';
   const category = meal.mealCategory || meal.category || '';
   const icon = MEAL_CATEGORY_ICONS[category] || '';
@@ -55,6 +59,8 @@ const MealCard = ({
     setLoading(true);
     
     try {
+      console.log(`[MealCard] Modifying meal ${meal.id} with request: ${modificationRequest}`);
+      
       // Use OpenAI to modify the meal with the user's request
       // Pass the meal plan ID and current meals for grocery list updates
       const updatedMeal = await modifyMeal(
@@ -64,9 +70,24 @@ const MealCard = ({
         currentMeals // Pass the current meals array
       );
       
-      // Update the meal plan
+      console.log(`[MealCard] Received modified meal:`, updatedMeal);
+      
+      // Update the meal plan in both local component state and context
       if (onUpdate) {
         onUpdate(updatedMeal);
+      }
+      
+      // Also update in the global context if available
+      if (updateMealInContext) {
+        try {
+          updateMealInContext(meal.id, updatedMeal);
+          console.log(`[MealCard] Updated meal in context successfully`);
+          
+          // Force UI refresh to ensure changes are reflected
+          setTimeout(() => refreshUI?.(), 100);
+        } catch (contextError) {
+          console.error("Error updating meal in context:", contextError);
+        }
       }
       
       toast({

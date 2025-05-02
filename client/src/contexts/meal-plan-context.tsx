@@ -18,6 +18,8 @@ interface MealPlanContextType {
   setCurrentPlan: (plan: ExtendedMealPlan | any) => void;
   addMeal: (meal: MealWithId) => void;
   removeMeal: (mealId: string) => void;
+  updateMeal: (mealId: string, updatedMeal: MealWithId) => void;
+  refreshUI: () => void; // Force UI refresh without refetching
   isLoading: boolean;
   refetchMealPlan: () => Promise<void>;
 }
@@ -30,6 +32,7 @@ const MealPlanContext = createContext<MealPlanContextType | undefined>(undefined
 export function MealPlanProvider({ children }: { children: ReactNode }) {
   const [currentPlan, setCurrentPlanState] = useState<ExtendedMealPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [refreshCounter, setRefreshCounter] = useState(0); // Force UI refresh counter
   
   // Wrapper to handle both basic and extended meal plans
   const setCurrentPlan = (plan: ExtendedMealPlan | any) => {
@@ -256,12 +259,61 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // The actual API call is handled by MealCard.tsx
   };
 
+  // Force UI refresh without refetching data
+  const refreshUI = () => {
+    console.log('Forcing UI refresh with counter:', refreshCounter + 1);
+    setRefreshCounter(prev => prev + 1);
+    
+    // Also reapply the current plan to force state update throughout UI
+    if (currentPlan) {
+      // Make sure we create a fresh deep copy
+      const refreshedPlan = JSON.parse(JSON.stringify(currentPlan));
+      setCurrentPlan(refreshedPlan);
+    }
+  };
+  
+  // Update a specific meal
+  const updateMeal = (mealId: string, updatedMeal: MealWithId) => {
+    if (!currentPlan) return;
+    
+    console.log(`Updating meal ${mealId} with:`, updatedMeal.name);
+    
+    // Make sure the ID is preserved
+    updatedMeal.id = mealId;
+    
+    // Update the meal in the meal plan
+    const updatedPlan = {
+      ...currentPlan,
+      meals: currentPlan.meals.map(meal => 
+        meal.id === mealId ? { ...updatedMeal } : meal
+      )
+    };
+    
+    console.log(`Updated meal in plan, now has ${updatedPlan.meals.length} meals`);
+    
+    // Save the updated plan
+    setCurrentPlan(updatedPlan);
+    
+    // Force a UI refresh to ensure all components see the update
+    refreshUI();
+  };
+
+  // Track the refresh counter to force re-renders when needed
+  useEffect(() => {
+    // This effect runs when refreshCounter changes
+    if (refreshCounter > 0) {
+      console.log(`UI refresh triggered (${refreshCounter})`);
+    }
+  }, [refreshCounter]);
+
   return (
     <MealPlanContext.Provider value={{ 
       currentPlan, 
       setCurrentPlan, 
       addMeal, 
       removeMeal,
+      updateMeal,
+      refreshUI,
       isLoading,
       refetchMealPlan
     }}>
