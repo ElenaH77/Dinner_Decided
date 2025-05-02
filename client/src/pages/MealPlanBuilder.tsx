@@ -145,7 +145,7 @@ export default function MealPlanBuilder() {
   };
   
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4 h-full flex flex-col space-y-6">
+    <div className="container max-w-4xl mx-auto py-6 px-4 min-h-screen flex flex-col space-y-6 pb-24">
       <h1 className="text-3xl font-bold text-gray-900">Pick what kind of dinner makes sense for each night.</h1>
       <p className="text-gray-600">
         Don't overthink it—just go with your gut. Leave days blank if you're planning to eat out, have leftovers, or want to decide later. This is just a starting point.
