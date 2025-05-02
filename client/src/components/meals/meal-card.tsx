@@ -167,6 +167,11 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
           // Handle meal modification via API
           console.log('Modifying meal with ID:', mealId, 'and request:', modificationRequest);
           
+          // Pass to the external handler if provided
+          if (onModify) {
+            onModify(mealId, modificationRequest);
+          }
+          
           // Ensure we have a valid ID
           if (mealId) {
             if (onReplace) {
