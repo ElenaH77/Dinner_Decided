@@ -952,16 +952,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // IMPORTANT: Force the meals to have unique IDs to prevent reference issues
+      // IMPORTANT: Force the meals to have unique IDs and deduplicate meals with same ID
       if (updateData.meals && Array.isArray(updateData.meals)) {
-        updateData.meals = updateData.meals.map((meal: any) => {
-          if (!meal.id) {
+        // Deduplicate by ID
+        const uniqueMeals: any[] = [];
+        const seenIds = new Set<string>();
+
+        for (const meal of updateData.meals) {
+          // If meal already has an ID, check for duplicates
+          if (meal.id) {
+            if (!seenIds.has(meal.id)) {
+              seenIds.add(meal.id);
+              uniqueMeals.push({...meal}); // Use a new copy to avoid reference issues
+            } else {
+              console.log(`[DEBUG] Removing duplicate meal with ID: ${meal.id}, name: ${meal.name}`);
+            }
+          } else {
+            // If no ID, generate one
             meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
             console.log(`[DEBUG] Added missing ID to meal in storage: ${meal.id}`);
+            uniqueMeals.push({...meal});
           }
-          // Ensure we return a new object, not a reference to an existing one
-          return { ...meal };
-        });
+        }
+        
+        if (updateData.meals.length !== uniqueMeals.length) {
+          console.log(`[DEBUG] Removed ${updateData.meals.length - uniqueMeals.length} duplicate meals`);
+        }
+        
+        updateData.meals = uniqueMeals;
       }
       
       // Perform database update with complete update data

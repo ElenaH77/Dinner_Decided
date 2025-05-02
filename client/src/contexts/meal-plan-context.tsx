@@ -47,15 +47,34 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
         meals: []
       };
     } else {
-      // Ensure all meals have IDs
+      // Deduplicate meals by ID and ensure all meals have IDs
       if (plan.meals && Array.isArray(plan.meals)) {
-        plan.meals = plan.meals.map(meal => {
+        // Create a map of meal IDs to detect duplicates
+        const uniqueMeals: MealWithId[] = [];
+        const mealIdsSet = new Set<string>();
+        
+        plan.meals.forEach(meal => {
+          // Ensure the meal has an ID
           if (!meal.id) {
             meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
             console.log('Added missing ID to meal in context:', meal.id);
           }
-          return meal;
+          
+          // Only add the meal if we haven't seen its ID before
+          if (!mealIdsSet.has(meal.id)) {
+            mealIdsSet.add(meal.id);
+            uniqueMeals.push({...meal}); // Add a copy to avoid reference issues
+          } else {
+            console.log(`Skipping duplicate meal with ID: ${meal.id}, name: ${meal.name}`);
+          }
         });
+        
+        if (plan.meals.length !== uniqueMeals.length) {
+          console.log(`Removed ${plan.meals.length - uniqueMeals.length} duplicate meals`);
+        }
+        
+        // Replace meals with deduplicated list
+        plan.meals = uniqueMeals;
       }
       processedPlan = plan;
     }
@@ -177,13 +196,28 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   const addMeal = (meal: MealWithId) => {
     if (!currentPlan) return;
     
+    // Ensure meal has an ID
+    if (!meal.id) {
+      meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      console.log('Added missing ID to meal in addMeal:', meal.id);
+    }
+    
+    // Check if this meal ID already exists to prevent duplicates
+    const existingMealIndex = currentPlan.meals?.findIndex(m => m.id === meal.id);
+    
+    if (existingMealIndex !== -1 && existingMealIndex !== undefined) {
+      console.log(`Meal with ID ${meal.id} already exists in the plan. Skipping duplicate addition.`);
+      return; // Skip adding if already exists
+    }
+    
     // Update with the correct structure
     const updatedPlan = {
       ...currentPlan,
       meals: [...(currentPlan.meals || []), meal],
-      mealIds: [...(currentPlan.mealIds || []), parseInt(meal.id)]
+      mealIds: [...(currentPlan.mealIds || []), parseInt(meal.id) || meal.id]
     };
     
+    console.log(`Added meal ${meal.name} with ID ${meal.id} to plan, now has ${updatedPlan.meals.length} meals`);
     setCurrentPlan(updatedPlan);
   };
 
