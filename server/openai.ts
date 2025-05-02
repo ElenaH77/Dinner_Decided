@@ -205,8 +205,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           content: `You are a meal planning assistant that creates personalized meal suggestions based on family preferences.
           Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise.
           Treat food allergies and appliance limitations as inviolable restrictions.
-          For each meal, include 2 bullet points on why it fits the family (based on meal notes, weather, or overall profile).
-          Focus on practical, accessible recipes that are kid-friendly.`
+          For each meal, include 2-3 specific rationales on why it fits the family (based on meal notes, dietary needs, weather, or overall profile).
+          Focus on practical, accessible recipes that are kid-friendly.
+          Always include specific ingredient details in meal descriptions (like "with roasted broccoli and garlic mashed potatoes").`
         },
         {
           role: "user" as const,
@@ -431,7 +432,8 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           Maintain the general structure of the meal but accommodate their modification requests.
           Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise.
           Treat food allergies and appliance limitations as inviolable restrictions.
-          For each meal, include 2 bullet points on why it fits the family (based on meal notes, weather, or overall profile).
+          For each meal, include 2-3 specific rationales for why it fits the family (based on meal notes, dietary needs, weather, or overall profile).
+          Always include specific ingredient details in meal descriptions (like "with roasted broccoli and garlic mashed potatoes").
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
