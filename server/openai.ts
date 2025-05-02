@@ -613,28 +613,35 @@ export async function replaceMeal(meal: any): Promise<any> {
     const content = response.choices[0].message.content || '{}';
     const replacementMeal = JSON.parse(content);
     
-    // Start with critical original fields that need to be preserved
-    const result = {
-      id: meal.id, // Preserve ID
-      day: meal.day || replacementMeal.day || replacementMeal.appropriateDay, // Keep or set day
-      category: replacementMeal.mealCategory || meal.category, // Favor new category if available
-      replacedFrom: meal.name
-    };
+    // Create a deep clone of the original meal to preserve structure
+    const result = JSON.parse(JSON.stringify(meal));
     
-    // Apply the replacement meal data (replacement meal takes priority for most fields)
-    Object.assign(result, {
-      name: replacementMeal.name,
-      description: replacementMeal.description,
-      prepTime: replacementMeal.prepTime,
-      servings: replacementMeal.servingSize || meal.servings,
-      mealPrepTips: replacementMeal.mealPrepTips,
-      instructions: replacementMeal.instructions
-    });
+    // Update with new replacement meal data while preserving structure
+    result.id = meal.id; // Preserve ID
+    result.day = meal.day || replacementMeal.day || replacementMeal.appropriateDay; // Keep or set day
+    result.category = replacementMeal.mealCategory || meal.category; // Favor new category if available
+    result.replacedFrom = meal.name; // Track original meal name
     
-    // Critical: Ensure ingredients are properly formatted and consistent - use both properties
+    // Essential replacement data
+    result.name = replacementMeal.name;
+    result.description = replacementMeal.description;
+    result.prepTime = replacementMeal.prepTime || meal.prepTime;
+    result.servings = replacementMeal.servingSize || meal.servings;
+    result.mealPrepTips = replacementMeal.mealPrepTips;
+    result.instructions = replacementMeal.instructions;
+    
+    // Critical: Handle ingredients consistently - support both array formats
+    if (replacementMeal.ingredients && Array.isArray(replacementMeal.ingredients)) {
+      result.ingredients = [...replacementMeal.ingredients];
+    } else if (replacementMeal.mainIngredients && Array.isArray(replacementMeal.mainIngredients)) {
+      result.ingredients = [...replacementMeal.mainIngredients];
+    }
+    
+    // Also preserve mainIngredients for UI consistency
     if (replacementMeal.mainIngredients && Array.isArray(replacementMeal.mainIngredients)) {
-      result.ingredients = [...replacementMeal.mainIngredients]; // Clone the array
-      result.mainIngredients = [...replacementMeal.mainIngredients]; // Clone the array
+      result.mainIngredients = [...replacementMeal.mainIngredients];
+    } else if (result.ingredients) {
+      result.mainIngredients = [...result.ingredients];
     }
     
     // Preserve rationales
@@ -644,6 +651,7 @@ export async function replaceMeal(meal: any): Promise<any> {
     
     // Add a timestamp for the replacement
     result.lastModified = new Date().toISOString();
+    result.lastUpdated = new Date().toISOString();
     
     console.log('[MEAL REPLACEMENT] Replacement meal result:', JSON.stringify(result, null, 2));
     return result;
