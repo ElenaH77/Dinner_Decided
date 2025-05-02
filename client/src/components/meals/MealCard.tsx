@@ -203,7 +203,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
 
   return (
     <>
-      <Card className="border border-[#E2E2E2] overflow-hidden bg-[#F9F9F9] hover:shadow-md transition-all">
+      <Card className="border border-[#E2E2E2] overflow-hidden bg-[#F9F9F9] hover:shadow-md transition-all max-h-[550px]">
         <div className="p-4 w-full">
           {/* Category Badge at the top */}
           <div className="flex justify-between items-start mb-2">

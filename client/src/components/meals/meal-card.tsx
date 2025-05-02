@@ -73,7 +73,7 @@ export default function MealCard({ meal, onViewDetails, onRemove, onReplace }: M
     : [];
   
   return (
-    <Card className="overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow duration-200 border-t-4 border-t-teal-primary">
+    <Card className="overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow duration-200 border-t-4 border-t-teal-primary max-h-[550px]">
       <CardHeader className="pb-2 pt-4">
         {day && (
           <div className="font-medium text-gray-500 mb-1">{day}:</div>

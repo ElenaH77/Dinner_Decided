@@ -285,7 +285,7 @@ export default function MealPlan() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="meals" className="mt-0" style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}>
+        <TabsContent value="meals" className="mt-0" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingBottom: '60px' }}>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-neutral-text">{weekDateRange}</h2>
             {meals && meals.length > 0 && (
@@ -447,7 +447,7 @@ export default function MealPlan() {
           )}
         </TabsContent>
 
-        <TabsContent value="chat" className="mt-0" style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}>
+        <TabsContent value="chat" className="mt-0" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingBottom: '60px' }}>
           <div className="bg-white rounded-xl shadow-sm p-4 h-[calc(100vh-20rem)]">
             <ChatInterface standalone={true} />
           </div>
