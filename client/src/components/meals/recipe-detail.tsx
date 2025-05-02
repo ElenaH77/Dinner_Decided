@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Users, ChefHat, MessageSquare, Check } from "lucide-react";
+import { Clock, Users, ChefHat, MessageSquare, Check, RefreshCw, Edit } from "lucide-react";
 
 interface Meal {
   id: string;
@@ -123,40 +123,113 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
   // Process ingredients when the component renders or meal changes
   const ingredientsList = processIngredients();
 
-  // Handle instructions which could be a string array or a string or object format
-  let instructions;
-  
-  if (meal.instructions) {
-    // If instructions exist, process them
-    if (Array.isArray(meal.instructions)) {
-      // If it's already an array, use it directly
-      instructions = meal.instructions;
-    } else if (typeof meal.instructions === 'string') {
-      // If it's a string, split by newlines or periods to create steps
-      instructions = meal.instructions
-        .split(/\n|\. /)
-        .filter(step => step.trim().length > 0)
-        .map(step => step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`);
-    } else if (typeof meal.instructions === 'object' && meal.instructions !== null) {
-      // If it's an object, extract steps
-      const steps = [];
-      Object.entries(meal.instructions).forEach(([key, value]) => {
-        if (key.includes('step') && typeof value === 'string') {
-          steps.push(value);
+  // Process instructions which could be a string array, string or object format
+  const processInstructions = () => {
+    try {
+      // Log raw data for debugging
+      console.log('Raw Instructions:', JSON.stringify(meal.instructions || []));
+      
+      if (!meal.instructions) {
+        return [
+          `1. Prepare all ingredients for ${meal.name}.`,
+          `2. Cook according to your preference and family's tastes.`,
+          `3. Serve hot and enjoy!`
+        ];
+      }
+      
+      // If instructions exist, process them based on type
+      if (Array.isArray(meal.instructions)) {
+        // If it's already an array, ensure each item is properly formatted
+        const formattedInstructions = meal.instructions.map((step, index) => {
+          if (typeof step !== 'string') {
+            // Handle non-string items in the array
+            return `Step ${index+1}: ${JSON.stringify(step).replace(/[{}"\']/g, '').replace(/,/g, ', ').replace(/:/g, ': ')}`;
+          }
+          
+          // Add step numbers if they're not already there
+          if (!step.match(/^\d+\.\s/) && !step.match(/^Step\s\d+:/) && index < 20) {
+            return `${index+1}. ${step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`}`;
+          }
+          
+          return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
+        });
+        
+        return formattedInstructions.length > 0 ? formattedInstructions : [`Prepare the ${meal.name}.`];
+      } else if (typeof meal.instructions === 'string') {
+        // If it's a string, split by newlines or periods to create steps
+        const steps = meal.instructions
+          .split(/\n|\. /)
+          .filter(step => step.trim().length > 0)
+          .map((step, index) => {
+            // Add step numbers if they don't already exist
+            if (!step.match(/^\d+\.\s/) && !step.match(/^Step\s\d+:/) && index < 20) {
+              return `${index+1}. ${step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`}`;
+            }
+            return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
+          });
+          
+        return steps.length > 0 ? steps : [`Prepare the ${meal.name}.`];
+      } else if (typeof meal.instructions === 'object' && meal.instructions !== null) {
+        // If it's an object, extract steps
+        const steps = [];
+        const entries = Object.entries(meal.instructions);
+        
+        // First try to extract step-like keys (step1, step 2, etc.)
+        const stepEntries = entries.filter(([key]) => 
+          key.toLowerCase().includes('step') || /^\d+$/.test(key) || key.match(/^step\d+$/))
+          .sort((a, b) => {
+            // Try to sort by step number if possible
+            const numA = parseInt(a[0].replace(/\D/g, ''));
+            const numB = parseInt(b[0].replace(/\D/g, ''));
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return a[0].localeCompare(b[0]);
+          });
+          
+        if (stepEntries.length > 0) {
+          // Use step-like entries if found
+          stepEntries.forEach(([key, value], index) => {
+            if (typeof value === 'string') {
+              // Add step numbers if they don't already exist
+              if (!value.match(/^\d+\.\s/) && !value.match(/^Step\s\d+:/)) {
+                steps.push(`${index+1}. ${value.trim().endsWith('.') ? value.trim() : `${value.trim()}.`}`);
+              } else {
+                steps.push(value.trim().endsWith('.') ? value.trim() : `${value.trim()}.`);
+              }
+            } else if (value !== null && value !== undefined) {
+              // Handle non-string values
+              steps.push(`${index+1}. ${String(value)}${String(value).endsWith('.') ? '' : '.'}`);
+            }
+          });
+        } else {
+          // If no step-like keys, use all string values from the object
+          entries.forEach(([key, value], index) => {
+            if (typeof value === 'string' && value.trim().length > 0) {
+              steps.push(`${index+1}. ${value.trim().endsWith('.') ? value.trim() : `${value.trim()}.`}`);
+            }
+          });
         }
-      });
-      instructions = steps.length > 0 ? steps : [`Prepare the ${meal.name}.`];
+        
+        return steps.length > 0 ? steps : [`Prepare the ${meal.name}.`];
+      }
+      
+      // Default fallback
+      return [
+        `1. Prepare all ingredients for ${meal.name}.`,
+        `2. Cook according to your preference and family's tastes.`,
+        `3. Serve hot and enjoy!`
+      ];
+    } catch (error) {
+      console.error('Error processing instructions:', error);
+      return [
+        `1. Prepare all ingredients for ${meal.name}.`,
+        `2. Cook according to your preference and family's tastes.`,
+        `3. Serve hot and enjoy!`
+      ];
     }
-  }
+  };
   
-  // If we couldn't extract instructions or none were provided, use defaults
-  if (!instructions || instructions.length === 0) {
-    instructions = [
-      `1. Prepare all ingredients for ${meal.name}.`,
-      `2. Cook according to your preference and family's tastes.`,
-      `3. Serve hot and enjoy!`
-    ];
-  }
+  // Process instructions when the component renders or meal changes
+  const instructions = processInstructions();
   
   console.log('Processed instructions:', instructions);
 
@@ -243,7 +316,44 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
           </ScrollArea>
         </Tabs>
 
-        <DialogFooter className="pt-4">
+        <DialogFooter className="pt-4 flex flex-wrap gap-2 justify-end">
+          {onModify && (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (onModify && meal.id) {
+                    // Force a timestamp update to ensure state is fresh when dialog reopens
+                    setOpenTimestamp(Date.now());
+                    onModify(meal.id, 'replace');
+                    onClose();
+                  }
+                }}
+                className="bg-white hover:bg-gray-100"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Replace Meal
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  const userModification = prompt('How would you like to modify this meal? (e.g., "Make it vegetarian", "Add more protein", etc.)');
+                  if (userModification && onModify && meal.id) {
+                    // Force a timestamp update to ensure state is fresh when dialog reopens
+                    setOpenTimestamp(Date.now());
+                    onModify(meal.id, userModification);
+                    onClose();
+                  }
+                }}
+                className="bg-white hover:bg-gray-100"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Modify Meal
+              </Button>
+            </>
+          )}
+          
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
