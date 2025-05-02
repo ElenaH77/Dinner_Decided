@@ -33,14 +33,15 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
   
-  // Redirect to onboarding on first load for demo purposes
-  useEffect(() => {
-    // Only redirect if we're at the root path and want to simulate first-time use
-    if (location === "/" && !isLoading) {
-      console.log('Redirecting to chat-onboarding');
-      setLocation("/chat-onboarding");
-    }
-  }, [location, setLocation, isLoading]);
+  // For development only - allow direct navigation to Home
+  // We now disable the auto-redirect to onboarding since DinnerBot is used as emergency meal helper
+  // If re-enabling this logic, consider checking if the household data exists first
+  // useEffect(() => {
+  //   if (location === "/" && !isLoading) {
+  //     console.log('Redirecting to chat-onboarding');
+  //     setLocation("/chat-onboarding");
+  //   }
+  // }, [location, setLocation, isLoading]);
   
   // Show loading indicator while app initializes
   if (isLoading) {
