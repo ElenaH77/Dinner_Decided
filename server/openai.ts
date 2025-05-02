@@ -671,8 +671,11 @@ function generateDummyMeals(preferences: any): any[] {
       const categories = preferences.mealsByDay[day] || [];
       
       for (const category of categories) {
+        // Generate a unique timestamp with a small delay to ensure unique IDs
+        const uniqueTimestamp = Date.now() + dummyMeals.length * 100;
+        
         let meal: any = {
-          id: `meal-${Date.now()}-${dummyMeals.length + 1}`,
+          id: `meal-${uniqueTimestamp}-${Math.floor(Math.random() * 1000)}`,
           day: day,
           category: category,
           prepTime: 0,
@@ -736,14 +739,32 @@ function generateDummyMeals(preferences: any): any[] {
             break;
             
           default:
-            meal.name = `${day} Dinner Special`;
-            meal.description = "A balanced meal for your family.";
-            meal.prepTime = 25;
+            // Create more variety in meal names based on day
+            const dayMeals = {
+              Monday: ["Meatless Monday Stir Fry", "Monday Meatballs & Pasta", "Mediterranean Monday Bowl"],
+              Tuesday: ["Taco Tuesday Fiesta", "Tuesday Teriyaki Chicken", "Tuscan Tuesday Soup"],
+              Wednesday: ["Wednesday Wok Stir Fry", "Wild Wednesday Salmon", "Warm Wednesday Casserole"],
+              Thursday: ["Thursday Tray Bake", "Tangy Thursday Chicken", "Thoughtful Thursday Curry"],
+              Friday: ["Friday Fish Special", "Fast Friday Pizza Night", "Festive Friday Fajitas"],
+              Saturday: ["Saturday Special Roast", "Sizzling Saturday Burgers", "Savory Saturday Pasta"],
+              Sunday: ["Sunday Slow Cooker Meal", "Simple Sunday Stew", "Spectacular Sunday Roast"]
+            };
+            
+            // Select a name based on day and unique index
+            const mealOptions = dayMeals[day] || [`${day} Dinner Special`];
+            const mealIndex = Math.floor(Math.random() * mealOptions.length);
+            meal.name = mealOptions[mealIndex];
+            
+            // Create more descriptive content
+            meal.description = `A balanced ${day.toLowerCase()} meal that's family-friendly and easy to prepare.`;
+            meal.prepTime = 20 + Math.floor(Math.random() * 20); // 20-40 minutes
+            
+            // More specific ingredients
             meal.ingredients = [
-              "Protein",
-              "Vegetables",
-              "Starch",
-              "Seasonings"
+              ["Chicken", "Beef", "Pork", "Tofu", "Fish"][Math.floor(Math.random() * 5)],
+              ["Broccoli", "Carrots", "Mixed Vegetables", "Green Beans", "Spinach"][Math.floor(Math.random() * 5)],
+              ["Rice", "Pasta", "Potatoes", "Quinoa", "Couscous"][Math.floor(Math.random() * 5)],
+              ["Garlic & Herbs", "Italian Seasoning", "Taco Seasoning", "Lemon Pepper", "Cajun Spices"][Math.floor(Math.random() * 5)]
             ];
         }
         
@@ -755,9 +776,11 @@ function generateDummyMeals(preferences: any): any[] {
   }
   
   // Standard response for other cases
-  return [
+  // Generate unique timestamps for each meal
+  const baseTimestamp = Date.now();
+  const meals = [
     {
-      id: `meal-${Date.now()}-1`,
+      id: `meal-${baseTimestamp}-${Math.floor(Math.random() * 1000)}`,
       name: "Sheet Pan Chicken Fajitas",
       description: "Perfect for a busy weeknight. Mexican-inspired, as your family enjoys, and can be prepared quickly on a sheet pan.",
       categories: ["quick", "mexican", "kid-friendly"],
@@ -774,7 +797,7 @@ function generateDummyMeals(preferences: any): any[] {
       ]
     },
     {
-      id: `meal-${Date.now()}-2`,
+      id: `meal-${baseTimestamp + 100}-${Math.floor(Math.random() * 1000)}`,
       name: "Creamy Vegetable Pasta",
       description: "A vegetarian pasta dish that satisfies your family's love for pasta while incorporating seasonal vegetables.",
       categories: ["vegetarian", "family favorite"],
@@ -791,7 +814,7 @@ function generateDummyMeals(preferences: any): any[] {
       ]
     },
     {
-      id: `meal-${Date.now()}-3`,
+      id: `meal-${baseTimestamp + 200}-${Math.floor(Math.random() * 1000)}`,
       name: "Instant Pot Beef Stew",
       description: "Perfect for a busy day - quick to prepare in the Instant Pot. Mild flavor for the kids.",
       categories: ["instantPot", "make ahead"],
@@ -810,7 +833,7 @@ function generateDummyMeals(preferences: any): any[] {
       ]
     },
     {
-      id: `meal-${Date.now()}-4`,
+      id: `meal-${baseTimestamp + 300}-${Math.floor(Math.random() * 1000)}`,
       name: "Black Bean & Sweet Potato Enchiladas",
       description: "These enchiladas combine your family's love for Mexican food with your goal of vegetarian meals. The sweet potatoes add a nutritious twist.",
       categories: ["vegetarian", "mexican"],
@@ -830,7 +853,7 @@ function generateDummyMeals(preferences: any): any[] {
       ]
     },
     {
-      id: `meal-${Date.now()}-5`,
+      id: `meal-${baseTimestamp + 400}-${Math.floor(Math.random() * 1000)}`,
       name: "Slow Cooker Pulled Chicken Sandwiches",
       description: "An easy meal that can simmer all day in the slow cooker. Kid-friendly and allows for individual customization.",
       categories: ["slowCooker", "kid-friendly"],
@@ -848,6 +871,8 @@ function generateDummyMeals(preferences: any): any[] {
       ]
     }
   ];
+  
+  return meals;
 }
 
 function generateDummyGroceryList(): any[] {
