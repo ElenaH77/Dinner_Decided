@@ -485,29 +485,36 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
     const content = response.choices[0].message.content || '{}';
     const modifiedMeal = JSON.parse(content);
     
-    // Start with critical original fields that need to be preserved
-    const result = {
-      id: meal.id, // Preserve ID
-      day: meal.day || modifiedMeal.day || modifiedMeal.appropriateDay, // Keep or set day
-      category: modifiedMeal.mealCategory || meal.category, // Favor new category if available
-      modifiedFrom: meal.name,
-      modificationRequest
-    };
+    // Create a deep clone of the original meal to preserve structure
+    const result = JSON.parse(JSON.stringify(meal));
     
-    // Apply the modified meal data (modified meal takes priority for most fields)
-    Object.assign(result, {
-      name: modifiedMeal.name,
-      description: modifiedMeal.description,
-      prepTime: modifiedMeal.prepTime,
-      servings: modifiedMeal.servingSize || meal.servings,
-      mealPrepTips: modifiedMeal.mealPrepTips,
-      instructions: modifiedMeal.instructions
-    });
+    // Update with new modified meal data while preserving structure
+    result.id = meal.id; // Preserve ID
+    result.day = meal.day || modifiedMeal.day || modifiedMeal.appropriateDay; // Keep or set day
+    result.category = modifiedMeal.mealCategory || meal.category; // Favor new category if available
+    result.modifiedFrom = meal.name; // Track original meal name
+    result.modificationRequest = modificationRequest; // Store what was requested
     
-    // Critical: Ensure ingredients are properly formatted and consistent - use both properties
+    // Essential replacement data
+    result.name = modifiedMeal.name;
+    result.description = modifiedMeal.description;
+    result.prepTime = modifiedMeal.prepTime || meal.prepTime;
+    result.servings = modifiedMeal.servingSize || meal.servings;
+    result.mealPrepTips = modifiedMeal.mealPrepTips;
+    result.instructions = modifiedMeal.instructions;
+    
+    // Critical: Handle ingredients consistently - support both array formats
+    if (modifiedMeal.ingredients && Array.isArray(modifiedMeal.ingredients)) {
+      result.ingredients = [...modifiedMeal.ingredients];
+    } else if (modifiedMeal.mainIngredients && Array.isArray(modifiedMeal.mainIngredients)) {
+      result.ingredients = [...modifiedMeal.mainIngredients];
+    }
+    
+    // Also preserve mainIngredients for UI consistency
     if (modifiedMeal.mainIngredients && Array.isArray(modifiedMeal.mainIngredients)) {
-      result.ingredients = [...modifiedMeal.mainIngredients]; // Clone the array
-      result.mainIngredients = [...modifiedMeal.mainIngredients]; // Clone the array
+      result.mainIngredients = [...modifiedMeal.mainIngredients];
+    } else if (result.ingredients) {
+      result.mainIngredients = [...result.ingredients];
     }
     
     // Preserve rationales
@@ -515,8 +522,9 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
       result.rationales = [...modifiedMeal.rationales];
     }
     
-    // Add a timestamp for the modification
+    // Add timestamps for the modification
     result.lastModified = new Date().toISOString();
+    result.lastUpdated = new Date().toISOString();
     
     console.log('[MEAL MODIFICATION] Modified meal result:', JSON.stringify(result, null, 2));
     return result;
