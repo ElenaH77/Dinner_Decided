@@ -485,13 +485,24 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
     const content = response.choices[0].message.content || '{}';
     const modifiedMeal = JSON.parse(content);
     
-    // Keep the original ID and other metadata if present
-    return {
+    // Keep the original ID and other metadata if present, but ensure consistent field names
+    const result = {
       ...meal,
       ...modifiedMeal,
       modifiedFrom: meal.name,
       modificationRequest
     };
+    
+    // Ensure ingredients are properly formatted and consistent
+    if (modifiedMeal.mainIngredients && Array.isArray(modifiedMeal.mainIngredients)) {
+      result.ingredients = modifiedMeal.mainIngredients;
+      
+      // For consistency, also keep the mainIngredients property
+      result.mainIngredients = modifiedMeal.mainIngredients;
+    }
+    
+    console.log('[MEAL MODIFICATION] Modified meal result:', JSON.stringify(result, null, 2));
+    return result;
   } catch (error) {
     console.error('Error modifying meal with AI:', error);
     throw new Error('Failed to modify recipe. Please try again.');
@@ -586,11 +597,22 @@ export async function replaceMeal(meal: any): Promise<any> {
     const replacementMeal = JSON.parse(content);
     
     // Keep the original ID and other metadata if present
-    return {
+    const result = {
       ...meal,
       ...replacementMeal,
       replacedFrom: meal.name
     };
+    
+    // Ensure ingredients are properly formatted and consistent
+    if (replacementMeal.mainIngredients && Array.isArray(replacementMeal.mainIngredients)) {
+      result.ingredients = replacementMeal.mainIngredients;
+      
+      // For consistency, also keep the mainIngredients property
+      result.mainIngredients = replacementMeal.mainIngredients;
+    }
+    
+    console.log('[MEAL REPLACEMENT] Replacement meal result:', JSON.stringify(result, null, 2));
+    return result;
   } catch (error) {
     console.error('Error replacing meal with AI:', error);
     throw new Error('Failed to generate replacement recipe. Please try again.');

@@ -178,14 +178,23 @@ export default function MealPlan() {
       
       // Update the meal plan with the new meal
       if (currentMealPlan && currentMealPlan.meals) {
-        const updatedMeals = currentMealPlan.meals.map(meal => 
-          meal.id === mealId ? updatedMeal : meal
-        );
+        console.log('Current meal plan before update:', JSON.stringify(currentMealPlan));
+        console.log('Meal ID to update:', mealId);
+        console.log('Updated meal data:', JSON.stringify(updatedMeal));
+        
+        const updatedMeals = currentMealPlan.meals.map(meal => {
+          console.log(`Comparing meal ID: ${meal.id} with ${mealId}, match: ${meal.id === mealId}`);
+          return meal.id === mealId ? updatedMeal : meal;
+        });
+        
+        console.log('Updated meals array:', JSON.stringify(updatedMeals));
         
         const updatedPlan = {
           ...currentMealPlan,
           meals: updatedMeals
         };
+        
+        console.log('Updated plan to save:', JSON.stringify(updatedPlan));
         
         // Update context and localStorage
         setCurrentMealPlan(updatedPlan);
