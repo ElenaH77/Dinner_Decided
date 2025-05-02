@@ -32,57 +32,96 @@ interface RecipeDetailProps {
   meal: Meal;
   isOpen: boolean;
   onClose: () => void;
+  onModify?: (mealId: string, modification: string) => void;
 }
 
-export default function RecipeDetail({ meal, isOpen, onClose }: RecipeDetailProps) {
+export default function RecipeDetail({ meal, isOpen, onClose, onModify }: RecipeDetailProps) {
   const [activeTab, setActiveTab] = useState("ingredients");
 
-  // First, log the raw ingredients to see what we're dealing with
-  console.log('Raw Ingredients:', JSON.stringify(meal.ingredients || meal.mainIngredients || []));
+  // Track when the modal is opened to force re-processing of data
+  const [openTimestamp, setOpenTimestamp] = useState<number>(Date.now());
+  
+  // When the dialog opens, update the timestamp to force re-processing
+  useEffect(() => {
+    if (isOpen) {
+      setOpenTimestamp(Date.now());
+      console.log('Recipe detail opened, processing data at:', Date.now());
+    }
+  }, [isOpen]);
 
   // Format the ingredients into a list with checkboxes
   // Handle both string arrays and object arrays with item/quantity properties
-  const rawIngredients = meal.ingredients || meal.mainIngredients || [];
-  
-  // Convert ingredients to a consistent format - ensure we have an array of strings
-  const ingredientsList = [];
-  
-  // Check if it's an array first
-  if (Array.isArray(rawIngredients)) {
-    rawIngredients.forEach((ingredient) => {
-      if (typeof ingredient === 'string') {
-        // If it's a string, just add it
-        ingredientsList.push(ingredient);
-      } else if (ingredient && typeof ingredient === 'object') {
-        // If it's an object, try to extract the relevant parts
-        if ('item' in ingredient && 'quantity' in ingredient) {
-          // Handle {item, quantity} format
-          const item = String(ingredient.item);
-          const quantity = ingredient.quantity ? String(ingredient.quantity) : '';
-          ingredientsList.push(quantity ? `${quantity} ${item}` : item);
-        } else {
-          // Handle other object formats - convert to string representation
-          ingredientsList.push(JSON.stringify(ingredient));
-        }
-      } else if (ingredient !== null && ingredient !== undefined) {
-        // For any other non-null value, convert to string
-        ingredientsList.push(String(ingredient));
+  const processIngredients = () => {
+    const rawIngredients = meal.ingredients || meal.mainIngredients || [];
+    const result: string[] = [];
+    
+    try {
+      // Log raw data for debugging
+      console.log('Raw Ingredients:', JSON.stringify(rawIngredients));
+      
+      // Check if it's an array first
+      if (Array.isArray(rawIngredients)) {
+        rawIngredients.forEach((ingredient) => {
+          if (typeof ingredient === 'string') {
+            // If it's a string, just add it
+            result.push(ingredient);
+          } else if (ingredient && typeof ingredient === 'object') {
+            // If it's an object with item/quantity properties
+            if (ingredient.item && typeof ingredient.item === 'string') {
+              const item = ingredient.item;
+              const quantity = ingredient.quantity ? String(ingredient.quantity) : '';
+              result.push(quantity ? `${quantity} ${item}` : item);
+            } else {
+              // For other object formats, try to make a readable string
+              try {
+                const ingredientStr = JSON.stringify(ingredient)
+                  .replace(/[{}"\']/g, '') // Remove braces, quotes
+                  .replace(/,/g, ', ') // Add spacing after commas
+                  .replace(/:/g, ': '); // Add spacing after colons
+                result.push(ingredientStr);
+              } catch (e) {
+                // Fallback if JSON stringify fails
+                result.push('Ingredient data unavailable');
+              }
+            }
+          } else if (ingredient !== null && ingredient !== undefined) {
+            // For any other non-null value, convert to string
+            result.push(String(ingredient));
+          }
+        });
+      } else if (typeof rawIngredients === 'object' && rawIngredients !== null) {
+        // If ingredients is an object (not an array), extract its values
+        Object.entries(rawIngredients).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            result.push(value);
+          } else if (value && typeof value === 'object') {
+            // Try to make a reasonable string from the object
+            try {
+              const valueStr = JSON.stringify(value)
+                .replace(/[{}"\']/g, '')
+                .replace(/,/g, ', ')
+                .replace(/:/g, ': ');
+              result.push(`${key}: ${valueStr}`);
+            } catch (e) {
+              result.push(`${key}: [Object]`);
+            }
+          } else if (value !== null && value !== undefined) {
+            result.push(`${key}: ${String(value)}`);
+          }
+        });
       }
-    });
-  } else if (typeof rawIngredients === 'object' && rawIngredients !== null) {
-    // If ingredients is an object (not an array), extract its values
-    Object.values(rawIngredients).forEach(value => {
-      if (typeof value === 'string') {
-        ingredientsList.push(value);
-      } else if (value && typeof value === 'object') {
-        ingredientsList.push(JSON.stringify(value));
-      } else if (value !== null && value !== undefined) {
-        ingredientsList.push(String(value));
-      }
-    });
-  }
+      
+      console.log('Processed ingredients:', result);
+      return result;
+    } catch (error) {
+      console.error('Error processing ingredients:', error);
+      // Return an empty array or some fallback in case of error
+      return ['Ingredients unavailable. Please check recipe details.'];
+    }
+  };
   
-  console.log('Processed ingredients:', ingredientsList);
+  // Process ingredients when the component renders or meal changes
+  const ingredientsList = processIngredients();
 
   // Handle instructions which could be a string array or a string or object format
   let instructions;
