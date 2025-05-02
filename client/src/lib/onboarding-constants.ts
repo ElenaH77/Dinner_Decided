@@ -45,7 +45,7 @@ export const ONBOARDING_QUESTIONS = [
 
 // Response messages for each onboarding step
 export const ONBOARDING_RESPONSES = {
-  welcome: "Hi there! I'm your personal meal planning assistant. Let me ask you a few quick questions so I can create meal plans that work perfectly for your household.",
+  welcome: "Welcome to Dinner, Decided! I'm your personal meal planning assistant. I'll help you create a flexible, personalized weekly dinner plan tailored to your family's needs.\n\nLet's get started with a few questions about your household to create meal plans that work perfectly for you.",
   
   household_response: (details: string) => 
     `Got it! I'll plan meals appropriate for ${details || 'your household'}. This helps me suggest the right portion sizes and kid-friendly options when needed.`,

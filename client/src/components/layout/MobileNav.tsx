@@ -11,7 +11,7 @@ export default function MobileNav({ activeTab }: MobileNavProps) {
       <Link href="/">
         <a className="flex flex-col items-center text-[#21706D]">
           <MessageSquare className={`text-lg ${activeTab === 'chat' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`} />
-          <span className={`text-xs mt-1 ${activeTab === 'chat' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`}>Chat</span>
+          <span className={`text-xs mt-1 ${activeTab === 'chat' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`}>DinnerBot</span>
         </a>
       </Link>
       

@@ -1,7 +1,16 @@
-// Welcome message for the chat
-export const WELCOME_MESSAGE = `Welcome to Dinner, Decided! I'm your personal meal planning assistant. I'll help you create a flexible, personalized weekly dinner plan tailored to your family's needs.
+// Welcome message for onboarding
+export const ONBOARDING_WELCOME_MESSAGE = `Welcome to Dinner, Decided! I'm your personal meal planning assistant. I'll help you create a flexible, personalized weekly dinner plan tailored to your family's needs.
 
 Let's get started with a few questions about your household. How many people are you cooking for?`;
+
+// Welcome message for the DinnerBot chat assistant
+export const WELCOME_MESSAGE = `Hi there 👋 Need a hand with dinner? I can help you figure out what to do with that mystery veggie in your fridge, or save your Tuesday with a 10-minute dinner idea. What's going on?
+
+Try asking me:
+• "What can I make with sweet potatoes and black beans?"
+• "Give me some 15-minute emergency dinner ideas"
+• "What are some healthy dinners my kids will actually eat?"
+• "I'm at Trader Joe's, what can I pick up for easy dinners?"`;
 
 // Meal categories
 export const MEAL_CATEGORIES = [
