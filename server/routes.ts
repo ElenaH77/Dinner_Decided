@@ -32,16 +32,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const messages = messageSchema.parse(req.body.messages);
       
+      // Get household ID for message association
+      const household = await storage.getHousehold();
+      if (!household) {
+        return res.status(404).json({ message: "No household found" });
+      }
+      
+      // Save the user's message first
+      const userMessage = messages.find(m => m.role === "user");
+      if (userMessage) {
+        const messageToSave = {
+          ...userMessage,
+          householdId: household.id,
+          timestamp: new Date(userMessage.timestamp)
+        };
+        await storage.saveMessage(messageToSave);
+      }
+      
       // Get response from OpenAI
       const aiResponse = await generateChatResponse(messages);
       
-      // Save the message to storage
+      // Save the AI response message
       if (aiResponse) {
         const newMessage = {
           id: uuidv4(),
           role: "assistant",
           content: aiResponse,
-          timestamp: new Date().toISOString()
+          timestamp: new Date(),
+          householdId: household.id
         };
         
         await storage.saveMessage(newMessage);

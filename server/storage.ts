@@ -642,7 +642,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveMessage(message: Message): Promise<Message> {
-    const [savedMessage] = await db.insert(messages).values(message).returning();
+    // Process data to handle date conversion issues
+    const processedMessage = { ...message };
+    
+    // Ensure timestamp is a valid Date object
+    if (processedMessage.timestamp && typeof processedMessage.timestamp === 'string') {
+      try {
+        processedMessage.timestamp = new Date(processedMessage.timestamp);
+      } catch (err) {
+        console.warn('[DATABASE] Failed to parse timestamp from string:', processedMessage.timestamp);
+        // Use current date as fallback
+        processedMessage.timestamp = new Date();
+      }
+    }
+    
+    // Ensure we always have a valid Date object for timestamp
+    if (!processedMessage.timestamp || !(processedMessage.timestamp instanceof Date)) {
+      console.log('[DATABASE] Setting default timestamp for message');
+      processedMessage.timestamp = new Date();
+    }
+    
+    const [savedMessage] = await db.insert(messages).values(processedMessage).returning();
     return savedMessage;
   }
 
