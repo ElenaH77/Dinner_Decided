@@ -668,9 +668,11 @@ function generateDummyMeals(preferences: any): any[] {
     
     // Create a dummy meal for each day with selected categories
     for (const day of days) {
-      const categories = preferences.mealsByDay[day] || [];
+      // Fix: MealsByDay contains day:category key-value pairs, not arrays
+      const category = preferences.mealsByDay[day];
       
-      for (const category of categories) {
+      // Only process if we have a valid category
+      if (category) {
         // Generate a unique timestamp with a small delay to ensure unique IDs
         const uniqueTimestamp = Date.now() + dummyMeals.length * 100;
         
@@ -740,7 +742,7 @@ function generateDummyMeals(preferences: any): any[] {
             
           default:
             // Create more variety in meal names based on day
-            const dayMeals = {
+            const dayMeals: Record<string, string[]> = {
               Monday: ["Meatless Monday Stir Fry", "Monday Meatballs & Pasta", "Mediterranean Monday Bowl"],
               Tuesday: ["Taco Tuesday Fiesta", "Tuesday Teriyaki Chicken", "Tuscan Tuesday Soup"],
               Wednesday: ["Wednesday Wok Stir Fry", "Wild Wednesday Salmon", "Warm Wednesday Casserole"],
