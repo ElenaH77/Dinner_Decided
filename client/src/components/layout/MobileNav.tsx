@@ -36,12 +36,13 @@ export default function MobileNav({ activeTab }: MobileNavProps) {
         </a>
       </Link>
       
-      <Link href="/settings">
+      {/* Settings hidden for MVP */}
+      {/* <Link href="/settings">
         <a className="flex flex-col items-center">
           <Settings className={`text-lg ${activeTab === 'settings' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`} />
           <span className={`text-xs mt-1 ${activeTab === 'settings' ? 'text-[#21706D]' : 'text-[#8A8A8A]'}`}>Settings</span>
         </a>
-      </Link>
+      </Link> */}
     </div>
   );
 }
