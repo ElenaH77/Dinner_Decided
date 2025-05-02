@@ -114,8 +114,6 @@ const MealCard = ({
     setLoading(true);
     
     try {
-      console.log(`[MealCard] Replacing meal ${meal.id}: ${meal.name}`);
-      
       // Use OpenAI to generate a completely new meal
       // Pass the meal plan ID and current meals for grocery list updates
       const replacementMeal = await replaceMeal(
@@ -124,25 +122,9 @@ const MealCard = ({
         currentMeals // Pass the current meals array
       );
       
-      console.log(`[MealCard] Received replacement meal:`, replacementMeal);
-      
-      // Update the meal plan in both local component state and context
+      // Update the meal plan
       if (onUpdate) {
         onUpdate(replacementMeal);
-      }
-      
-      // Also update in the global context if available
-      if (updateMealInContext) {
-        try {
-          // Use the original meal's ID to ensure we're replacing the right meal
-          updateMealInContext(meal.id, replacementMeal);
-          console.log(`[MealCard] Updated meal in context with replacement`);
-          
-          // Force UI refresh to ensure changes are reflected
-          setTimeout(() => refreshUI?.(), 100);
-        } catch (contextError) {
-          console.error("Error updating meal in context with replacement:", contextError);
-        }
       }
       
       toast({
@@ -324,43 +306,22 @@ const MealCard = ({
   );
 };
 
-// Main component - better integrated with context
+// Main component - completely standalone to bypass context issues
 export default function ShowMealPlan() {
-  // Access the global meal plan context
-  const { currentPlan, updateMeal: updateMealInContext, refreshUI } = useMealPlan();
-  
-  // Local state for the meal plan (as backup if context isn't populated)
+  // Local state for the meal plan
   const [mealPlan, setMealPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [localRefreshTrigger, setLocalRefreshTrigger] = useState(0); // For forcing local re-renders
 
-  // Check for changes in the context plan
   useEffect(() => {
-    if (currentPlan?.meals?.length > 0) {
-      console.log('[ShowMealPlan] Using meal plan from context:', currentPlan);
-      setMealPlan(currentPlan);
-      setLoading(false);
-    }
-  }, [currentPlan, localRefreshTrigger]);
-  
-  useEffect(() => {
-    // Function to load directly from localStorage as fallback
+    // Function to load directly from localStorage
     const loadFromStorage = () => {
-      // If we already have a plan from context, don't load from storage
-      if (currentPlan?.meals?.length > 0) {
-        console.log('[ShowMealPlan] Using plan from context instead of storage');
-        setMealPlan(currentPlan);
-        setLoading(false);
-        return;
-      }
-      
       setLoading(true);
       try {
         // Try all known storage keys
         const directStored = localStorage.getItem('current_meal_plan');
         if (directStored) {
           const parsedPlan = JSON.parse(directStored);
-          console.log("[ShowMealPlan] Found meal plan in direct storage:", parsedPlan);
+          console.log("Found meal plan in direct storage:", parsedPlan);
           
           if (parsedPlan?.meals?.length > 0) {
             setMealPlan(parsedPlan);
@@ -377,7 +338,7 @@ export default function ShowMealPlan() {
         const cachedPlan = localStorage.getItem('meal_plan_cache');
         if (cachedPlan) {
           const parsedPlan = JSON.parse(cachedPlan);
-          console.log("[ShowMealPlan] Found meal plan in cache:", parsedPlan);
+          console.log("Found meal plan in cache:", parsedPlan);
           
           if (parsedPlan?.meals?.length > 0) {
             setMealPlan(parsedPlan);
@@ -397,7 +358,7 @@ export default function ShowMealPlan() {
         });
         setLoading(false);
       } catch (error) {
-        console.error("[ShowMealPlan] Error loading meal plan from storage:", error);
+        console.error("Error loading meal plan from storage:", error);
         toast({
           title: "Error",
           description: "Failed to load meal plan from storage",
@@ -409,7 +370,7 @@ export default function ShowMealPlan() {
     
     // Load the meal plan on component mount
     loadFromStorage();
-  }, [currentPlan]);
+  }, []);
 
   // Button handler to re-attempt loading
   const handleReload = () => {
@@ -420,28 +381,7 @@ export default function ShowMealPlan() {
   const handleMealUpdate = (updatedMeal: any, index: number) => {
     if (!mealPlan || !mealPlan.meals) return;
     
-    // Get the original meal ID - this is critical for context updates
-    const originalMeal = mealPlan.meals[index];
-    const mealId = originalMeal.id || `meal-${Date.now()}-${index}`;
-    console.log(`[ShowMealPlan] Updating meal ${mealId} at index ${index}`);
-    
-    // First update in the context if available
-    if (updateMealInContext && mealId) {
-      try {
-        updateMealInContext(mealId, updatedMeal);
-        console.log('[ShowMealPlan] Successfully updated meal in context');
-        
-        // Force UI refresh after context update
-        setTimeout(() => {
-          refreshUI?.();
-          setLocalRefreshTrigger(prev => prev + 1); // Also trigger local refresh
-        }, 100);
-      } catch (contextError) {
-        console.error('[ShowMealPlan] Error updating meal in context:', contextError);
-      }
-    }
-    
-    // Also update in local state as a fallback
+    // Create a copy of the meal plan
     const updatedPlan = {
       ...mealPlan,
       meals: [...mealPlan.meals]
@@ -454,7 +394,7 @@ export default function ShowMealPlan() {
     setMealPlan(updatedPlan);
     localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
     
-    console.log(`[ShowMealPlan] Updated meal plan with modified meal: ${updatedMeal.name}`);
+    console.log("Updated meal plan with modified meal:", updatedMeal.name);
   };
 
   return (
