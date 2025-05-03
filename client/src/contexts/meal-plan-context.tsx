@@ -261,22 +261,34 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Force UI refresh without refetching data
+  // Enhanced refresh method that forces UI and data update
   const refreshUI = () => {
     console.log('Forcing UI refresh with counter:', refreshCounter + 1);
     setRefreshCounter(prev => prev + 1);
     
-    // Also reapply the current plan to force state update throughout UI
+    // Create a more aggressive refresh by recreating the state completely
     if (currentPlan) {
       // Create a fresh deep copy using our storage service helper
       const refreshedPlan = deepClone(currentPlan);
       console.log('Refreshing UI with deep cloned plan');
-      setCurrentPlan(refreshedPlan);
+      
+      // This creates a new object reference to trigger React's state update
+      setCurrentPlanState(null); // Clear first to force a complete re-render
+      
+      // Small delay to ensure state updates properly
+      setTimeout(() => {
+        setCurrentPlanState(refreshedPlan);
+        
+        // Also re-save to ensure storage is in sync
+        saveMealPlan(refreshedPlan).catch(err => 
+          console.error('Error saving during refresh:', err)
+        );
+      }, 50);
     }
   };
   
-  // Update a specific meal using the storage service
-  const updateMeal = (mealId: string, updatedMeal: MealWithId) => {
+  // Update a specific meal using the storage service with improved synchronization
+  const updateMeal = async (mealId: string, updatedMeal: MealWithId) => {
     if (!currentPlan) return;
     
     console.log(`Updating meal ${mealId} with:`, updatedMeal.name);
@@ -297,23 +309,50 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     
     console.log(`Updated meal in plan, now has ${updatedPlan.meals.length} meals`);
     
-    // Use the centralized storage service to update the meal in the plan
-    try {
-      // If we have a plan ID, use the updateMealInPlan helper
-      if (currentPlan.id) {
-        updateMealInPlan(currentPlan.id, mealId, clonedMeal)
-          .then(result => {
-            if (!result.success) {
-              console.warn("Failed to persist meal update to storage service:", result.error);
-            }
-          });
-      }
-    } catch (error) {
-      console.error("Error updating meal in storage service:", error);
-    }
-    
-    // Save the updated plan to context state
+    // First update local state for immediate feedback
     setCurrentPlan(updatedPlan);
+    
+    try {
+      // 1. Update in API - this ensures the backend has the latest data
+      if (currentPlan.id) {
+        try {
+          const response = await apiRequest('PATCH', `/api/meal-plan/${currentPlan.id}`, {
+            updatedMeal: clonedMeal,
+            mealId: mealId
+          });
+          
+          if (!response.ok) {
+            console.warn('API update failed, falling back to storage service');
+          }
+        } catch (apiError) {
+          console.error('Error updating meal via API:', apiError);
+        }
+      }
+      
+      // 2. Use the storage service as backup or for offline capability
+      if (currentPlan.id) {
+        const result = await updateMealInPlan(currentPlan.id, mealId, clonedMeal);
+        if (!result.success) {
+          console.warn("Failed to persist meal update to storage service:", result.error);
+        }
+      }
+      
+      // 3. Save the complete plan for good measure
+      await saveMealPlan(updatedPlan);
+      
+      // 4. Force context update - this recreates the plan object
+      console.log('Meal update successful, refreshing UI components');
+      
+      // 5. Ensure the query cache is updated to prevent stale data 
+      try {
+        await apiRequest('GET', '/api/meal-plan/current', undefined, { forceRefresh: true });
+      } catch (error) {
+        console.error('Failed to refresh API cache:', error);
+      }
+      
+    } catch (error) {
+      console.error("Error updating meal:", error);
+    }
     
     // Force a UI refresh to ensure all components see the update
     refreshUI();
@@ -324,6 +363,15 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // This effect runs when refreshCounter changes
     if (refreshCounter > 0) {
       console.log(`UI refresh triggered (${refreshCounter})`);
+      
+      // If refresh counter indicates we need a data refresh
+      if (refreshCounter % 3 === 0) { // Every 3rd refresh, do a full data reload
+        console.log('Performing full data reload from API');
+        // Fetch fresh data from API to ensure we have latest
+        refetchMealPlan().catch(err => 
+          console.error('Error during refresh data reload:', err)
+        );
+      }
     }
   }, [refreshCounter]);
 
