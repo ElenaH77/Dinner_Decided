@@ -218,60 +218,29 @@ export default function MealPlan() {
         
         console.log('Updated plan to save, ID:', updatedPlan.id);
         
-        // 1. First, use our new dedicated PATCH endpoint for meal updates
+        // 1. Use our dedicated storage service method that handles both API and local storage
         try {
-          console.log(`Using dedicated endpoint to update meal ${mealId} in plan ${currentMealPlan.id}`);
-          // Test with our special test endpoint first
-          try {
-            console.log('Trying test endpoint with direct fetch...');
-            const testResponse = await fetch('/api/test-meal-update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                updatedMeal: updatedMeal,
-                mealId: mealId
-              })
-            });
-            
-            const testResult = await testResponse.json();
-            console.log('Test endpoint response:', testResult);
-          } catch (testError) {
-            console.error('Test endpoint error:', testError);
-          }
+          console.log(`Using storage service to update meal ${mealId} in plan ${currentMealPlan.id}`);
           
-          // Send to manual debug endpoint
-          const debugPayload = { updatedMeal, mealId };
-          console.log('Debug payload:', debugPayload);
+          // Import our storage service function
+          const { updateMealInPlan } = await import('@/lib/storage-service');
           
-          const debugResponse = await fetch('/api/debug-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(debugPayload)
-          });
+          // Call the service function which handles everything
+          const result = await updateMealInPlan(currentMealPlan.id, mealId, updatedMeal);
           
-          console.log('Debug response:', await debugResponse.json());
-          
-          // Important: Need to send both updatedMeal and mealId per server implementation
-          // Make sure we're using the correct API format by sending it in the request body directly
-          const patchResponse = await fetch(`/api/meal-plan/${currentMealPlan.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              updatedMeal: updatedMeal,
-              mealId: mealId
-            })
-          });
-          
-          if (!patchResponse.ok) {
-            console.warn(`Dedicated update failed with status ${patchResponse.status}, falling back to context update`);
+          if (result.success) {
+            console.log('Successfully updated meal via storage service:', result);
           } else {
-            console.log('Successfully patched meal in plan via dedicated endpoint');
+            console.warn('Storage service update failed:', result.error);
+            toast({
+              title: "Error updating meal",
+              description: result.error || "Failed to update meal",
+              variant: "destructive"
+            });
           }
         } catch (patchError) {
-          console.error('Error using dedicated meal patch endpoint:', patchError);
-          // Continue with full plan update as fallback
+          console.error('Error using storage service:', patchError);
+          // Continue with state updates as fallback
         }
         
         // 2. Force a deep clone when updating state to avoid reference issues

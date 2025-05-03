@@ -231,9 +231,81 @@ export async function saveMealPlan(mealPlan: any) {
 }
 
 /**
- * Update a specific meal in a meal plan
+ * Update a specific meal in a meal plan using a direct API call to the server
  */
 export async function updateMealInPlan(mealPlanId: number, mealId: string, updatedMeal: any) {
+  console.log(`Making direct API call to update meal ${mealId} in plan ${mealPlanId}`);
+  
+  try {
+    // First attempt the direct API call pattern
+    const response = await fetch(`/api/meal-plan/${mealPlanId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        mealId: mealId,
+        updatedMeal: updatedMeal
+      })
+    });
+    
+    if (response.ok) {
+      const apiData = await response.json();
+      console.log('Direct API update successful:', apiData);
+      
+      // Also update local storage to keep them in sync
+      // First load the current meal plan
+      const result = await loadMealPlan();
+      if (result.success && result.data) {
+        const mealPlan = result.data;
+        
+        // Find and update the specific meal
+        if (Array.isArray(mealPlan.meals)) {
+          const mealIndex = mealPlan.meals.findIndex(meal => meal.id === mealId);
+          if (mealIndex >= 0) {
+            // Create a deep copy of the meal plan
+            const updatedPlan = deepClone(mealPlan);
+            
+            // Ensure ID consistency
+            updatedMeal.id = mealId;
+            
+            // Replace the meal
+            updatedPlan.meals[mealIndex] = updatedMeal;
+            
+            // Save to localStorage only, not back to API
+            saveToStorage(STORAGE_KEYS.MEAL_PLAN, updatedPlan);
+            localStorage.setItem('meal_plan_cache', JSON.stringify(updatedPlan));
+            localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+          }
+        }
+      }
+      
+      return {
+        success: true,
+        data: apiData,
+        source: 'api'
+      };
+    } else {
+      // API returned an error
+      const errorData = await response.json();
+      console.error('API meal update failed:', errorData);
+      
+      // Fall back to updating the local copy
+      return await updateLocalMealPlan(mealPlanId, mealId, updatedMeal);
+    }
+  } catch (error) {
+    console.error('Error in direct API update:', error);
+    
+    // Fall back to updating the local copy
+    return await updateLocalMealPlan(mealPlanId, mealId, updatedMeal);
+  }
+}
+
+/**
+ * Helper function to update the meal plan locally
+ */
+async function updateLocalMealPlan(mealPlanId: number, mealId: string, updatedMeal: any): Promise<StorageResult<any>> {
   // First load the current meal plan
   const result = await loadMealPlan();
   if (!result.success || !result.data) {
@@ -261,7 +333,7 @@ export async function updateMealInPlan(mealPlanId: number, mealId: string, updat
       updatedPlan.meals[mealIndex] = updatedMeal;
       
       // Save the updated plan
-      console.log(`Updating meal ${mealId} in plan ${mealPlanId}`);
+      console.log(`Updating meal ${mealId} in plan ${mealPlanId} (local only)`);
       return await saveMealPlan(updatedPlan);
     }
   }
