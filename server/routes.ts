@@ -1445,39 +1445,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[DEBUG PATCH] Content-Type:', req.headers['content-type']);
       
       const { planId } = req.params;
-      // Access properties directly for diagnostic purposes
-      console.log('[DEBUG PATCH] Direct property access - updatedMeal:', typeof req.body?.updatedMeal, req.body?.updatedMeal ? 'exists' : 'undefined');
-      console.log('[DEBUG PATCH] Direct property access - mealId:', typeof req.body?.mealId, req.body?.mealId);
       
-      const { updatedMeal, mealId } = req.body || {};
+      // Handle two different formats:
+      // 1. {updatedMeal, mealId} - The direct format we expect
+      // 2. {id, meals, ...other} - Full meal plan object
       
-      if (!updatedMeal || !mealId) {
-        return res.status(400).json({ message: "Missing required fields: updatedMeal and mealId (values: " + JSON.stringify({updatedMeal, mealId}) + ")" });
+      let updatedMeal, mealId, fullMealPlan;
+      
+      // Check if this is the direct format (specific meal update)
+      if (req.body?.updatedMeal && req.body?.mealId) {
+        console.log('[PATCH] Using direct updatedMeal/mealId format');
+        updatedMeal = req.body.updatedMeal;
+        mealId = req.body.mealId;
+      } 
+      // Check if this is a full meal plan update
+      else if (req.body?.id && req.body?.meals && Array.isArray(req.body.meals)) {
+        console.log('[PATCH] Detected full meal plan format, extracting meals array');
+        // Use the full meal plan directly
+        fullMealPlan = req.body;
+        
+        // If we've received a full plan, we can simply update the entire plan
+        try {
+          // Validate that the plan ID in the body matches the URL
+          if (Number(fullMealPlan.id) !== Number(planId)) {
+            return res.status(400).json({ 
+              message: `Plan ID mismatch: URL ID ${planId} doesn't match body ID ${fullMealPlan.id}` 
+            });
+          }
+          
+          // Update the entire meal plan
+          const updatedPlan = await storage.updateMealPlan(Number(planId), fullMealPlan);
+          console.log(`[API] Successfully updated full meal plan, has ${updatedPlan.meals?.length || 0} meals`);
+          
+          // Update grocery list if needed
+          const household = await storage.getHousehold();
+          if (household) {
+            await generateAndSaveGroceryList(Number(planId), household.id);
+          }
+          
+          return res.json(updatedPlan);
+        } catch (error) {
+          console.error("Error updating full meal plan:", error);
+          return res.status(500).json({ message: "Failed to update full meal plan" });
+        }
+      } 
+      // Neither format is valid
+      else {
+        return res.status(400).json({ message: "Invalid request format. Expected either {updatedMeal, mealId} or a full meal plan object with meals array." });
       }
       
-      console.log(`[API] Updating meal ${mealId} in plan ${planId}`);
+      // If we reach here, we're handling the individual meal update case
+      console.log(`[API] Updating individual meal ${mealId} in plan ${planId}`);
       
       // Get the current meal plan
-      const mealPlan = await storage.getMealPlan(Number(planId));
+      const existingMealPlan = await storage.getMealPlan(Number(planId));
       
-      if (!mealPlan) {
+      if (!existingMealPlan) {
         return res.status(404).json({ message: "Meal plan not found" });
       }
       
       // Make sure there are meals to update
-      if (!mealPlan.meals || !Array.isArray(mealPlan.meals)) {
+      if (!existingMealPlan.meals || !Array.isArray(existingMealPlan.meals)) {
         return res.status(400).json({ message: "Meal plan has no meals to update" });
       }
       
       // Find the meal to update
-      const mealIndex = mealPlan.meals.findIndex(meal => meal.id === mealId);
+      const mealIndex = existingMealPlan.meals.findIndex(meal => meal.id === mealId);
       
       if (mealIndex === -1) {
         return res.status(404).json({ message: "Meal not found in plan" });
       }
       
       // Create a deep clone of the meal plan to avoid mutation issues
-      const updatedMeals = JSON.parse(JSON.stringify(mealPlan.meals));
+      const updatedMeals = JSON.parse(JSON.stringify(existingMealPlan.meals));
       
       // Ensure ID consistency
       updatedMeal.id = mealId;
@@ -1487,7 +1527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the meal plan
       const updatedPlan = await storage.updateMealPlan(Number(planId), {
-        ...mealPlan,
+        ...existingMealPlan,
         meals: updatedMeals
       });
       
