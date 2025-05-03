@@ -1607,8 +1607,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resetPlan = {
         ...existingPlan,
         meals: [], // Reset to empty meals array
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        isActive: true // Ensure this plan is marked as active
       };
+      
+      // 2.1 Deactivate all other meal plans to ensure only one active plan
+      try {
+        const allPlans = await storage.getAllMealPlans();
+        for (const plan of allPlans) {
+          if (plan.id !== Number(planId) && plan.isActive) {
+            console.log(`[RESET] Deactivating other active plan: ${plan.id}`);
+            await storage.updateMealPlan(plan.id, { ...plan, isActive: false });
+          }
+        }
+      } catch (deactivateError) {
+        console.error('[RESET] Error while deactivating other plans:', deactivateError);
+        // Continue with the reset even if deactivation fails
+      }
       
       // 3. Update the plan with the reset version
       const updatedPlan = await storage.updateMealPlan(Number(planId), resetPlan);
