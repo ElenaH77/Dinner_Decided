@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { MealPlan } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
+import { 
+  loadMealPlan, 
+  saveMealPlan, 
+  updateMealInPlan, 
+  deepClone, 
+  STORAGE_KEYS 
+} from '@/lib/storage-service';
 
 // For our context, we'll use a simplified version that matches what the components expect
 interface MealWithId {
@@ -66,7 +73,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
           // Only add the meal if we haven't seen its ID before
           if (!mealIdsSet.has(meal.id)) {
             mealIdsSet.add(meal.id);
-            uniqueMeals.push({...meal}); // Add a copy to avoid reference issues
+            uniqueMeals.push(deepClone(meal)); // Use deep clone to avoid reference issues
           } else {
             console.log(`Skipping duplicate meal with ID: ${meal.id}, name: ${meal.name}`);
           }
@@ -79,69 +86,47 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
         // Replace meals with deduplicated list
         plan.meals = uniqueMeals;
       }
-      processedPlan = plan;
+      processedPlan = deepClone(plan); // Deep clone to prevent mutation issues
     }
     
     // Save to state
     setCurrentPlanState(processedPlan);
     
-    // Save to both local storage locations for persistence and redundancy
+    // Use the centralized storage service to save the plan
     try {
-      console.log("Saving processed plan to localStorage:", processedPlan);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(processedPlan));
-      localStorage.setItem(DIRECT_STORAGE_KEY, JSON.stringify(processedPlan));
+      console.log("Saving processed plan via storage service:", processedPlan);
+      saveMealPlan(processedPlan);
     } catch (error) {
-      console.error("Error saving to localStorage:", error);
+      console.error("Error saving meal plan:", error);
     }
   };
 
-  // Load from localStorage or API on mount
+  // Load meal plan using the centralized storage service
   useEffect(() => {
-    const loadMealPlan = async () => {
+    const loadPlanFromStorage = async () => {
       try {
         setIsLoading(true);
+        console.log("Loading meal plan on context initialization using storage service");
         
-        console.log("Loading meal plan on context initialization");
+        // Use the centralized storage service for loading
+        const result = await loadMealPlan();
         
-        // First try the direct storage key (used by the meal planning assistant)
-        const directStored = localStorage.getItem(DIRECT_STORAGE_KEY);
-        if (directStored) {
-          try {
-            const parsedPlan = JSON.parse(directStored);
-            console.log("Loaded meal plan from direct storage:", parsedPlan);
-            if (parsedPlan && parsedPlan.id) {
-              setCurrentPlan(parsedPlan);
-              return;
-            }
-          } catch (e) {
-            console.error("Error parsing direct stored meal plan:", e);
-          }
-        }
-        
-        // Then try the regular cache
-        const cached = localStorage.getItem(STORAGE_KEY);
-        if (cached) {
-          try {
-            const parsedPlan = JSON.parse(cached);
-            console.log("Loaded meal plan from cache:", parsedPlan);
-            if (parsedPlan && parsedPlan.id) {
-              setCurrentPlan(parsedPlan);
-              return;
-            }
-          } catch (e) {
-            console.error("Error parsing cached meal plan:", e);
-          }
-        }
-        
-        // Finally try to load from API
-        const response = await apiRequest('GET', '/api/users/1/meal-plans/current');
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Loaded meal plan from API:", data);
+        if (result.success && result.data) {
+          console.log(`Loaded meal plan from ${result.source}:`, result.data);
+          setCurrentPlan(result.data);
+        } else {
+          console.warn("No meal plan found or error loading plan:", result.error);
           
-          // If we have a valid meal plan, set it
-          if (data && data.id) {
-            setCurrentPlan(data);
+          // Try to load from API directly as fallback
+          const response = await apiRequest('GET', '/api/meal-plan/current');
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Loaded meal plan directly from API:", data);
+            
+            // If we have a valid meal plan, set it
+            if (data && data.id) {
+              setCurrentPlan(data);
+            }
           }
         }
       } catch (error) {
@@ -151,7 +136,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    loadMealPlan();
+    loadPlanFromStorage();
   }, []);
   
   // Function to manually refetch meal plan data
@@ -272,7 +257,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  // Update a specific meal
+  // Update a specific meal using the storage service
   const updateMeal = (mealId: string, updatedMeal: MealWithId) => {
     if (!currentPlan) return;
     
@@ -281,17 +266,35 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // Make sure the ID is preserved
     updatedMeal.id = mealId;
     
+    // Create a deep clone of the updated meal to prevent reference issues
+    const clonedMeal = deepClone(updatedMeal);
+    
     // Update the meal in the meal plan
     const updatedPlan = {
       ...currentPlan,
       meals: currentPlan.meals.map(meal => 
-        meal.id === mealId ? { ...updatedMeal } : meal
+        meal.id === mealId ? clonedMeal : deepClone(meal)
       )
     };
     
     console.log(`Updated meal in plan, now has ${updatedPlan.meals.length} meals`);
     
-    // Save the updated plan
+    // Use the centralized storage service to update the meal in the plan
+    try {
+      // If we have a plan ID, use the updateMealInPlan helper
+      if (currentPlan.id) {
+        updateMealInPlan(currentPlan.id, mealId, clonedMeal)
+          .then(result => {
+            if (!result.success) {
+              console.warn("Failed to persist meal update to storage service:", result.error);
+            }
+          });
+      }
+    } catch (error) {
+      console.error("Error updating meal in storage service:", error);
+    }
+    
+    // Save the updated plan to context state
     setCurrentPlan(updatedPlan);
     
     // Force a UI refresh to ensure all components see the update
