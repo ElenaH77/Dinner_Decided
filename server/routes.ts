@@ -1439,11 +1439,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update a specific meal in a meal plan
   app.patch('/api/meal-plan/:planId', async (req, res) => {
     try {
+      console.log('[DEBUG PATCH] Request body:', JSON.stringify(req.body));
+      console.log('[DEBUG PATCH] Headers:', JSON.stringify(req.headers));
+      
       const { planId } = req.params;
       const { updatedMeal, mealId } = req.body;
       
       if (!updatedMeal || !mealId) {
-        return res.status(400).json({ message: "Missing required fields: updatedMeal and mealId" });
+        return res.status(400).json({ message: "Missing required fields: updatedMeal and mealId (values: " + JSON.stringify({updatedMeal, mealId}) + ")" });
       }
       
       console.log(`[API] Updating meal ${mealId} in plan ${planId}`);

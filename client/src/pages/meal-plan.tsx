@@ -229,9 +229,14 @@ export default function MealPlan() {
           console.log('Debug response:', await debugResponse.json());
           
           // Important: Need to send both updatedMeal and mealId per server implementation
-          const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${currentMealPlan.id}`, {
-            updatedMeal: updatedMeal, // Object with all meal properties
-            mealId: mealId // ID of meal to update
+          // Make sure we're using the correct API format by sending it in the request body directly
+          const patchResponse = await fetch(`/api/meal-plan/${currentMealPlan.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              updatedMeal: updatedMeal, // Object with all meal properties
+              mealId: mealId // ID of meal to update
+            })
           });
           
           if (!patchResponse.ok) {

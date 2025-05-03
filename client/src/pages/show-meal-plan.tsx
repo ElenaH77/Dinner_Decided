@@ -156,9 +156,13 @@ const MealCard = ({
           });
           console.log('[MealCard] Debug response:', await debugResponse.json());
           
-          const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${mealPlanId}`, {
-            updatedMeal: replacementMeal, // Complete meal object 
-            mealId: meal.id // ID of meal to update
+          const patchResponse = await fetch(`/api/meal-plan/${mealPlanId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              updatedMeal: replacementMeal, // Complete meal object 
+              mealId: meal.id // ID of meal to update
+            })
           });
           
           if (!patchResponse.ok) {
