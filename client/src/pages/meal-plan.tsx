@@ -218,19 +218,51 @@ export default function MealPlan() {
         
         console.log('Updated plan to save, ID:', updatedPlan.id);
         
-        // Force a deep clone when updating state to avoid reference issues
+        // 1. First, use our new dedicated PATCH endpoint for meal updates
+        try {
+          console.log(`Using dedicated endpoint to update meal ${mealId} in plan ${currentMealPlan.id}`);
+          const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${currentMealPlan.id}`, {
+            updatedMeal, 
+            mealId
+          });
+          
+          if (!patchResponse.ok) {
+            console.warn(`Dedicated update failed with status ${patchResponse.status}, falling back to context update`);
+          } else {
+            console.log('Successfully patched meal in plan via dedicated endpoint');
+          }
+        } catch (patchError) {
+          console.error('Error using dedicated meal patch endpoint:', patchError);
+          // Continue with full plan update as fallback
+        }
+        
+        // 2. Force a deep clone when updating state to avoid reference issues
         const planClone = JSON.parse(JSON.stringify(updatedPlan));
         
-        // Update context with the cloned object
+        // 3. Update context with the cloned object
         setCurrentMealPlan(planClone);
         
-        // Also update meals array state directly to ensure UI refreshes
+        // 4. Also update meals array state directly to ensure UI refreshes
         setMeals(updatedMeals);
         
-        // Update localStorage for persistence
+        // 5. Update localStorage for persistence
         localStorage.setItem('current_meal_plan', JSON.stringify(planClone));
         
-        // Force UI refresh by triggering re-render
+        // 6. Additional direct data refresh
+        try {
+          // Bypass cache with timestamp parameter
+          await fetch(`/api/meal-plan/current?_=${Date.now()}`);
+          // Invalidate any react-query cache using imported queryClient
+          import('@/lib/queryClient').then(({ queryClient }) => {
+            queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+          }).catch(error => {
+            console.error('Error importing queryClient:', error);
+          });
+        } catch (refreshError) {
+          console.error('Error refreshing data:', refreshError);
+        }
+        
+        // 7. Force UI refresh by triggering re-render
         setRefreshCounter(prev => prev + 1);
         
         toast({
