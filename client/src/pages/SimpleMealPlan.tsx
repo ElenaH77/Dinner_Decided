@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { X, PlusCircle, Calendar, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -553,6 +553,14 @@ export default function SimpleMealPlan() {
     
     // Proceed with normal processing
     if (mealPlan && Array.isArray(mealPlan.meals)) {
+      // Check if the meal plan is empty (after a reset)
+      if (mealPlan.meals.length === 0) {
+        console.log("[DEBUG] Empty meal plan detected. Ready for new meals.");
+        setMeals([]);
+        console.log(`Updated meals from meal plan: 0 meals`);
+        return;
+      }
+      
       // Create deep copies of the meals to prevent reference sharing
       const processedMeals = mealPlan.meals.map((meal: any, index: number) => {
         // Ensure each meal has a valid ID
@@ -1215,28 +1223,30 @@ export default function SimpleMealPlan() {
         </div>
       ) : mealPlan && mealPlan.id ? (
         <div className="space-y-4">
-          <Card className="w-full bg-orange-50 border-orange-200">
+          <Card className="w-full bg-teal-50 border-teal-200">
             <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-              <div className="bg-orange-100 rounded-full p-3 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-orange-600"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <div className="bg-teal-100 rounded-full p-3 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-teal-600"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
               </div>
-              <h3 className="text-lg font-medium text-orange-800 mb-2">Meal Plan Display Issue</h3>
-              <p className="text-sm text-orange-700 mb-4">
-                Found meal plan #{mealPlan.id} but it contains no meals. Try clicking the Refresh button above or generating a new meal plan.
+              <h3 className="text-lg font-medium text-teal-800 mb-2">Ready for New Meals</h3>
+              <p className="text-sm text-teal-700 mb-4">
+                Your meal plan has been successfully reset. You can now add new meals to your plan by clicking the "Add Meal" button above, or generate a completely new plan.
               </p>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => refetch()}
-                  variant="outline"
-                  className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={handleAddMeal}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
-                  <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                    <path d="M16 21h5v-5" />
-                  </svg>
-                  Refresh
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Meal
+                </Button>
+                <Button
+                  onClick={() => navigate('/plan-builder')}
+                  variant="outline"
+                  className="text-teal-600 border-teal-600 hover:bg-teal-50"
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Generate New Plan
                 </Button>
               </div>
             </CardContent>
