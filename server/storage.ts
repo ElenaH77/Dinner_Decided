@@ -30,6 +30,7 @@ export interface IStorage {
   
   // MealPlan methods
   getMealPlan(id: number): Promise<MealPlan | undefined>;
+  getAllMealPlans(): Promise<MealPlan[]>;
   getCurrentMealPlan(): Promise<MealPlan | undefined>;
   createMealPlan(data: InsertMealPlan): Promise<MealPlan>;
   updateMealPlan(id: number, data: Partial<MealPlan>): Promise<MealPlan>;
@@ -342,6 +343,10 @@ export class MemStorage implements IStorage {
   // MealPlan methods
   async getMealPlan(id: number): Promise<MealPlan | undefined> {
     return this.mealPlans.get(id);
+  }
+
+  async getAllMealPlans(): Promise<MealPlan[]> {
+    return Array.from(this.mealPlans.values());
   }
 
   async getCurrentMealPlan(): Promise<MealPlan | undefined> {
@@ -673,6 +678,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(mealPlans.id, id));
     
     return mealPlan;
+  }
+
+  async getAllMealPlans(): Promise<MealPlan[]> {
+    try {
+      const allMealPlans = await db
+        .select()
+        .from(mealPlans)
+        .orderBy(mealPlans.createdAt, 'desc');
+      
+      console.log(`[DATABASE] Retrieved ${allMealPlans.length} meal plans`);
+      return allMealPlans;
+    } catch (error) {
+      console.error('[DATABASE] Error retrieving all meal plans:', error);
+      return [];
+    }
   }
 
   async getCurrentMealPlan(): Promise<MealPlan | undefined> {

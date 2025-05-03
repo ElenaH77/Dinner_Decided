@@ -242,17 +242,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Meal plan routes
   app.get("/api/meal-plan/current", async (req, res) => {
     try {
+      console.log('[API GET CURRENT] Fetching current meal plan');
+      const allPlans = await storage.getAllMealPlans();
+      console.log(`[API GET CURRENT] Available meal plans: ${allPlans.length > 0 ? allPlans.map(p => p.id).join(', ') : 'none'}`);
+      
+      // Get current active plan from storage
       let mealPlan = await storage.getCurrentMealPlan();
       
       // If no meal plan exists, return 404
       if (!mealPlan) {
+        console.log('[API GET CURRENT] No active meal plan found');
         return res.status(404).json({ message: "No active meal plan found" });
       }
       
+      console.log(`[API GET CURRENT] Found active meal plan with ID: ${mealPlan.id}`);
+      
       // Ensure the plan has a meals array even if it's empty
       if (!mealPlan.meals) {
+        console.log('[API GET CURRENT] No meals array found, initializing empty array');
         mealPlan.meals = [];
       }
+      
+      // Log meal count
+      console.log(`[API GET CURRENT] Meal plan has ${Array.isArray(mealPlan.meals) ? mealPlan.meals.length : 0} meals`);
       
       // Ensure each meal has an ID to prevent reference issues
       if (Array.isArray(mealPlan.meals)) {
@@ -265,6 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log(`[API GET CURRENT] Returning meal plan ${mealPlan.id} with ${Array.isArray(mealPlan.meals) ? mealPlan.meals.length : 0} meals`);
       res.json(mealPlan);
     } catch (error) {
       console.error("Error fetching current meal plan:", error);

@@ -539,6 +539,12 @@ export default function SimpleMealPlan() {
       } else {
         console.log("[DEBUG] No meals property on meal plan!");
       }
+      
+      // Store meal plan ID in localStorage for reference
+      if (mealPlan.id) {
+        console.log("[DEBUG] Storing meal plan ID in localStorage:", mealPlan.id);
+        localStorage.setItem('current_meal_plan_id', String(mealPlan.id));
+      }
     } else {
       console.log("[DEBUG] No meal plan data received!");
     }
@@ -558,6 +564,11 @@ export default function SimpleMealPlan() {
       
       setMeals(processedMeals);
       console.log("Updated meals from meal plan:", processedMeals.length, "meals");
+      
+      // Store the current meal plan ID for debug purposes
+      if (mealPlan.id && processedMeals.length > 0) {
+        console.log("[DEBUG] Active meal plan ID with meals:", mealPlan.id);
+      }
     } else {
       // Reset the meals array if no meals are found
       setMeals([]);
@@ -770,9 +781,12 @@ export default function SimpleMealPlan() {
       console.log('[RESET] Server response:', result);
       
       if (result.success) {
-        // Clear local storage
+        // Clear all local storage related to meal plans
         localStorage.removeItem('current_meal_plan');
         localStorage.removeItem('current_meals');
+        localStorage.removeItem('current_meal_plan_id');
+        
+        console.log('[RESET] Cleared all local storage data for meal plans');
         
         // Clear module-level cache
         cachedMeals = [];

@@ -106,8 +106,8 @@ export default function MealPlanBuilder() {
       // Refresh the meal plan data
       queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
       
-      // Navigate to the meal plan page
-      navigate('/this-week');
+      // Navigate to the meal plan page with a query parameter to trigger auto-refresh
+      navigate('/this-week?from=builder');
     } catch (error) {
       console.error("Error creating meal plan:", error);
       
