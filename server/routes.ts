@@ -1577,6 +1577,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true, received: req.body });
   });
   
+  // Reset a meal plan completely - for recovery from data corruption
+  app.post("/api/meal-plan/:planId/reset", async (req, res) => {
+    try {
+      const { planId } = req.params;
+      console.log(`[RESET] Attempting to reset meal plan with ID: ${planId}`);
+      
+      // 1. Get the current meal plan to verify it exists
+      const existingPlan = await storage.getMealPlan(Number(planId));
+      
+      if (!existingPlan) {
+        return res.status(404).json({ message: "Meal plan not found" });
+      }
+      
+      // 2. Create a clean reset version - preserve basic metadata but remove all meals
+      const resetPlan = {
+        ...existingPlan,
+        meals: [], // Reset to empty meals array
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // 3. Update the plan with the reset version
+      const updatedPlan = await storage.updateMealPlan(Number(planId), resetPlan);
+      
+      console.log(`[RESET] Successfully reset meal plan ${planId}`);
+      return res.json({ 
+        success: true,
+        message: "Meal plan reset successfully",
+        plan: updatedPlan
+      });
+      
+    } catch (error) {
+      console.error("[RESET] Error resetting meal plan:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to reset meal plan",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Test routes for error handling - for development only
   app.get("/api/test/errors/:errorType", (req, res) => {
     const { errorType } = req.params;

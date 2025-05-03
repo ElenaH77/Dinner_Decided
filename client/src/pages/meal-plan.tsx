@@ -11,7 +11,8 @@ import { useHousehold } from '@/contexts/household-context';
 import { useMealPlan } from '@/contexts/meal-plan-context';
 import { Meal } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
-import { PlusCircle, ShoppingCart, FileText } from 'lucide-react';
+import { PlusCircle, ShoppingCart, FileText, RefreshCcw } from 'lucide-react';
+import { ResetButton } from '@/components/buttons/ResetButton';
 
 export default function MealPlan() {
   const { toast } = useToast();
@@ -314,6 +315,80 @@ export default function MealPlan() {
       }
     }
   }, [currentMealPlan, meals, isLoading, setCurrentMealPlan, setMeals, refreshCounter]);
+
+  // Reset meal plan function - clears out corrupted data
+  const resetMealPlan = async () => {
+    if (!currentMealPlan || !currentMealPlan.id) {
+      toast({
+        title: "Error",
+        description: "No meal plan to reset",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Show a loading toast
+      toast({
+        title: "Resetting meal plan",
+        description: "Clearing meal plan data..."
+      });
+
+      // Call our server endpoint to reset the plan
+      const planId = currentMealPlan.id;
+      console.log(`[RESET] Resetting meal plan ${planId}`);
+
+      const response = await fetch(`/api/meal-plan/${planId}/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to reset meal plan');
+      }
+
+      const result = await response.json();
+      console.log('[RESET] Server response:', result);
+
+      if (result.success) {
+        // Clear local storage
+        localStorage.removeItem('current_meal_plan');
+
+        // Clear react query cache
+        import('@/lib/queryClient').then(({ queryClient }) => {
+          queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/1/meal-plans/current'] });
+        });
+
+        // Update current plan with the emptied plan
+        setCurrentMealPlan(result.plan);
+        setMeals([]);
+
+        // Force UI refresh
+        setRefreshCounter(prev => prev + 1);
+
+        toast({
+          title: "Success",
+          description: "Meal plan has been reset successfully. Generate a new plan to continue."
+        });
+
+        // Reload the page to ensure clean state
+        window.location.href = '/meal-plan?reload=true';
+      } else {
+        throw new Error(result.message || 'Reset operation failed');
+      }
+    } catch (error) {
+      console.error('[RESET] Error resetting meal plan:', error);
+      toast({
+        title: "Reset Failed",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive"
+      });
+    }
+  };
 
   const generateMealPlan = async () => {
     if (!preferences || !equipment) {
