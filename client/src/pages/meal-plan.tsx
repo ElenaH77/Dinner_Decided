@@ -614,6 +614,14 @@ export default function MealPlan() {
                 >
                   <FileText className="w-4 h-4 mr-2" /> View Full Recipes
                 </Button>
+                
+                {/* Add Reset button for data recovery */}
+                <ResetButton
+                  onReset={resetMealPlan}
+                  label="Reset Meal Plan"
+                  confirmMessage="This will clear all meals from your current plan. This action cannot be undone. Continue?"
+                  className="ml-auto" 
+                />
               </div>
               
               {/* Meal cards */}
