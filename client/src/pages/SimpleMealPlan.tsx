@@ -22,8 +22,16 @@ const MEAL_TYPES = [
   { value: "Split Prep", label: "Split Prep ⏰", description: "Prep ahead, cook later" }
 ];
 
-// Enhanced meal card component (defined inline)
-const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string) => void }) => {
+// Interface for EnhancedMealCard props
+interface EnhancedMealCardProps {
+  meal: any;
+  onRemove: (id: string) => void;
+  onModify: (meal: any, request: string) => void;
+  onReplace: (meal: any) => void;
+}
+
+// Enhanced meal card component
+const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealCardProps) => {
   const [isRecipeOpen, setIsRecipeOpen] = useState(false);
 
   // Get category icon
@@ -158,8 +166,8 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  // Handle modify meal
-  const handleModifyMeal = async () => {
+  // Handle modify meal request
+  const handleModifyMealRequest = () => {
     if (!modifyRequest.trim()) {
       toast({
         title: "Empty modification",
@@ -169,164 +177,21 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
       return;
     }
     
-    setIsSubmitting(true);
+    // Call the parent component's handler with the meal and modification request
+    onModify(meal, modifyRequest);
     
-    try {
-      console.log('[MODIFY] Starting meal modification for:', meal.id);
-      
-      // Get the current meal plan ID from localStorage or fallback to a safe value
-      const mealPlanId = localStorage.getItem('current_meal_plan_id');
-      if (!mealPlanId) {
-        console.warn('[MODIFY] No meal plan ID found in localStorage - this may affect grocery list updates');
-      }
-      
-      // Import the specific meal-ai function for modification
-      const { modifyMeal } = await import('@/lib/meal-ai');
-      
-      // Use the current meals array for context to ensure consistency
-      console.log(`[MODIFY] Modifying meal with ${meals.length} meals as context`);
-      
-      // Call the modifyMeal function with the current meal, modification request, and context
-      const modifiedMeal = await modifyMeal(
-        meal, 
-        modifyRequest,
-        mealPlanId ? parseInt(mealPlanId) : undefined,
-        meals
-      );
-      
-      console.log('[MODIFY] Successfully received modified meal:', modifiedMeal.name);
-      
-      // Update the UI immediately
-      setMeals(prev => {
-        // Create a deep copy to avoid reference issues
-        const updatedMeals = prev.map(m => {
-          if (m.id === meal.id) {
-            // Replace with the modified meal while ensuring ID consistency
-            const result = JSON.parse(JSON.stringify(modifiedMeal));
-            result.id = meal.id; // Guarantee ID consistency
-            return result;
-          }
-          return m;
-        });
-        
-        return updatedMeals;
-      });
-      
-      // Close the dialog and reset the form
-      setIsModifyDialogOpen(false);
-      setModifyRequest("");
-      
-      toast({
-        title: "Meal modified",
-        description: `${meal.name} has been updated to ${modifiedMeal.name}`
-      });
-      
-      // Force refresh data from server after a short delay
-      setTimeout(() => {
-        console.log('[MODIFY] Refreshing data from server after modification');
-        refetch();
-      }, 500);
-    } catch (error) {
-      console.error('[MODIFY] Error during meal modification:', error);
-      
-      // Check for API key errors
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage.toLowerCase().includes('api key')) {
-        toast({
-          title: "API Configuration Required",
-          description: "OpenAI API access is needed to modify meals. Please check your API settings.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: errorMessage || "Failed to modify the meal. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Close the dialog and reset the form
+    setIsModifyDialogOpen(false);
+    setModifyRequest("");
   };
   
-  // Handle replace meal
-  const handleReplaceMeal = async () => {
-    setIsSubmitting(true);
+  // Handle replace meal request
+  const handleReplaceMealRequest = () => {
+    // Call the parent component's handler with the meal
+    onReplace(meal);
     
-    try {
-      console.log('[REPLACE] Starting meal replacement for:', meal.id);
-      
-      // Get the current meal plan ID from localStorage or fallback to a safe value
-      const mealPlanId = localStorage.getItem('current_meal_plan_id');
-      if (!mealPlanId) {
-        console.warn('[REPLACE] No meal plan ID found in localStorage - this may affect grocery list updates');
-      }
-      
-      // Import the replaceMeal function specifically
-      const { replaceMeal } = await import('@/lib/meal-ai');
-      
-      // Use the current meals array for context to ensure consistency
-      console.log(`[REPLACE] Replacing meal with ${meals.length} meals as context`);
-      
-      // Call the replaceMeal function with the current meal and context
-      const replacedMeal = await replaceMeal(
-        meal, 
-        mealPlanId ? parseInt(mealPlanId) : undefined,
-        meals
-      );
-      
-      console.log('[REPLACE] Successfully received replacement meal:', replacedMeal.name);
-      
-      // Update the UI immediately
-      setMeals(prev => {
-        // Create a deep copy to avoid reference issues
-        const updatedMeals = prev.map(m => {
-          if (m.id === meal.id) {
-            // Replace with the modified meal while ensuring ID consistency
-            const result = JSON.parse(JSON.stringify(replacedMeal));
-            result.id = meal.id; // Guarantee ID consistency
-            return result;
-          }
-          return m;
-        });
-        
-        return updatedMeals;
-      });
-      
-      // Close the dialog
-      setIsReplaceDialogOpen(false);
-      
-      toast({
-        title: "Meal replaced",
-        description: `${meal.name} has been replaced with ${replacedMeal.name}`
-      });
-      
-      // Force refresh data from server after a short delay
-      setTimeout(() => {
-        console.log('[REPLACE] Refreshing data from server after replacement');
-        refetch();
-      }, 500);
-    } catch (error) {
-      console.error('[REPLACE] Error during meal replacement:', error);
-      
-      // Check for API key errors
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage.toLowerCase().includes('api key')) {
-        toast({
-          title: "API Configuration Required",
-          description: "OpenAI API access is needed to replace meals. Please check your API settings.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: errorMessage || "Failed to replace the meal. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Close the dialog
+    setIsReplaceDialogOpen(false);
   };
   
   // Handle add to grocery list
@@ -548,7 +413,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               Cancel
             </Button>
             <Button 
-              onClick={handleModifyMeal} 
+              onClick={handleModifyMealRequest} 
               disabled={isSubmitting || !modifyRequest.trim()}
               className="bg-[#21706D] hover:bg-[#195957] relative"
             >
@@ -588,7 +453,7 @@ const EnhancedMealCard = ({ meal, onRemove }: { meal: any, onRemove: (id: string
               Cancel
             </Button>
             <Button 
-              onClick={handleReplaceMeal} 
+              onClick={handleReplaceMealRequest} 
               disabled={isSubmitting}
               className="bg-[#21706D] hover:bg-[#195957] relative"
             >
@@ -866,6 +731,153 @@ export default function SimpleMealPlan() {
     setPreferences("");
   };
   
+  // Modify meal handler
+  const handleModifyMeal = async (meal: any, modifyRequest: string) => {
+    try {
+      console.log('[MODIFY] Starting meal modification for:', meal.id);
+      
+      // Get the current meal plan ID from localStorage or fallback to a safe value
+      const mealPlanId = localStorage.getItem('current_meal_plan_id');
+      if (!mealPlanId) {
+        console.warn('[MODIFY] No meal plan ID found in localStorage - this may affect grocery list updates');
+      }
+      
+      // Import the specific meal-ai function for modification
+      const { modifyMeal } = await import('@/lib/meal-ai');
+      
+      // Use the current meals array for context to ensure consistency
+      console.log(`[MODIFY] Modifying meal with ${meals.length} meals as context`);
+      
+      // Call the modifyMeal function with the current meal, modification request, and context
+      const modifiedMeal = await modifyMeal(
+        meal, 
+        modifyRequest,
+        mealPlanId ? parseInt(mealPlanId) : undefined,
+        meals
+      );
+      
+      console.log('[MODIFY] Successfully received modified meal:', modifiedMeal.name);
+      
+      // Update the UI immediately
+      setMeals(prev => {
+        // Create a deep copy to avoid reference issues
+        const updatedMeals = prev.map(m => {
+          if (m.id === meal.id) {
+            // Replace with the modified meal while ensuring ID consistency
+            const result = JSON.parse(JSON.stringify(modifiedMeal));
+            result.id = meal.id; // Guarantee ID consistency
+            return result;
+          }
+          return m;
+        });
+        
+        return updatedMeals;
+      });
+      
+      toast({
+        title: "Meal modified",
+        description: `${meal.name} has been updated to ${modifiedMeal.name}`
+      });
+      
+      // Force refresh data from server after a short delay
+      setTimeout(() => {
+        console.log('[MODIFY] Refreshing data from server after modification');
+        refetch();
+      }, 500);
+    } catch (error) {
+      console.error('[MODIFY] Error during meal modification:', error);
+      
+      // Check for API key errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.toLowerCase().includes('api key')) {
+        toast({
+          title: "API Configuration Required",
+          description: "OpenAI API access is needed to modify meals. Please check your API settings.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage || "Failed to modify the meal. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+  
+  // Replace meal handler
+  const handleReplaceMeal = async (meal: any) => {
+    try {
+      console.log('[REPLACE] Starting meal replacement for:', meal.id);
+      
+      // Get the current meal plan ID from localStorage or fallback to a safe value
+      const mealPlanId = localStorage.getItem('current_meal_plan_id');
+      if (!mealPlanId) {
+        console.warn('[REPLACE] No meal plan ID found in localStorage - this may affect grocery list updates');
+      }
+      
+      // Import the replaceMeal function specifically
+      const { replaceMeal } = await import('@/lib/meal-ai');
+      
+      // Use the current meals array for context to ensure consistency
+      console.log(`[REPLACE] Replacing meal with ${meals.length} meals as context`);
+      
+      // Call the replaceMeal function with the current meal and context
+      const replacedMeal = await replaceMeal(
+        meal, 
+        mealPlanId ? parseInt(mealPlanId) : undefined,
+        meals
+      );
+      
+      console.log('[REPLACE] Successfully received replacement meal:', replacedMeal.name);
+      
+      // Update the UI immediately
+      setMeals(prev => {
+        // Create a deep copy to avoid reference issues
+        const updatedMeals = prev.map(m => {
+          if (m.id === meal.id) {
+            // Replace with the modified meal while ensuring ID consistency
+            const result = JSON.parse(JSON.stringify(replacedMeal));
+            result.id = meal.id; // Guarantee ID consistency
+            return result;
+          }
+          return m;
+        });
+        
+        return updatedMeals;
+      });
+      
+      toast({
+        title: "Meal replaced",
+        description: `${meal.name} has been replaced with ${replacedMeal.name}`
+      });
+      
+      // Force refresh data from server after a short delay
+      setTimeout(() => {
+        console.log('[REPLACE] Refreshing data from server after replacement');
+        refetch();
+      }, 500);
+    } catch (error) {
+      console.error('[REPLACE] Error during meal replacement:', error);
+      
+      // Check for API key errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.toLowerCase().includes('api key')) {
+        toast({
+          title: "API Configuration Required",
+          description: "OpenAI API access is needed to replace meals. Please check your API settings.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage || "Failed to replace the meal. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   // Reset meal plan function
   const resetMealPlan = async () => {
     try {
@@ -1158,7 +1170,9 @@ export default function SimpleMealPlan() {
             <EnhancedMealCard 
               key={meal.id} 
               meal={meal} 
-              onRemove={handleRemoveMeal} 
+              onRemove={handleRemoveMeal}
+              onModify={handleModifyMeal}
+              onReplace={handleReplaceMeal}
             />
           ))}
         </div>
