@@ -104,6 +104,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       return generateDummyMeals(preferences);
     }
     
+    // Log that we have a valid API key
+    console.log('[MEAL PLAN] Found valid OpenAI API key');
+    
     // Get weather context if location is available
     let weatherContext = "";
     if (household.location) {
