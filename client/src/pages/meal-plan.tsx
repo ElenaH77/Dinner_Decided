@@ -221,11 +221,36 @@ export default function MealPlan() {
         // 1. First, use our new dedicated PATCH endpoint for meal updates
         try {
           console.log(`Using dedicated endpoint to update meal ${mealId} in plan ${currentMealPlan.id}`);
-          // Send to debug endpoint first to verify payload
-          const debugResponse = await apiRequest('POST', '/api/debug-request', {
-            updatedMeal: updatedMeal, // Object with all meal properties
-            mealId: mealId // ID of meal to update
+          // Test with our special test endpoint first
+          try {
+            console.log('Trying test endpoint with direct fetch...');
+            const testResponse = await fetch('/api/test-meal-update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                updatedMeal: updatedMeal,
+                mealId: mealId
+              })
+            });
+            
+            const testResult = await testResponse.json();
+            console.log('Test endpoint response:', testResult);
+          } catch (testError) {
+            console.error('Test endpoint error:', testError);
+          }
+          
+          // Send to manual debug endpoint
+          const debugPayload = { updatedMeal, mealId };
+          console.log('Debug payload:', debugPayload);
+          
+          const debugResponse = await fetch('/api/debug-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(debugPayload)
           });
+          
           console.log('Debug response:', await debugResponse.json());
           
           // Important: Need to send both updatedMeal and mealId per server implementation
@@ -234,8 +259,8 @@ export default function MealPlan() {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              updatedMeal: updatedMeal, // Object with all meal properties
-              mealId: mealId // ID of meal to update
+              updatedMeal: updatedMeal,
+              mealId: mealId
             })
           });
           

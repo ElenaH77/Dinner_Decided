@@ -1439,11 +1439,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update a specific meal in a meal plan
   app.patch('/api/meal-plan/:planId', async (req, res) => {
     try {
-      console.log('[DEBUG PATCH] Request body:', JSON.stringify(req.body));
+      console.log('[DEBUG PATCH] Raw request body received:', req.body);
+      console.log('[DEBUG PATCH] Request body keys:', Object.keys(req.body || {}));
       console.log('[DEBUG PATCH] Headers:', JSON.stringify(req.headers));
+      console.log('[DEBUG PATCH] Content-Type:', req.headers['content-type']);
       
       const { planId } = req.params;
-      const { updatedMeal, mealId } = req.body;
+      // Access properties directly for diagnostic purposes
+      console.log('[DEBUG PATCH] Direct property access - updatedMeal:', typeof req.body?.updatedMeal, req.body?.updatedMeal ? 'exists' : 'undefined');
+      console.log('[DEBUG PATCH] Direct property access - mealId:', typeof req.body?.mealId, req.body?.mealId);
+      
+      const { updatedMeal, mealId } = req.body || {};
       
       if (!updatedMeal || !mealId) {
         return res.status(400).json({ message: "Missing required fields: updatedMeal and mealId (values: " + JSON.stringify({updatedMeal, mealId}) + ")" });
@@ -1497,6 +1503,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating meal in plan:", error);
       res.status(500).json({ message: "Failed to update meal in plan" });
+    }
+  });
+  
+  // Simple test endpoint for meal updates
+  app.post('/api/test-meal-update', (req, res) => {
+    try {
+      console.log('[TEST] Received test meal update. Body type:', typeof req.body);
+      console.log('[TEST] Raw body:', req.body);
+      console.log('[TEST] Headers:', req.headers);
+      console.log('[TEST] Content-Type:', req.headers['content-type']);
+      
+      // Try to extract the fields directly
+      const updatedMeal = req.body?.updatedMeal;
+      const mealId = req.body?.mealId;
+      
+      console.log('[TEST] updatedMeal:', updatedMeal ? 'exists' : 'missing');
+      console.log('[TEST] mealId:', mealId);
+      
+      // Send the result back with success status
+      res.json({
+        success: !!(updatedMeal && mealId),
+        receivedMealId: mealId,
+        receivedMeal: updatedMeal ? 'valid' : 'invalid'
+      });
+    } catch (error) {
+      console.error('[TEST] Error in test endpoint:', error);
+      res.status(500).json({ success: false, error: String(error) });
     }
   });
   

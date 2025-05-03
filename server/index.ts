@@ -6,8 +6,19 @@ import { db } from "./db";
 
 const app = express();
 // Increase JSON body parser limit to handle larger payloads from OpenAI
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+// Make sure JSON parsing is properly enabled and configured
+app.use(express.json({ limit: '50mb', strict: false }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Debug middleware for all requests to see what's coming in
+app.use((req, res, next) => {
+  if (req.method === 'PATCH' || req.path.includes('/test-meal-update')) {
+    console.log(`[REQUEST DEBUG] ${req.method} ${req.path} Content-Type:`, req.headers['content-type']);
+    console.log(`[REQUEST DEBUG] Request body type:`, typeof req.body);
+    console.log(`[REQUEST DEBUG] Request body keys:`, Object.keys(req.body || {}));
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
