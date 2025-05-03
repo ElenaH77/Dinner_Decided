@@ -1477,11 +1477,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const updatedPlan = await storage.updateMealPlan(Number(planId), fullMealPlan);
           console.log(`[API] Successfully updated full meal plan, has ${updatedPlan.meals?.length || 0} meals`);
           
-          // Update grocery list if needed
-          const household = await storage.getHousehold();
-          if (household) {
-            await generateAndSaveGroceryList(Number(planId), household.id);
-          }
+          // Don't auto-generate grocery list on every full plan update to avoid rate limits
+          // Comment: We're intentionally skipping grocery list generation to avoid OpenAI rate limiting
+          console.log('[PATCH] Skipping automatic grocery list generation for full plan update to avoid rate limiting');
           
           return res.json(updatedPlan);
         } catch (error) {
@@ -1533,11 +1531,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[API] Successfully updated meal in plan, now has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
       
-      // Update grocery list if needed
-      const household = await storage.getHousehold();
-      if (household) {
-        await generateAndSaveGroceryList(Number(planId), household.id);
-      }
+      // Don't auto-generate grocery list on every meal update to avoid rate limits
+      // Comment: We're skipping grocery list generation during meal updates
+      // to prevent OpenAI rate limit errors
+      console.log('[PATCH] Skipping automatic grocery list generation to avoid rate limiting');
       
       res.json(updatedMeal);
     } catch (error) {
