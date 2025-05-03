@@ -549,6 +549,31 @@ export default function SimpleMealPlan() {
       console.log("[DEBUG] No meal plan data received!");
     }
     
+    // Check if there's a stored ID that doesn't match the current one
+    // This would indicate we might be looking at stale data
+    const storedMealPlanId = localStorage.getItem('current_meal_plan_id');
+    if (storedMealPlanId && mealPlan && mealPlan.id !== parseInt(storedMealPlanId)) {
+      console.log(`[ID MISMATCH] Meal plan ID mismatch: API returned ${mealPlan.id} but localStorage has ${storedMealPlanId}`);
+      
+      // Log a warning to help with debugging
+      console.warn(`Meal plan ID mismatch detected. This may indicate stale data. API: ${mealPlan.id}, Stored: ${storedMealPlanId}`);
+      
+      // Show a diagnostic message
+      toast({
+        title: "Synchronizing meal plan",
+        description: "Refreshing data to ensure you have the latest meals.",
+      });
+      
+      // Force a refresh after a short delay
+      setTimeout(() => {
+        console.log('[ID MISMATCH] Forcing refetch to resolve ID mismatch');
+        refetch();
+      }, 500);
+      
+      // Return early - we'll process the data after the refetch
+      return;
+    }
+    
     // Proceed with normal processing
     if (mealPlan && Array.isArray(mealPlan.meals)) {
       // Create deep copies of the meals to prevent reference sharing
@@ -574,7 +599,7 @@ export default function SimpleMealPlan() {
       setMeals([]);
       console.log("No meals found in meal plan, reset to empty array");
     }
-  }, [mealPlan]);
+  }, [mealPlan, refetch, toast]);
   
   // Update cached meals and localStorage whenever meals changes
   useEffect(() => {

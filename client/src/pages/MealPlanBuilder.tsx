@@ -81,6 +81,7 @@ export default function MealPlanBuilder() {
     }
     
     setIsLoading(true);
+    console.log('[MEAL BUILDER] Starting meal plan generation...');
     
     try {
       // Format the meal preferences to send to the API
@@ -88,6 +89,11 @@ export default function MealPlanBuilder() {
         mealsByDay: { ...selectedMeals },
         specialNotes: additionalNotes || ""  
       };
+      
+      console.log('[MEAL BUILDER] Preferences structured:', { 
+        mealsByDay: Object.keys(selectedMeals).length, 
+        notesLength: additionalNotes?.length || 0 
+      });
       
       // Make the API request to generate a meal plan
       const response = await apiRequest('POST', '/api/meal-plan/generate', { preferences });
@@ -97,19 +103,31 @@ export default function MealPlanBuilder() {
       }
       
       const data = await response.json();
+      console.log('[MEAL BUILDER] Created new meal plan with ID:', data.id);
+      
+      // Store the meal plan ID in localStorage for reference
+      if (data && data.id) {
+        localStorage.setItem('current_meal_plan_id', String(data.id));
+        console.log('[MEAL BUILDER] Stored meal plan ID in localStorage:', data.id);
+      }
       
       toast({
         title: "Meal plan created",
         description: "Your personalized meal plan is ready!",
       });
       
+      // Clear any stale data
+      localStorage.removeItem('current_meals');
+      
       // Refresh the meal plan data
       queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+      console.log('[MEAL BUILDER] Invalidated query cache');
       
       // Navigate to the meal plan page with a query parameter to trigger auto-refresh
+      console.log('[MEAL BUILDER] Redirecting to meal plan view');
       navigate('/this-week?from=builder');
     } catch (error) {
-      console.error("Error creating meal plan:", error);
+      console.error("[MEAL BUILDER] Error creating meal plan:", error);
       
       // Try to extract error message from response if it exists
       let errorMessage = "Unknown error";
@@ -122,16 +140,24 @@ export default function MealPlanBuilder() {
           errorMessage = errorObj.message;
         }
       } catch (parseError) {
-        console.error("Error parsing error response:", parseError);
+        console.error("[MEAL BUILDER] Error parsing error response:", parseError);
       }
       
       // If there's no household data yet, redirect to onboarding
       if (errorMessage.includes('Household not found') || errorMessage.includes('household')) {
+        console.log('[MEAL BUILDER] Redirecting to onboarding due to missing household data');
         toast({
           title: "Household setup needed",
           description: "We need some information about your household first.",
         });
         navigate('/chat-onboarding');
+      } else if (errorMessage.includes('API key') || errorMessage.includes('OpenAI')) {
+        console.log('[MEAL BUILDER] OpenAI API issue detected');
+        toast({
+          title: "API Configuration Required",
+          description: "OpenAI API access is needed to generate meal plans. Please check your API settings.",
+          variant: "destructive"
+        });
       } else {
         toast({
           title: "Error",
