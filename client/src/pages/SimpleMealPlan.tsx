@@ -878,7 +878,7 @@ export default function SimpleMealPlan() {
     }
   };
 
-  // Reset meal plan function
+  // Reset meal plan function using the new setActiveMealPlan context function
   const resetMealPlan = async () => {
     try {
       setIsResetting(true);
@@ -888,6 +888,9 @@ export default function SimpleMealPlan() {
         title: "Resetting meal plan",
         description: "Clearing meal plan data..."
       });
+      
+      // Get the meal plan context functions
+      const { setActiveMealPlan } = useMealPlan();
       
       // First, get the current meal plan to get its ID
       let currentPlanId;
@@ -929,7 +932,11 @@ export default function SimpleMealPlan() {
       console.log('[RESET] Server response:', result);
       
       if (result.success) {
-        // Clear all local storage related to meal plans
+        // The plan has been reset on the server side, now make it active using our context function
+        const activateSuccess = await setActiveMealPlan(currentPlanId);
+        console.log(`[RESET] Setting meal plan ${currentPlanId} as active: ${activateSuccess ? 'success' : 'failed'}`);
+        
+        // Still clear all local storage related to meal plans to be safe
         localStorage.removeItem('current_meal_plan');
         localStorage.removeItem('current_meals');
         localStorage.removeItem('current_meal_plan_id');

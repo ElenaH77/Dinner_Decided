@@ -262,6 +262,49 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Function to explicitly set a meal plan as active
+  const setActiveMealPlan = async (planId: number): Promise<boolean> => {
+    try {
+      console.log(`Setting meal plan ${planId} as active`);
+      setIsLoading(true);
+      
+      // Call the API endpoint to set the meal plan as active
+      const response = await apiRequest('PUT', `/api/meal-plan/${planId}/set-active`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to set meal plan ${planId} as active: ${response.statusText}`);
+      }
+      
+      // Get the updated active meal plan
+      const updatedPlan = await response.json();
+      console.log(`Successfully set meal plan ${planId} as active:`, updatedPlan);
+      
+      // Update the state with the active plan
+      if (updatedPlan && updatedPlan.id) {
+        // Store the active meal plan ID in localStorage for future reference
+        localStorage.setItem('current_meal_plan_id', String(updatedPlan.id));
+        
+        // Update any other meal plan related storage
+        localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+        
+        if (updatedPlan.meals && Array.isArray(updatedPlan.meals)) {
+          localStorage.setItem('current_meals', JSON.stringify(updatedPlan.meals));
+        }
+        
+        // Update context state
+        setCurrentPlan(updatedPlan);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error setting meal plan as active:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Enhanced refresh method that forces UI and data update
   const refreshUI = () => {
     console.log('Forcing UI refresh with counter:', refreshCounter + 1);
@@ -385,6 +428,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     <MealPlanContext.Provider value={{ 
       currentPlan, 
       setCurrentPlan, 
+      setActiveMealPlan,
       addMeal, 
       removeMeal,
       updateMeal,
@@ -392,6 +436,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       isLoading,
       refetchMealPlan
     }}>
+      
       {children}
     </MealPlanContext.Provider>
   );
