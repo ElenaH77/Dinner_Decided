@@ -314,6 +314,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[MEAL PLAN] Generated meals:', JSON.stringify(generatedMeals, null, 2));
       
+      // Add unique stable IDs to each meal if they don't have them
+      const mealsWithIds = generatedMeals.map((meal, index) => {
+        if (!meal.id) {
+          // Create a stable ID that includes timestamp and index
+          meal.id = `meal-${Date.now()}-${index}`;
+        }
+        return meal;
+      });
+      
+      console.log('[MEAL PLAN] Added stable IDs to meals');
+      
       // Create meal plan in storage
       const mealPlan = await storage.createMealPlan({
         name: "Weekly Meal Plan",
@@ -321,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         isActive: true,
         specialNotes: specialNotes || "",
-        meals: generatedMeals,
+        meals: mealsWithIds,
       });
       
       // Generate grocery list from meal plan

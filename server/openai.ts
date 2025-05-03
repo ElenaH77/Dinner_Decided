@@ -221,12 +221,41 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       temperature: 0.7,
     });
     
-    const result = JSON.parse(response.choices[0].message.content || "{}");
-    
-    // Extract meals from the result
-    return preferences.replaceMeal 
-      ? [result.meal || result]
-      : (result.meals || []);
+    // Add extra safeguards around JSON parsing
+    try {
+      const content = response.choices[0].message.content || "{}";
+      console.log('[MEAL PLAN] Raw OpenAI response received, content length:', content.length);
+      
+      // Log a preview of the response for debugging
+      if (content.length > 0) {
+        const preview = content.length > 200 ? content.substring(0, 200) + '...' : content;
+        console.log('[MEAL PLAN] Response preview:', preview);
+      }
+      
+      const result = JSON.parse(content);
+      console.log('[MEAL PLAN] Successfully parsed JSON response');
+      
+      // Check if the response has the expected structure
+      if (preferences.replaceMeal) {
+        if (!result.meal && !result.name) {
+          console.warn('[MEAL PLAN] Warning: Response does not contain meal or name property');
+          console.log('[MEAL PLAN] Full response:', content);
+          return [];
+        }
+        return [result.meal || result];
+      } else {
+        if (!result.meals || !Array.isArray(result.meals)) {
+          console.warn('[MEAL PLAN] Warning: Response does not contain a meals array');
+          console.log('[MEAL PLAN] Full response:', content);
+          return [];
+        }
+        return result.meals;
+      }
+    } catch (parseError) {
+      console.error('[MEAL PLAN] Error parsing OpenAI response:', parseError);
+      console.log('[MEAL PLAN] Failed response content:', response.choices[0].message.content);
+      throw new Error('Failed to parse meal plan response from OpenAI. Please try again.');
+    }
     
   } catch (error) {
     console.error("Error generating meal plan:", error);
