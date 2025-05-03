@@ -190,22 +190,34 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       console.log('Added missing ID to meal in addMeal:', meal.id);
     }
     
+    // Create a deep clone of the meal to avoid reference issues
+    const clonedMeal = deepClone(meal);
+    
     // Check if this meal ID already exists to prevent duplicates
-    const existingMealIndex = currentPlan.meals?.findIndex(m => m.id === meal.id);
+    const existingMealIndex = currentPlan.meals?.findIndex(m => m.id === clonedMeal.id);
     
     if (existingMealIndex !== -1 && existingMealIndex !== undefined) {
-      console.log(`Meal with ID ${meal.id} already exists in the plan. Skipping duplicate addition.`);
+      console.log(`Meal with ID ${clonedMeal.id} already exists in the plan. Skipping duplicate addition.`);
       return; // Skip adding if already exists
     }
     
-    // Update with the correct structure
-    const updatedPlan = {
+    // Update with the correct structure - create a deep clone of the current plan and add the meal
+    const updatedPlan = deepClone({
       ...currentPlan,
-      meals: [...(currentPlan.meals || []), meal],
-      mealIds: [...(currentPlan.mealIds || []), parseInt(meal.id) || meal.id]
-    };
+      meals: [...(currentPlan.meals || []), clonedMeal],
+      mealIds: [...(currentPlan.mealIds || []), typeof clonedMeal.id === 'number' ? clonedMeal.id : parseInt(clonedMeal.id) || clonedMeal.id]
+    });
     
-    console.log(`Added meal ${meal.name} with ID ${meal.id} to plan, now has ${updatedPlan.meals.length} meals`);
+    console.log(`Added meal ${clonedMeal.name} with ID ${clonedMeal.id} to plan, now has ${updatedPlan.meals.length} meals`);
+    
+    // Save through the storage service
+    saveMealPlan(updatedPlan).then(result => {
+      if (!result.success) {
+        console.warn("Failed to persist meal addition to storage service:", result.error);
+      }
+    });
+    
+    // Update context state
     setCurrentPlan(updatedPlan);
   };
 
@@ -231,17 +243,22 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     
     console.log('After removal, meals count:', updatedPlan.meals.length);
     
+    // Create a deep clone to avoid reference issues
+    const clonedPlan = deepClone(updatedPlan);
+    
     // Update the state with our new filtered plan
-    setCurrentPlan(updatedPlan);
+    setCurrentPlan(clonedPlan);
     
-    // Persist the change to localStorage for immediate stability between page changes
+    // Use the centralized storage service to save the updated plan
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPlan));
+      saveMealPlan(clonedPlan).then(result => {
+        if (!result.success) {
+          console.warn("Failed to persist meal removal to storage service:", result.error);
+        }
+      });
     } catch (err) {
-      console.error('Failed to save meal plan to localStorage:', err);
+      console.error('Failed to save meal plan after removal:', err);
     }
-    
-    // The actual API call is handled by MealCard.tsx
   };
 
   // Force UI refresh without refetching data
@@ -251,8 +268,9 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     
     // Also reapply the current plan to force state update throughout UI
     if (currentPlan) {
-      // Make sure we create a fresh deep copy
-      const refreshedPlan = JSON.parse(JSON.stringify(currentPlan));
+      // Create a fresh deep copy using our storage service helper
+      const refreshedPlan = deepClone(currentPlan);
+      console.log('Refreshing UI with deep cloned plan');
       setCurrentPlan(refreshedPlan);
     }
   };

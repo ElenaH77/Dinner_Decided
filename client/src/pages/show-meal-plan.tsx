@@ -313,63 +313,49 @@ export default function ShowMealPlan() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Function to load directly from localStorage
-    const loadFromStorage = () => {
+    // Import and use the centralized storage service
+    import('@/lib/storage-service').then(({ loadMealPlan }) => {
       setLoading(true);
-      try {
-        // Try all known storage keys
-        const directStored = localStorage.getItem('current_meal_plan');
-        if (directStored) {
-          const parsedPlan = JSON.parse(directStored);
-          console.log("Found meal plan in direct storage:", parsedPlan);
+      loadMealPlan().then(result => {
+        if (result.success && result.data) {
+          const planData = result.data;
+          console.log(`Found meal plan from ${result.source}:`, planData);
           
-          if (parsedPlan?.meals?.length > 0) {
-            setMealPlan(parsedPlan);
+          if (planData?.meals?.length > 0) {
+            setMealPlan(planData);
             toast({
               title: "Plan loaded",
-              description: `Found meal plan with ${parsedPlan.meals.length} meals in storage`
+              description: `Found meal plan with ${planData.meals.length} meals`
             });
-            setLoading(false);
-            return;
-          }
-        }
-        
-        // Try other keys
-        const cachedPlan = localStorage.getItem('meal_plan_cache');
-        if (cachedPlan) {
-          const parsedPlan = JSON.parse(cachedPlan);
-          console.log("Found meal plan in cache:", parsedPlan);
-          
-          if (parsedPlan?.meals?.length > 0) {
-            setMealPlan(parsedPlan);
+          } else {
             toast({
-              title: "Plan loaded from cache",
-              description: `Found meal plan with ${parsedPlan.meals.length} meals`
+              title: "Invalid meal plan",
+              description: "The meal plan doesn't contain any meals",
+              variant: "destructive"
             });
-            setLoading(false);
-            return;
           }
+        } else {
+          console.error("Error loading meal plan:", result.error);
+          toast({
+            title: "No meal plan found",
+            description: result.error || "Could not find a meal plan in storage",
+            variant: "destructive"
+          });
         }
-        
-        toast({
-          title: "No meal plan found",
-          description: "Could not find a meal plan in storage",
-          variant: "destructive"
-        });
         setLoading(false);
-      } catch (error) {
-        console.error("Error loading meal plan from storage:", error);
+      }).catch(error => {
+        console.error("Error loading meal plan from storage service:", error);
         toast({
           title: "Error",
           description: "Failed to load meal plan from storage",
           variant: "destructive"
         });
         setLoading(false);
-      }
-    };
-    
-    // Load the meal plan on component mount
-    loadFromStorage();
+      });
+    }).catch(error => {
+      console.error("Error importing storage service:", error);
+      setLoading(false);
+    });
   }, []);
 
   // Button handler to re-attempt loading
@@ -381,20 +367,57 @@ export default function ShowMealPlan() {
   const handleMealUpdate = (updatedMeal: any, index: number) => {
     if (!mealPlan || !mealPlan.meals) return;
     
-    // Create a copy of the meal plan
-    const updatedPlan = {
-      ...mealPlan,
-      meals: [...mealPlan.meals]
-    };
-    
-    // Update the specific meal
-    updatedPlan.meals[index] = updatedMeal;
-    
-    // Update state and localStorage
-    setMealPlan(updatedPlan);
-    localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
-    
-    console.log("Updated meal plan with modified meal:", updatedMeal.name);
+    // Import the storage service methods dynamically
+    import('@/lib/storage-service').then(({ deepClone, updateMealInPlan, saveMealPlan }) => {
+      // Create a deep copy of the meal plan
+      const updatedPlan = deepClone({
+        ...mealPlan,
+        meals: [...mealPlan.meals]
+      });
+      
+      // Create a deep clone of the updated meal
+      const clonedMeal = deepClone(updatedMeal);
+      
+      // Update the specific meal
+      updatedPlan.meals[index] = clonedMeal;
+      
+      console.log("Updating meal plan with modified meal:", clonedMeal.name);
+      
+      // Update state
+      setMealPlan(updatedPlan);
+      
+      // Save to storage service
+      saveMealPlan(updatedPlan).then(result => {
+        if (result.success) {
+          console.log("Successfully saved updated meal plan");
+          toast({
+            title: "Meal updated", 
+            description: `Successfully updated ${clonedMeal.name}`
+          });
+        } else {
+          console.error("Failed to save meal plan update:", result.error);
+          toast({
+            title: "Update Warning",
+            description: "Changes saved locally but sync may be incomplete",
+            variant: "warning"
+          });
+        }
+      });
+      
+      // Also ensure the specific meal is updated correctly
+      if (mealPlan.id && clonedMeal.id) {
+        updateMealInPlan(mealPlan.id, clonedMeal.id, clonedMeal).catch(error => {
+          console.error("Error updating individual meal:", error);
+        });
+      }
+    }).catch(error => {
+      console.error("Error importing storage service for meal update:", error);
+      toast({
+        title: "Update Error",
+        description: "There was a problem updating the meal",
+        variant: "destructive"
+      });
+    });
   };
 
   return (
