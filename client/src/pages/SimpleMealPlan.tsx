@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { X, PlusCircle, Calendar, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation, useNavigate } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -480,6 +480,7 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
 let cachedMeals: any[] = [];
 
 export default function SimpleMealPlan() {
+
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [mealType, setMealType] = useState("");
@@ -1240,14 +1241,15 @@ export default function SimpleMealPlan() {
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add New Meal
                 </Button>
-                <Button
-                  onClick={() => navigate('/plan-builder')}
-                  variant="outline"
-                  className="text-teal-600 border-teal-600 hover:bg-teal-50"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Generate New Plan
-                </Button>
+                <Link href="/plan-builder">
+                  <Button
+                    variant="outline"
+                    className="text-teal-600 border-teal-600 hover:bg-teal-50"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Generate New Plan
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
