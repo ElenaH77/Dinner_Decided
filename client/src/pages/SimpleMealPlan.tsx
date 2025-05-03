@@ -891,7 +891,7 @@ export default function SimpleMealPlan() {
       });
       
       // Get the meal plan context functions
-      const { setActiveMealPlan } = useMealPlan();
+      const { setActiveMealPlan, setCurrentPlan } = useMealPlan();
       
       // First, get the current meal plan to get its ID
       let currentPlanId;
@@ -900,6 +900,7 @@ export default function SimpleMealPlan() {
         if (planResponse.ok) {
           const currentPlan = await planResponse.json();
           currentPlanId = currentPlan.id;
+          console.log('[RESET] Got current plan ID:', currentPlanId);
         }
       } catch (error) {
         console.error("Error getting current plan ID:", error);
@@ -933,11 +934,22 @@ export default function SimpleMealPlan() {
       console.log('[RESET] Server response:', result);
       
       if (result.success) {
-        // The plan has been reset on the server side, now make it active using our context function
+        console.log('[RESET] Server reset was successful, updating client state');
+        
+        // 1. Update the context with an empty meal plan
+        const emptyPlan = {
+          ...result.plan,
+          meals: [] // Ensure an empty meals array
+        };
+        
+        // Set the current plan directly in the context with the empty plan
+        setCurrentPlan(emptyPlan);
+        
+        // 2. Force activation of the reset meal plan using our context function
         const activateSuccess = await setActiveMealPlan(currentPlanId);
         console.log(`[RESET] Setting meal plan ${currentPlanId} as active: ${activateSuccess ? 'success' : 'failed'}`);
         
-        // Still clear all local storage related to meal plans to be safe
+        // 3. Clear all local storage related to meal plans
         localStorage.removeItem('current_meal_plan');
         localStorage.removeItem('current_meals');
         localStorage.removeItem('current_meal_plan_id');
@@ -957,17 +969,21 @@ export default function SimpleMealPlan() {
         
         console.log('[RESET] Cleared all local storage data for meal plans');
         
-        // Clear module-level cache
+        // 4. Clear module-level cache
         cachedMeals = [];
         
-        // Clear react query cache
+        // 5. Clear react query cache
         queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
         
-        // Update meals state
+        // 6. Update meals state directly
         setMeals([]);
         
-        // Refetch data
-        await refetch();
+        // 7. Wait a moment before refetching to allow state updates to propagate
+        setTimeout(async () => {
+          console.log('[RESET] Refetching data after reset');
+          await refetch();
+          console.log('[RESET] Refetch complete');
+        }, 500);
         
         toast({
           title: "Success",
