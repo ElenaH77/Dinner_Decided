@@ -934,6 +934,19 @@ export default function SimpleMealPlan() {
         localStorage.removeItem('current_meals');
         localStorage.removeItem('current_meal_plan_id');
         
+        // Clear any other potential storage related to meal plans
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (
+            key.includes('meal_plan') ||
+            key.includes('meals') ||
+            key.includes('grocery')
+          )) {
+            console.log(`[RESET] Clearing additional storage key: ${key}`);
+            localStorage.removeItem(key);
+          }
+        }
+        
         console.log('[RESET] Cleared all local storage data for meal plans');
         
         // Clear module-level cache

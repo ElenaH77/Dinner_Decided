@@ -1591,6 +1591,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Reset a meal plan completely - for recovery from data corruption
+  // Set a meal plan as active endpoint
+  app.put("/api/meal-plan/:planId/set-active", async (req, res) => {
+    try {
+      const { planId } = req.params;
+      console.log(`[API] Setting meal plan ${planId} as active`);
+      
+      // Get the specified meal plan
+      const existingPlan = await storage.getMealPlan(Number(planId));
+      
+      if (!existingPlan) {
+        return res.status(404).json({ message: "Meal plan not found" });
+      }
+      
+      // First, deactivate all meal plans
+      const allPlans = await storage.getAllMealPlans();
+      for (const plan of allPlans) {
+        if (plan.id !== Number(planId) && plan.isActive) {
+          console.log(`[API] Deactivating plan ${plan.id}`);
+          await storage.updateMealPlan(plan.id, { ...plan, isActive: false });
+        }
+      }
+      
+      // Then, set the target plan as active
+      const updatedPlan = await storage.updateMealPlan(Number(planId), { ...existingPlan, isActive: true });
+      
+      console.log(`[API] Successfully set meal plan ${planId} as active`);
+      return res.json(updatedPlan);
+    } catch (error) {
+      console.error('[API] Error setting active meal plan:', error);
+      return res.status(500).json({
+        message: "Failed to set meal plan as active",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.post("/api/meal-plan/:planId/reset", async (req, res) => {
     try {
       const { planId } = req.params;
