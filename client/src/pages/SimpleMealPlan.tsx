@@ -888,7 +888,10 @@ export default function SimpleMealPlan() {
     }
   };
 
-  // Reset meal plan function using the new setActiveMealPlan context function
+  // Get the meal plan context functions at the component level
+  const { setActiveMealPlan, setCurrentPlan } = useMealPlan();
+
+  // Reset meal plan function using the context functions
   const resetMealPlan = async () => {
     try {
       setIsResetting(true);
@@ -898,9 +901,6 @@ export default function SimpleMealPlan() {
         title: "Resetting meal plan",
         description: "Clearing meal plan data..."
       });
-      
-      // Get the meal plan context functions
-      const { setActiveMealPlan, setCurrentPlan } = useMealPlan();
       
       // First, get the current meal plan to get its ID
       let currentPlanId;
