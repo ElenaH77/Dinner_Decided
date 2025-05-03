@@ -525,6 +525,25 @@ export default function SimpleMealPlan() {
   
   // Process meals when data is loaded
   useEffect(() => {
+    // Log detailed information about what we received
+    console.log("[DEBUG] Meal plan data received:", mealPlan);
+    console.log("[DEBUG] Meal plan data type:", typeof mealPlan);
+    
+    // Check if we have meal plan data
+    if (mealPlan) {
+      // Check for meals array and log info about it
+      if (mealPlan.meals) {
+        console.log("[DEBUG] Meals property exists, type:", typeof mealPlan.meals);
+        console.log("[DEBUG] Is array?", Array.isArray(mealPlan.meals));
+        console.log("[DEBUG] Length:", Array.isArray(mealPlan.meals) ? mealPlan.meals.length : 'N/A');
+      } else {
+        console.log("[DEBUG] No meals property on meal plan!");
+      }
+    } else {
+      console.log("[DEBUG] No meal plan data received!");
+    }
+    
+    // Proceed with normal processing
     if (mealPlan && Array.isArray(mealPlan.meals)) {
       // Create deep copies of the meals to prevent reference sharing
       const processedMeals = mealPlan.meals.map((meal: any, index: number) => {
@@ -554,6 +573,31 @@ export default function SimpleMealPlan() {
       console.log('Cached', meals.length, 'meals for persistence between page navigations');
     }
   }, [meals]);
+  
+  // Check for URL parameters to see if we just came from meal plan builder
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const fromBuilder = queryParams.get('from') === 'builder';
+    
+    if (fromBuilder) {
+      console.log('[NAVIGATION] Detected navigation from meal plan builder, will force refresh shortly...');
+      
+      // Show a toast to indicate we're loading the new plan
+      toast({
+        title: "Loading New Meal Plan",
+        description: "Fetching your freshly created meal plan...",
+      });
+      
+      // Wait a second to ensure server has fully processed the meal plan, then refresh
+      setTimeout(() => {
+        console.log('[NAVIGATION] Performing delayed refresh after returning from builder');
+        refetch();
+      }, 1000);
+      
+      // Clean up the URL by removing the query parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
   
   // Add meal handler
   const handleAddMeal = () => {
@@ -907,6 +951,19 @@ export default function SimpleMealPlan() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => refetch()}
+              variant="outline"
+              className="text-[#21706D] border-[#21706D] hover:bg-[#f0f9f9] hover:text-[#195957]"
+            >
+              <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 21h5v-5" />
+              </svg>
+              Refresh
+            </Button>
             <ResetButton 
               onReset={resetMealPlan}
               label="Reset Plan"
@@ -926,6 +983,10 @@ export default function SimpleMealPlan() {
       {/* Loading state */}
       {isLoading ? (
         <div className="space-y-4">
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md mb-4">
+            <h3 className="font-medium text-yellow-800">Loading meal plan...</h3>
+            <p className="text-sm text-yellow-700">Fetching your latest meal plan from the server.</p>
+          </div>
           {[1, 2, 3].map((i) => (
             <Card key={i} className="w-full">
               <CardContent className="p-0">
@@ -950,6 +1011,43 @@ export default function SimpleMealPlan() {
               onRemove={handleRemoveMeal} 
             />
           ))}
+        </div>
+      ) : mealPlan && mealPlan.id ? (
+        <div className="space-y-4">
+          <Card className="w-full bg-orange-50 border-orange-200">
+            <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+              <div className="bg-orange-100 rounded-full p-3 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-orange-600"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              </div>
+              <h3 className="text-lg font-medium text-orange-800 mb-2">Meal Plan Display Issue</h3>
+              <p className="text-sm text-orange-700 mb-4">
+                Found meal plan #{mealPlan.id} but it contains no meals. Try clicking the Refresh button above or generating a new meal plan.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => refetch()}
+                  variant="outline"
+                  className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                >
+                  <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 21h5v-5" />
+                  </svg>
+                  Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="w-full bg-white shadow-sm mt-6">
+            <CardContent className="p-6">
+              <p className="text-sm text-gray-600 mb-4">Debug Info:</p>
+              <pre className="text-xs bg-gray-100 p-4 rounded-md overflow-auto">
+                {JSON.stringify(mealPlan, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <Card className="w-full bg-white shadow-sm">
