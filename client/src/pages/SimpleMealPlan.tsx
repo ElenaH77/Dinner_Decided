@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ResetButton } from "@/components/buttons/ResetButton";
+import { useMealPlan } from "@/contexts/meal-plan-context";
 
 // Meal types with their descriptions
 const MEAL_TYPES = [
