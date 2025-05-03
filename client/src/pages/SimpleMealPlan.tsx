@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ResetButton } from "@/components/buttons/ResetButton";
 
 // Meal types with their descriptions
 const MEAL_TYPES = [
@@ -507,6 +508,7 @@ export default function SimpleMealPlan() {
   const [mealType, setMealType] = useState("");
   const [preferences, setPreferences] = useState("");
   const [isAddingMeal, setIsAddingMeal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [_, navigate] = useLocation();
   // Initialize from either the cached meals or empty array
   const [meals, setMeals] = useState<any[]>(() => {
@@ -517,7 +519,7 @@ export default function SimpleMealPlan() {
   });
   
   // Fetch meal plan data
-  const { data: mealPlan, isLoading } = useQuery({
+  const { data: mealPlan, isLoading, refetch } = useQuery({
     queryKey: ["/api/meal-plan/current"],
   });
   
@@ -673,6 +675,92 @@ export default function SimpleMealPlan() {
     setPreferences("");
   };
   
+  // Reset meal plan function
+  const resetMealPlan = async () => {
+    try {
+      setIsResetting(true);
+      
+      // Show a loading toast
+      toast({
+        title: "Resetting meal plan",
+        description: "Clearing meal plan data..."
+      });
+      
+      // First, get the current meal plan to get its ID
+      let currentPlanId;
+      try {
+        const planResponse = await apiRequest("GET", "/api/meal-plan/current");
+        if (planResponse.ok) {
+          const currentPlan = await planResponse.json();
+          currentPlanId = currentPlan.id;
+        }
+      } catch (error) {
+        console.error("Error getting current plan ID:", error);
+        // Try to get from query cache as fallback
+        const cachedPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
+        if (cachedPlan && cachedPlan.id) {
+          currentPlanId = cachedPlan.id;
+        }
+      }
+      
+      if (!currentPlanId) {
+        throw new Error("Could not determine meal plan ID for reset");
+      }
+      
+      console.log(`[RESET] Resetting meal plan ${currentPlanId}`);
+      
+      // Call our server endpoint to reset the plan
+      const response = await fetch(`/api/meal-plan/${currentPlanId}/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to reset meal plan');
+      }
+      
+      const result = await response.json();
+      console.log('[RESET] Server response:', result);
+      
+      if (result.success) {
+        // Clear local storage
+        localStorage.removeItem('current_meal_plan');
+        localStorage.removeItem('current_meals');
+        
+        // Clear module-level cache
+        cachedMeals = [];
+        
+        // Clear react query cache
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        
+        // Update meals state
+        setMeals([]);
+        
+        // Refetch data
+        await refetch();
+        
+        toast({
+          title: "Success",
+          description: "Meal plan has been reset successfully. Generate a new plan to continue."
+        });
+      } else {
+        throw new Error(result.message || 'Reset operation failed');
+      }
+    } catch (error) {
+      console.error('[RESET] Error resetting meal plan:', error);
+      toast({
+        title: "Reset Failed",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive"
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+  
   // Submit new meal request
   const handleSubmitMeal = async () => {
     if (!mealType) {
@@ -818,13 +906,20 @@ export default function SimpleMealPlan() {
       <div className="sticky top-0 z-10 bg-white py-4 border-b border-gray-100 mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>
-          <Button 
-            onClick={handleAddMeal}
-            className="bg-[#21706D] hover:bg-[#195957]"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Meal
-          </Button>
+          <div className="flex gap-2">
+            <ResetButton 
+              onReset={resetMealPlan}
+              label="Reset Plan"
+              confirmMessage="This will clear all meals from your current plan. This action cannot be undone. Continue?"
+            />
+            <Button 
+              onClick={handleAddMeal}
+              className="bg-[#21706D] hover:bg-[#195957]"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Meal
+            </Button>
+          </div>
         </div>
       </div>
       
