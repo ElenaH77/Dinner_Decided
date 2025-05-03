@@ -1497,6 +1497,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint to inspect request body
+  app.post('/api/debug-request', (req, res) => {
+    console.log('[DEBUG] Received request body:', JSON.stringify(req.body, null, 2));
+    console.log('[DEBUG] Content-Type:', req.headers['content-type']);
+    res.json({ success: true, received: req.body });
+  });
+  
   // Test routes for error handling - for development only
   app.get("/api/test/errors/:errorType", (req, res) => {
     const { errorType } = req.params;

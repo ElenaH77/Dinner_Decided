@@ -148,6 +148,14 @@ const MealCard = ({
         try {
           console.log(`[MealCard] Using dedicated endpoint to update meal ${meal.id} in plan ${mealPlanId}`);
           const { apiRequest } = await import('@/lib/queryClient');
+          
+          // Send to debug endpoint first to verify payload
+          const debugResponse = await apiRequest('POST', '/api/debug-request', {
+            updatedMeal: replacementMeal, // Complete meal object
+            mealId: meal.id // ID of meal to update
+          });
+          console.log('[MealCard] Debug response:', await debugResponse.json());
+          
           const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${mealPlanId}`, {
             updatedMeal: replacementMeal, // Complete meal object 
             mealId: meal.id // ID of meal to update
