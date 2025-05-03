@@ -1235,13 +1235,13 @@ export default function SimpleMealPlan() {
               </p>
               <div className="flex gap-2">
                 <Button
-                  onClick={handleAddMeal}
+                  onClick={() => setIsDialogOpen(true)}
                   className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add New Meal
                 </Button>
-                <Link href="/plan-builder">
+                <Link href="/meal-plan-builder">
                   <Button
                     variant="outline"
                     className="text-teal-600 border-teal-600 hover:bg-teal-50"
@@ -1253,14 +1253,7 @@ export default function SimpleMealPlan() {
               </div>
             </CardContent>
           </Card>
-          <Card className="w-full bg-white shadow-sm mt-6">
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-600 mb-4">Debug Info:</p>
-              <pre className="text-xs bg-gray-100 p-4 rounded-md overflow-auto">
-                {JSON.stringify(mealPlan, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
+
         </div>
       ) : (
         <Card className="w-full bg-white shadow-sm">
