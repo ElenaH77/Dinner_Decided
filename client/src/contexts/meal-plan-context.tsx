@@ -23,6 +23,7 @@ interface ExtendedMealPlan extends MealPlan {
 interface MealPlanContextType {
   currentPlan: ExtendedMealPlan | null;
   setCurrentPlan: (plan: ExtendedMealPlan | any) => void;
+  setActiveMealPlan: (planId: number) => Promise<boolean>; // Explicitly set a meal plan as active
   addMeal: (meal: MealWithId) => void;
   removeMeal: (mealId: string) => void;
   updateMeal: (mealId: string, updatedMeal: MealWithId) => void;
