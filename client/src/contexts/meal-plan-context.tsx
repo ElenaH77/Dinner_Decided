@@ -63,7 +63,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
         const uniqueMeals: MealWithId[] = [];
         const mealIdsSet = new Set<string>();
         
-        plan.meals.forEach(meal => {
+        plan.meals.forEach((meal: any) => {
           // Ensure the meal has an ID
           if (!meal.id) {
             meal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -343,9 +343,14 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       // 4. Force context update - this recreates the plan object
       console.log('Meal update successful, refreshing UI components');
       
-      // 5. Ensure the query cache is updated to prevent stale data 
+      // 5. Ensure the query cache is updated to prevent stale data
       try {
-        await apiRequest('GET', '/api/meal-plan/current', undefined, { forceRefresh: true });
+        // Standard fetch to bypass react-query cache
+        await fetch('/api/meal-plan/current?_=' + Date.now()); 
+        // Also invalidate any cached queries
+        import('@/lib/queryClient').then(({ queryClient }) => {
+          queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+        });
       } catch (error) {
         console.error('Failed to refresh API cache:', error);
       }

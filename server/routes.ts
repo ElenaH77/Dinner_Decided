@@ -1436,6 +1436,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a specific meal in a meal plan
+  app.patch('/api/meal-plan/:planId', async (req, res) => {
+    try {
+      const { planId } = req.params;
+      const { updatedMeal, mealId } = req.body;
+      
+      if (!updatedMeal || !mealId) {
+        return res.status(400).json({ message: "Missing required fields: updatedMeal and mealId" });
+      }
+      
+      console.log(`[API] Updating meal ${mealId} in plan ${planId}`);
+      
+      // Get the current meal plan
+      const mealPlan = await storage.getMealPlan(Number(planId));
+      
+      if (!mealPlan) {
+        return res.status(404).json({ message: "Meal plan not found" });
+      }
+      
+      // Make sure there are meals to update
+      if (!mealPlan.meals || !Array.isArray(mealPlan.meals)) {
+        return res.status(400).json({ message: "Meal plan has no meals to update" });
+      }
+      
+      // Find the meal to update
+      const mealIndex = mealPlan.meals.findIndex(meal => meal.id === mealId);
+      
+      if (mealIndex === -1) {
+        return res.status(404).json({ message: "Meal not found in plan" });
+      }
+      
+      // Create a deep clone of the meal plan to avoid mutation issues
+      const updatedMeals = JSON.parse(JSON.stringify(mealPlan.meals));
+      
+      // Ensure ID consistency
+      updatedMeal.id = mealId;
+      
+      // Replace the meal at the found index
+      updatedMeals[mealIndex] = updatedMeal;
+      
+      // Update the meal plan
+      const updatedPlan = await storage.updateMealPlan(Number(planId), {
+        ...mealPlan,
+        meals: updatedMeals
+      });
+      
+      console.log(`[API] Successfully updated meal in plan, now has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
+      
+      // Update grocery list if needed
+      const household = await storage.getHousehold();
+      if (household) {
+        await generateAndSaveGroceryList(Number(planId), household.id);
+      }
+      
+      res.json(updatedMeal);
+    } catch (error) {
+      console.error("Error updating meal in plan:", error);
+      res.status(500).json({ message: "Failed to update meal in plan" });
+    }
+  });
+  
   // Test routes for error handling - for development only
   app.get("/api/test/errors/:errorType", (req, res) => {
     const { errorType } = req.params;

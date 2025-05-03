@@ -98,11 +98,35 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
     setIsReplacing(true);
     setIsModified(true);
     try {
-      await apiRequest("POST", `/api/meal-plan/replace-meal/${meal.id}`, {});
+      const response = await apiRequest("POST", `/api/meal-plan/replace-meal/${meal.id}`, {});
+      
+      if (!response.ok) {
+        throw new Error(`Failed to replace meal: ${response.status}`);
+      }
+      
+      // Get the updated meal data
+      const replacedMeal = await response.json();
+      console.log("Received replacement meal:", replacedMeal);
       
       // Update both the query cache and the context data
       await queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
-      await refetchMealPlan(); // This will update the context with fresh data
+      
+      // Force a full refresh of the meal plan to ensure all components have the latest data
+      if (refetchMealPlan) {
+        try {
+          await refetchMealPlan(); // This will update the context with fresh data
+        } catch (refetchError) {
+          console.error("Error refetching meal plan:", refetchError);
+          // Continue even if refetch fails - we'll still show success message
+        }
+      }
+      
+      // Additional refresh step - fetch directly to bypass any caching layers
+      try {
+        await fetch(`/api/meal-plan/current?_=${Date.now()}`);
+      } catch (fetchError) {
+        console.error("Error direct fetching meal plan:", fetchError);
+      }
       
       toast({
         title: "Meal replaced",
@@ -112,7 +136,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
       console.error("Error replacing meal:", error);
       toast({
         title: "Error",
-        description: "Failed to replace meal",
+        description: typeof error === 'string' ? error : "Failed to replace meal",
         variant: "destructive"
       });
     } finally {
