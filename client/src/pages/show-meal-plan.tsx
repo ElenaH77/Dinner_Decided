@@ -72,12 +72,33 @@ const MealCard = ({
       
       console.log(`[MealCard] Received modified meal:`, updatedMeal);
       
-      // Update the meal plan in both local component state and context
+      // 1. First, try to update via dedicated API endpoint if we have a meal plan ID
+      if (mealPlanId) {
+        try {
+          console.log(`[MealCard] Using dedicated endpoint to update meal ${meal.id} in plan ${mealPlanId}`);
+          const { apiRequest } = await import('@/lib/queryClient');
+          const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${mealPlanId}`, {
+            updatedMeal: updatedMeal, // Complete meal object
+            mealId: meal.id // ID of meal to update
+          });
+          
+          if (!patchResponse.ok) {
+            console.warn(`Dedicated meal update failed with status ${patchResponse.status}, falling back to context update`);
+          } else {
+            console.log('[MealCard] Successfully updated meal via dedicated endpoint');
+          }
+        } catch (patchError) {
+          console.error("Error using dedicated meal update endpoint:", patchError);
+          // Continue with other update methods as fallback
+        }
+      }
+      
+      // 2. Update the meal plan in component state
       if (onUpdate) {
         onUpdate(updatedMeal);
       }
       
-      // Also update in the global context if available
+      // 3. Also update in the global context if available
       if (updateMealInContext) {
         try {
           updateMealInContext(meal.id, updatedMeal);
@@ -122,9 +143,43 @@ const MealCard = ({
         currentMeals // Pass the current meals array
       );
       
-      // Update the meal plan
+      // 1. First, try to update via dedicated API endpoint if we have a meal plan ID
+      if (mealPlanId) {
+        try {
+          console.log(`[MealCard] Using dedicated endpoint to update meal ${meal.id} in plan ${mealPlanId}`);
+          const { apiRequest } = await import('@/lib/queryClient');
+          const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${mealPlanId}`, {
+            updatedMeal: replacementMeal, // Complete meal object 
+            mealId: meal.id // ID of meal to update
+          });
+          
+          if (!patchResponse.ok) {
+            console.warn(`Dedicated meal replacement failed with status ${patchResponse.status}, falling back to context update`);
+          } else {
+            console.log('[MealCard] Successfully replaced meal via dedicated endpoint');
+          }
+        } catch (patchError) {
+          console.error("Error using dedicated meal replacement endpoint:", patchError);
+          // Continue with other update methods as fallback
+        }
+      }
+      
+      // 2. Update the meal plan in component state
       if (onUpdate) {
         onUpdate(replacementMeal);
+      }
+      
+      // 3. Also update in the global context if available
+      if (updateMealInContext) {
+        try {
+          updateMealInContext(meal.id, replacementMeal);
+          console.log(`[MealCard] Updated meal in context successfully`);
+          
+          // Force UI refresh to ensure changes are reflected
+          setTimeout(() => refreshUI?.(), 100);
+        } catch (contextError) {
+          console.error("Error updating meal in context:", contextError);
+        }
       }
       
       toast({

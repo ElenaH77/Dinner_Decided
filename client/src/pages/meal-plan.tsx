@@ -221,9 +221,10 @@ export default function MealPlan() {
         // 1. First, use our new dedicated PATCH endpoint for meal updates
         try {
           console.log(`Using dedicated endpoint to update meal ${mealId} in plan ${currentMealPlan.id}`);
+          // Important: Need to send both updatedMeal and mealId per server implementation
           const patchResponse = await apiRequest('PATCH', `/api/meal-plan/${currentMealPlan.id}`, {
-            updatedMeal, 
-            mealId
+            updatedMeal: updatedMeal, // Object with all meal properties
+            mealId: mealId // ID of meal to update
           });
           
           if (!patchResponse.ok) {
