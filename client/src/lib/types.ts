@@ -22,6 +22,7 @@ export type CookingPreference = {
   weekendCookingStyle: string;
   preferredCuisines: string[];
   location: string;
+  appliances?: string[];
 };
 
 export type MealTag = {

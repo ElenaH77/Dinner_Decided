@@ -60,7 +60,57 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         
         // Set cooking preferences
         if (data.preferences) {
-          setPreferences(data.preferences);
+          try {
+            // Check if preferences is a string that needs parsing
+            if (typeof data.preferences === 'string') {
+              const parsedPreferences = JSON.parse(data.preferences);
+              
+              // Create a complete preferences object
+              const completePreferences = {
+                id: data.id || 1,
+                userId: 1,
+                confidenceLevel: data.cookingSkill || 3,
+                weekdayCookingTime: parsedPreferences.weekdayCookingTime || '30-45 minutes',
+                weekendCookingStyle: parsedPreferences.weekendCookingStyle || 'Keep it simple',
+                preferredCuisines: parsedPreferences.preferredCuisines || [],
+                location: parsedPreferences.location || data.location || '',
+                appliances: data.appliances || []
+              };
+              
+              setPreferences(completePreferences);
+            } else {
+              // It's already an object, use it directly
+              setPreferences({
+                ...data.preferences,
+                appliances: data.appliances || []
+              });
+            }
+          } catch (error) {
+            console.error('Error parsing preferences:', error);
+            // Create default preferences using available data
+            setPreferences({
+              id: data.id || 1,
+              userId: 1,
+              confidenceLevel: data.cookingSkill || 3,
+              weekdayCookingTime: '30-45 minutes',
+              weekendCookingStyle: 'Keep it simple',
+              preferredCuisines: [],
+              location: data.location || '',
+              appliances: data.appliances || []
+            });
+          }
+        } else if (data.location || data.appliances) {
+          // Create minimal preferences from the household data
+          setPreferences({
+            id: data.id || 1,
+            userId: 1,
+            confidenceLevel: data.cookingSkill || 3,
+            weekdayCookingTime: '30-45 minutes',
+            weekendCookingStyle: 'Keep it simple',
+            preferredCuisines: [],
+            location: data.location || '',
+            appliances: data.appliances || []
+          });
         }
       }
     } catch (error) {

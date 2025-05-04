@@ -42,8 +42,17 @@ export default function HouseholdProfile() {
     }
   }, [preferences]);
   
+  // We'll use the refreshHouseholdData function to update appliance data
+  
   // State for zip code
-  const [zipCode, setZipCode] = useState<string>(preferences?.location || '');
+  const [zipCode, setZipCode] = useState<string>('');
+  
+  // Update zip code when preferences change
+  useEffect(() => {
+    if (preferences?.location) {
+      setZipCode(preferences.location);
+    }
+  }, [preferences]);
   
   // Available cuisines for selection
   const availableCuisines = ['Italian', 'Mexican', 'American', 'Indian', 'Chinese', 'Japanese', 'Thai', 'Mediterranean', 'French', 'Greek'];
@@ -213,13 +222,26 @@ export default function HouseholdProfile() {
     try {
       console.log('Saving preferences with location:', zipCode);
       
-      // Also update the location in the household
+      // Get selected appliance IDs
+      const selectedAppliances = KITCHEN_APPLIANCES
+        .filter(appliance => {
+          const existingEquipment = equipment.find(e => 
+            e.name.toLowerCase() === appliance.name.toLowerCase() || 
+            e.name.toLowerCase() === appliance.id.toLowerCase());
+          return existingEquipment ? existingEquipment.isOwned : false;
+        })
+        .map(appliance => appliance.id);
+      
+      console.log('Selected appliances:', selectedAppliances);
+      
+      // Get the household data
       const household = await apiRequest('GET', '/api/household').then(r => r.json());
       
-      // Update household location
+      // Update household location and appliances
       await apiRequest('PATCH', '/api/household', {
         ...household,
-        location: zipCode
+        location: zipCode,
+        appliances: selectedAppliances
       });
       
       // If preferences already exist, update them
@@ -229,7 +251,8 @@ export default function HouseholdProfile() {
           weekdayCookingTime,
           weekendCookingStyle,
           preferredCuisines: selectedCuisines,
-          location: zipCode
+          location: zipCode,
+          appliances: selectedAppliances
         });
       } else {
         // Otherwise create new preferences
@@ -239,7 +262,8 @@ export default function HouseholdProfile() {
           weekdayCookingTime,
           weekendCookingStyle,
           preferredCuisines: selectedCuisines,
-          location: zipCode
+          location: zipCode,
+          appliances: selectedAppliances
         });
         
         const newPreferences = await response.json();
@@ -358,9 +382,10 @@ export default function HouseholdProfile() {
               return equipName === applName || equipName === applianceId;
             });
             
-            // Also check against the household appliances array directly
-            const applianceIds = (preferences?.appliances || []).map(a => a.toLowerCase());
-            const isInAppliances = applianceIds.includes(appliance.id.toLowerCase());
+            // Check if this appliance is in the household data
+            const applianceId = appliance.id.toLowerCase();
+            const householdAppliances = Array.isArray(preferences?.appliances) ? preferences.appliances : [];
+            const isInAppliances = householdAppliances.some(a => a.toLowerCase() === applianceId);
             
             // Consider it owned if it exists in either place
             const isOwned = existingEquipment ? existingEquipment.isOwned : isInAppliances;
