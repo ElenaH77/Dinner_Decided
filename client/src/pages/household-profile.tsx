@@ -211,6 +211,17 @@ export default function HouseholdProfile() {
 
   const savePreferences = async () => {
     try {
+      console.log('Saving preferences with location:', zipCode);
+      
+      // Also update the location in the household
+      const household = await apiRequest('GET', '/api/household').then(r => r.json());
+      
+      // Update household location
+      await apiRequest('PATCH', '/api/household', {
+        ...household,
+        location: zipCode
+      });
+      
       // If preferences already exist, update them
       if (preferences?.id) {
         await apiRequest('PUT', `/api/cooking-preferences/${preferences.id}`, {
@@ -235,11 +246,15 @@ export default function HouseholdProfile() {
         setPreferences(newPreferences);
       }
       
+      // Refresh household data to get updated values
+      await refreshHouseholdData();
+      
       toast({
         title: "Profile saved",
         description: "Your household profile has been updated."
       });
     } catch (error) {
+      console.error('Error saving preferences:', error);
       toast({
         title: "Failed to save profile",
         description: "There was an error saving your household profile.",
@@ -470,10 +485,12 @@ export default function HouseholdProfile() {
 
       {/* Fixed Save Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-md z-10">
-        <div className="container mx-auto max-w-6xl flex justify-end">
+        <div className="container mx-auto max-w-6xl flex justify-between items-center">
+          <span className="text-sm text-gray-500">Don't forget to save your changes</span>
           <Button 
             onClick={savePreferences}
-            className="bg-teal-primary hover:bg-teal-light text-white py-2 px-6 font-medium"
+            className="bg-[#F25C05] hover:bg-[#D95204] text-white py-2 px-6 font-medium transition-all"
+            size="lg"
           >
             Save Changes
           </Button>
