@@ -183,10 +183,11 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         3. Appropriate day of the week based on the selections above
         4. Meal category from my selection
         5. Prep time (in minutes)
-        6. List of main ingredients needed (with quantities)
+        6. Detailed list of ALL ingredients needed with specific quantities (like "1 lb ground beef", "2 cloves garlic, minced")
         7. Serving size (number of people)
-        8. Any meal prep tips, especially for "split prep" category meals
-        9. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
+        8. Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
+        9. For "split prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
+        10. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
         
         Generate a JSON response with an array of meal objects, ensuring that you include the rationales as an array of strings in a "rationales" field for each meal.`;
     } else {
