@@ -12,6 +12,7 @@ import { PlusCircle } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { HouseholdMember, KitchenEquipment } from '@/lib/types';
 import { KITCHEN_APPLIANCES } from '@/lib/constants';
+import { OpenAIDebugView } from '@/components/OpenAIDebugView';
 
 export default function HouseholdProfile() {
   const { toast } = useToast();
@@ -532,6 +533,15 @@ export default function HouseholdProfile() {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* OpenAI Debug View */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <h3 className="text-lg font-medium mb-4 text-teal-primary">AI Data Usage</h3>
+        <p className="mb-4 text-neutral-text">
+          The following data from your household profile is used when generating meal plans with OpenAI:
+        </p>
+        <OpenAIDebugView />
       </div>
 
       {/* Add some spacing at the bottom */}
