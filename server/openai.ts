@@ -232,7 +232,8 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - categories (string[]): An array of meal categories (e.g., "quick", "batch cooking")
           - prepTime (number): Total preparation time in minutes
           - servings (number): Number of servings the meal makes
-          - ingredients (string[]): List of ingredients with quantities
+          - ingredients (string[]): Detailed list of ALL ingredients with specific quantities
+          - directions (string[]): Step-by-step cooking instructions (5-8 steps) with specific cooking times
           
           If the meal is assigned to a specific day, include:
           - day (string): The day of the week
@@ -241,21 +242,41 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - rationales (string[]): Array of reasons why this meal is appropriate for the family
           
           For "split prep" meals, include:
-          - prepInstructions (string): Instructions for the initial preparation
-          - cookingInstructions (string): Instructions for the final cooking
+          - prepInstructions (string): Detailed instructions for what to prepare ahead of time
+          - cookingInstructions (string): Detailed instructions for the final cooking day
           
           Example response format:
           {
             "meals": [
               {
                 "name": "Sheet Pan Chicken Fajitas",
-                "description": "A quick and easy Mexican-inspired dinner",
+                "description": "A quick and easy Mexican-inspired dinner with colorful bell peppers and tender chicken",
                 "categories": ["quick", "mexican"],
                 "day": "Monday",
                 "prepTime": 25,
                 "servings": 4,
-                "ingredients": ["1.5 lbs chicken breast, sliced", "2 bell peppers", "1 onion"],
-                "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein"]
+                "ingredients": [
+                  "1.5 lbs boneless, skinless chicken breast, sliced into strips", 
+                  "1 red bell pepper, sliced", 
+                  "1 green bell pepper, sliced", 
+                  "1 yellow bell pepper, sliced", 
+                  "1 large onion, sliced", 
+                  "2 tbsp olive oil", 
+                  "1 packet (2 tbsp) fajita seasoning", 
+                  "8 small flour tortillas", 
+                  "1 lime, cut into wedges", 
+                  "1/2 cup sour cream for serving", 
+                  "1/4 cup chopped fresh cilantro for garnish"
+                ],
+                "directions": [
+                  "Preheat oven to 425°F (220°C) and line a large baking sheet with parchment paper",
+                  "In a large bowl, combine sliced chicken, bell peppers, and onion",
+                  "Drizzle with olive oil and sprinkle with fajita seasoning, then toss until evenly coated",
+                  "Spread mixture evenly on prepared baking sheet and roast for 20-25 minutes until chicken is cooked through and vegetables are tender",
+                  "While the fajita mixture cooks, warm the tortillas according to package directions",
+                  "Serve the chicken and vegetable mixture with warm tortillas, lime wedges, sour cream, and cilantro"
+                ],
+                "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein", "One-pan meal means easy cleanup"]
               },
               {...}
             ]
@@ -342,7 +363,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         // Handle OpenAI error object types
         if ('error' in error && typeof error.error === 'object') {
           const openaiError = error.error;
-          if ('type' in openaiError && openaiError.type === 'insufficient_quota') {
+          if (openaiError && 'type' in openaiError && openaiError.type === 'insufficient_quota') {
             throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
           }
         }
@@ -419,7 +440,7 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
     
     // Log grocery list generation - check for duplicate meals
     const mealNames = meals.map((m: any) => m.name);
-    const uniqueMealNames = [...new Set(mealNames)];
+    const uniqueMealNames = [...new Set(mealNames)] as string[];
     
     console.log(`[GROCERY] Generating grocery list with ${meals.length} meals, ${uniqueMealNames.length} unique meal types`);
     if (uniqueMealNames.length < meals.length) {
@@ -479,7 +500,7 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       // Handle OpenAI error object types
       if ('error' in error && typeof error.error === 'object') {
         const openaiError = error.error;
-        if ('type' in openaiError && openaiError.type === 'insufficient_quota') {
+        if (openaiError && 'type' in openaiError && openaiError.type === 'insufficient_quota') {
           throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
         }
       }
