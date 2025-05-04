@@ -320,10 +320,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get meal plan from OpenAI
       const generatedMeals = await generateMealPlan(household, enhancedPreferences);
       
-      if (!generatedMeals || !generatedMeals.length) {
-        console.log('[MEAL PLAN] No meals generated from OpenAI');
-        return res.status(500).json({ message: "Failed to generate meal plan" });
+      // Add extra validation and fallback for the returned meals
+      if (!generatedMeals) {
+        console.log('[MEAL PLAN] No meals returned from OpenAI');
+        return res.status(500).json({ message: "Failed to generate meal plan - no response from AI" });
       }
+      
+      if (!Array.isArray(generatedMeals)) {
+        console.log('[MEAL PLAN] Non-array response from OpenAI:', typeof generatedMeals);
+        return res.status(500).json({ message: "Failed to generate meal plan - invalid response format" });
+      }
+      
+      if (generatedMeals.length === 0) {
+        console.log('[MEAL PLAN] Empty meals array from OpenAI');
+        return res.status(500).json({ message: "Failed to generate meal plan - no meals returned" });
+      }
+      
+      // Verify each meal has critical fields
+      for (const meal of generatedMeals) {
+        if (!meal.name || typeof meal.name !== 'string') {
+          console.log('[MEAL PLAN] Invalid meal without name:', meal);
+          return res.status(500).json({ message: "Failed to generate meal plan - invalid meal format" });
+        }
+      }
+      
+      console.log(`[MEAL PLAN] Successfully generated ${generatedMeals.length} meals`);
       
       console.log('[MEAL PLAN] Generated meals:', JSON.stringify(generatedMeals, null, 2));
       
@@ -454,8 +475,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         additionalPreferences: preferences 
       });
       
-      if (!newMeals || !newMeals.length) {
-        return res.status(500).json({ message: "Failed to generate new meal" });
+      // Add extra validation and fallback for the returned meals
+      if (!newMeals) {
+        console.log('[SINGLE MEAL] No meals returned from OpenAI');
+        return res.status(500).json({ message: "Failed to generate new meal - no response from AI" });
+      }
+      
+      if (!Array.isArray(newMeals)) {
+        console.log('[SINGLE MEAL] Non-array response from OpenAI:', typeof newMeals);
+        return res.status(500).json({ message: "Failed to generate new meal - invalid response format" });
+      }
+      
+      if (newMeals.length === 0) {
+        console.log('[SINGLE MEAL] Empty meals array from OpenAI');
+        return res.status(500).json({ message: "Failed to generate new meal - no meals returned" });
+      }
+      
+      // Verify meal has critical fields
+      if (!newMeals[0].name || typeof newMeals[0].name !== 'string') {
+        console.log('[SINGLE MEAL] Invalid meal without name:', newMeals[0]);
+        return res.status(500).json({ message: "Failed to generate new meal - invalid meal format" });
       }
       
       // Assign ID to the new meal
@@ -523,8 +562,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mealName: mealToReplace.name 
       });
       
-      if (!replacementMeals || !replacementMeals.length) {
-        return res.status(500).json({ message: "Failed to generate replacement meal" });
+      // Add extra validation and fallback for the returned replacement meal
+      if (!replacementMeals) {
+        console.log('[REPLACE MEAL] No meals returned from OpenAI');
+        return res.status(500).json({ message: "Failed to generate replacement meal - no response from AI" });
+      }
+      
+      if (!Array.isArray(replacementMeals)) {
+        console.log('[REPLACE MEAL] Non-array response from OpenAI:', typeof replacementMeals);
+        return res.status(500).json({ message: "Failed to generate replacement meal - invalid response format" });
+      }
+      
+      if (replacementMeals.length === 0) {
+        console.log('[REPLACE MEAL] Empty meals array from OpenAI');
+        return res.status(500).json({ message: "Failed to generate replacement meal - no meals returned" });
+      }
+      
+      // Verify replacement meal has critical fields
+      if (!replacementMeals[0].name || typeof replacementMeals[0].name !== 'string') {
+        console.log('[REPLACE MEAL] Invalid meal without name:', replacementMeals[0]);
+        return res.status(500).json({ message: "Failed to generate replacement meal - invalid meal format" });
       }
       
       // Ensure replacement meal has an ID - keep original ID for continuity

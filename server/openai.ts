@@ -302,12 +302,31 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         }
         return [result.meal || result];
       } else {
-        if (!result.meals || !Array.isArray(result.meals)) {
-          console.warn('[MEAL PLAN] Warning: Response does not contain a meals array');
+        // Handle multiple possible response formats
+        if (result.meals && Array.isArray(result.meals)) {
+          // Standard format with meals array
+          return result.meals;
+        } else if (Array.isArray(result)) {
+          // Direct array of meals
+          return result;
+        } else if (result.name && typeof result.name === 'string') {
+          // Single meal object
+          return [result];
+        } else {
+          // Look through all properties to find any arrays that could be meals
+          for (const key in result) {
+            if (Array.isArray(result[key]) && result[key].length > 0 && 
+                result[key][0] && typeof result[key][0] === 'object' && 
+                result[key][0].name) {
+              console.log(`[MEAL PLAN] Found meals array in key: ${key}`);
+              return result[key];
+            }
+          }
+          
+          console.warn('[MEAL PLAN] Warning: Could not determine meal structure in response');
           console.log('[MEAL PLAN] Full response:', content);
           return [];
         }
-        return result.meals;
       }
     } catch (parseError) {
       console.error('[MEAL PLAN] Error parsing OpenAI response:', parseError);
