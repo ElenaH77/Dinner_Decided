@@ -14,10 +14,10 @@ import { Input } from '@/components/ui/input';
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const MEAL_TYPES = [
-  { id: 'quick', name: 'Quick & Easy', icon: '⚡', description: 'Ready in 30 minutes or less' },
-  { id: 'weeknight', name: 'Weeknight Meals', icon: '🍽️', description: 'Balanced dinners for busy evenings' },
+  { id: 'quick', name: 'Quick & Easy', icon: '⚡', description: '15-20 minutes - assembly type meals and rotisserie chicken magic' },
+  { id: 'weeknight', name: 'Weeknight Meals', icon: '🍽️', description: 'About 30-40 minutes, balanced dinners for busy evenings' },
   { id: 'batch', name: 'Batch Cooking', icon: '📦', description: 'Make once, eat multiple times' },
-  { id: 'split', name: 'Split Prep', icon: '⏰', description: 'Prep ahead, cook later' },
+  { id: 'split', name: 'Split Prep', icon: '⏰', description: 'Prep ahead, cook later - including crockpot meals' },
 ];
 
 export default function MealPlanBuilder() {
