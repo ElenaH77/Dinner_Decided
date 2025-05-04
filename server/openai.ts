@@ -223,7 +223,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           role: "system",
           content: `You are a helpful meal planning assistant that creates personalized meal plans for busy families.
           
-          IMPORTANT: You MUST return your response as a valid JSON array of meal objects. Each meal object should have camelCase property names.
+          IMPORTANT: You MUST return your response as a valid JSON object with an array of meal objects in a 'meals' property. Each meal object should have camelCase property names.
           
           Required properties for each meal:
           - name (string): The name of the dish
@@ -244,19 +244,21 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - cookingInstructions (string): Instructions for the final cooking
           
           Example response format:
-          [
-            {
-              "name": "Sheet Pan Chicken Fajitas",
-              "description": "A quick and easy Mexican-inspired dinner",
-              "categories": ["quick", "mexican"],
-              "day": "Monday",
-              "prepTime": 25,
-              "servings": 4,
-              "ingredients": ["1.5 lbs chicken breast, sliced", "2 bell peppers", "1 onion"],
-              "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein"]
-            },
-            {...}
-          ]`
+          {
+            "meals": [
+              {
+                "name": "Sheet Pan Chicken Fajitas",
+                "description": "A quick and easy Mexican-inspired dinner",
+                "categories": ["quick", "mexican"],
+                "day": "Monday",
+                "prepTime": 25,
+                "servings": 4,
+                "ingredients": ["1.5 lbs chicken breast, sliced", "2 bell peppers", "1 onion"],
+                "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein"]
+              },
+              {...}
+            ]
+          }`
         },
         {
           role: "user",
