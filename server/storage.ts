@@ -701,7 +701,7 @@ export class DatabaseStorage implements IStorage {
       const allMealPlans = await db
         .select()
         .from(mealPlans)
-        .orderBy(desc(mealPlans.createdAt));
+        .orderBy(mealPlans.createdAt, 'desc');
       
       // Log basic info about available meal plans for debugging
       if (allMealPlans.length > 0) {
