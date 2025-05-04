@@ -12,7 +12,7 @@ import {
   groceryLists
 } from "@shared/schema";
 import { db } from './db';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
@@ -697,17 +697,26 @@ export class DatabaseStorage implements IStorage {
 
   async getCurrentMealPlan(): Promise<MealPlan | undefined> {
     try {
-      // First try to find an active meal plan
-      const activeMealPlans = await db
+      // Get all meal plans to be used in various selection strategies
+      const allMealPlans = await db
         .select()
         .from(mealPlans)
-        .where(eq(mealPlans.isActive, true))
-        .orderBy(mealPlans.createdAt, 'desc');
+        .orderBy(desc(mealPlans.createdAt));
+      
+      // Log basic info about available meal plans for debugging
+      if (allMealPlans.length > 0) {
+        const idsList = allMealPlans.map(p => p.id).join(', ');
+        console.log(`[API GET CURRENT] Available meal plans: ${idsList}`);
+      }
+      
+      // First try to find all active meal plans
+      const activeMealPlans = allMealPlans.filter(plan => plan.isActive === true);
       
       console.log('[API GET CURRENT] Retrieved', activeMealPlans.length, 'active meal plans');
 
+      // STRATEGY 1: If we have active meal plans, try to find one with meals
       if (activeMealPlans.length > 0) {
-        // If we have multiple active meal plans, prioritize the one with meals
+        // If we have multiple active meal plans, prioritize the ones with meals
         const plansWithMeals = activeMealPlans.filter(plan => 
           plan.meals && Array.isArray(plan.meals) && plan.meals.length > 0
         );
@@ -719,31 +728,32 @@ export class DatabaseStorage implements IStorage {
           return selectedPlan;
         }
         
-        // Otherwise use the most recent active plan
-        console.log('[API GET CURRENT] Using most recent active plan. ID:', activeMealPlans[0].id);
-        return activeMealPlans[0];
+        // Otherwise, we'll let this fall through to the next strategies
+        // to prioritize ANY plan with meals over an empty active plan
       }
       
-      // If no active plans, look for any plan with meals, starting with the most recent
-      const allMealPlans = await db
-        .select()
-        .from(mealPlans)
-        .orderBy(mealPlans.createdAt, 'desc');
-      
+      // STRATEGY 2: Look for any plan with meals across all plans (active or not)
+      // We already have allMealPlans from above
       const plansWithMeals = allMealPlans.filter(plan => 
         plan.meals && Array.isArray(plan.meals) && plan.meals.length > 0
       );
       
       if (plansWithMeals.length > 0) {
-        // Activate the most recent plan with meals
+        // This is a critical change - we ALWAYS prioritize a plan with meals
+        // over an empty one, even if the empty one is marked active
         await this.updateMealPlan(plansWithMeals[0].id, { isActive: true });
-        console.log('[API GET CURRENT] Activated plan with meals. ID:', plansWithMeals[0].id);
+        console.log('[API GET CURRENT] Activated plan with meals. ID:', plansWithMeals[0].id, 'Meals count:', plansWithMeals[0].meals.length);
         return plansWithMeals[0];
       }
       
-      // If still nothing, return the most recent plan
+      // STRATEGY 3: If no plans have meals, use the most recent active plan
+      if (activeMealPlans.length > 0) {
+        console.log('[API GET CURRENT] Using most recent active plan. ID:', activeMealPlans[0].id);
+        return activeMealPlans[0];
+      }
+      
+      // STRATEGY 4: If still nothing, activate and return the most recent plan
       if (allMealPlans.length > 0) {
-        // Activate the most recent plan
         await this.updateMealPlan(allMealPlans[0].id, { isActive: true });
         console.log('[API GET CURRENT] Activated most recent plan. ID:', allMealPlans[0].id);
         return allMealPlans[0];
