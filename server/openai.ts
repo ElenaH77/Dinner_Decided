@@ -227,6 +227,20 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           content: `You are a meal planning assistant that creates personalized meal suggestions based on family preferences.
           Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions.
           
+          IMPORTANT OUTPUT FORMAT:
+          Every meal MUST include camelCase field names exactly as specified:
+          - name: Name of the dish
+          - description: Description of the dish
+          - day: Day of the week
+          - category: Meal category
+          - prepTime: Preparation time in minutes
+          - servingSize: Number of servings
+          - ingredients: Array of ingredients with quantities
+          - mainIngredients: Same as ingredients
+          - instructions: Array of step-by-step cooking instructions
+          - mealPrepTips: Preparation tips for batch and split prep meals
+          - rationales: Array of reasons why the meal fits the family
+          
           OVERALL RECIPE GUIDELINES:
           - Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise
           - Treat food allergies and appliance limitations as inviolable restrictions
@@ -522,6 +536,20 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           
           ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
+          IMPORTANT OUTPUT FORMAT:
+          Every meal MUST include camelCase field names exactly as specified:
+          - name: Name of the dish
+          - description: Description of the dish
+          - day: Day of the week
+          - category: Meal category (same as original)
+          - prepTime: Preparation time in minutes
+          - servingSize: Number of servings
+          - ingredients: Array of ingredients with quantities
+          - mainIngredients: Same as ingredients
+          - instructions: Array of step-by-step cooking instructions
+          - mealPrepTips: Preparation tips for batch and split prep meals
+          - rationales: Array of reasons why the meal fits the family
+          
           RECIPE FORMAT REQUIREMENTS:
           - Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise
           - Treat food allergies and appliance limitations as inviolable restrictions
@@ -543,11 +571,13 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           - name: the modified recipe name
           - description: brief description of the modified recipe including key ingredients
           - prepTime: preparation time in minutes (similar to original)
-          - mealCategory: same category as the original
+          - category: same category as the original
+          - servingSize: number of people the recipe serves
           - mealPrepTips: preparation tips for the modified recipe
           - mainIngredients: array of ingredients WITH QUANTITIES
+          - ingredients: same as mainIngredients
           - instructions: array of step-by-step cooking instructions (5-8 detailed steps)
-          - appropriateDay: same as the original recipe day
+          - day: same as the original recipe day
           - rationales: array of 3-4 specific reasons why this meal suits this family, including:
              - How it accommodates their dietary needs
              - Why it's appropriate for their cooking skill level
@@ -579,7 +609,7 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
     // Update with new modified meal data while preserving structure
     result.id = meal.id; // Preserve ID
     result.day = meal.day || modifiedMeal.day || modifiedMeal.appropriateDay; // Keep or set day
-    result.category = modifiedMeal.mealCategory || meal.category; // Favor new category if available
+    result.category = modifiedMeal.category || modifiedMeal.mealCategory || meal.category; // Favor new category if available
     result.modifiedFrom = meal.name; // Track original meal name
     result.modificationRequest = modificationRequest; // Store what was requested
     
@@ -672,6 +702,20 @@ export async function replaceMeal(meal: any): Promise<any> {
           
           ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
+          IMPORTANT OUTPUT FORMAT:
+          Every meal MUST include camelCase field names exactly as specified:
+          - name: Name of the dish
+          - description: Description of the dish
+          - day: Day of the week
+          - category: Meal category (same as original)
+          - prepTime: Preparation time in minutes
+          - servingSize: Number of servings
+          - ingredients: Array of ingredients with quantities
+          - mainIngredients: Same as ingredients
+          - instructions: Array of step-by-step cooking instructions
+          - mealPrepTips: Preparation tips for batch and split prep meals
+          - rationales: Array of reasons why the meal fits the family
+          
           RECIPE FORMAT REQUIREMENTS:
           - Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise
           - Treat food allergies and appliance limitations as inviolable restrictions
@@ -693,11 +737,13 @@ export async function replaceMeal(meal: any): Promise<any> {
           - name: a new recipe name (must be different and creative)
           - description: detailed description of the new recipe including key ingredients
           - prepTime: preparation time in minutes (similar to original)
-          - mealCategory: same category as the original
+          - category: same category as the original
+          - servingSize: number of people the recipe serves
           - mealPrepTips: helpful preparation tips specific to this new recipe
           - mainIngredients: array of ingredients WITH QUANTITIES
+          - ingredients: same as mainIngredients
           - instructions: array of step-by-step cooking instructions (5-8 detailed steps)
-          - appropriateDay: same as the original recipe day
+          - day: same as the original recipe day
           - rationales: array of 3-4 specific reasons why this meal suits this family, including:
              - How it accommodates their dietary needs
              - Why it's appropriate for their cooking skill level
@@ -729,7 +775,7 @@ export async function replaceMeal(meal: any): Promise<any> {
     // Update with new replacement meal data while preserving structure
     result.id = meal.id; // Preserve ID
     result.day = meal.day || replacementMeal.day || replacementMeal.appropriateDay; // Keep or set day
-    result.category = replacementMeal.mealCategory || meal.category; // Favor new category if available
+    result.category = replacementMeal.category || replacementMeal.mealCategory || meal.category; // Favor new category if available
     result.replacedFrom = meal.name; // Track original meal name
     
     // Essential replacement data
