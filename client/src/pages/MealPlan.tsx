@@ -15,10 +15,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // Meal types with their descriptions
 const MEAL_TYPES = [
-  { value: "Quick & Easy", label: "Quick & Easy ⚡", description: "Ready in 30 minutes or less" },
-  { value: "Weeknight Meals", label: "Weeknight Meals 🍽️", description: "Balanced dinners for busy evenings" },
+  { value: "Quick & Easy", label: "Quick & Easy ⚡", description: "15-20 minutes - assembly type meals and rotisserie chicken magic" },
+  { value: "Weeknight Meals", label: "Weeknight Meals 🍽️", description: "About 30-40 minutes, balanced dinners for busy evenings" },
   { value: "Batch Cooking", label: "Batch Cooking 📦", description: "Make once, eat multiple times" },
-  { value: "Split Prep", label: "Split Prep ⏰", description: "Prep ahead, cook later" }
+  { value: "Split Prep", label: "Split Prep ⏰", description: "Prep ahead, cook later - including crockpot meals" }
 ];
 
 export default function MealPlan() {
@@ -137,7 +137,7 @@ export default function MealPlan() {
   };
 
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4 overflow-y-auto h-full">
+    <div className="container max-w-4xl mx-auto py-6 px-4 overflow-y-auto h-full pb-24">
       <div className="sticky top-0 z-10 bg-white py-4 border-b border-gray-100 mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>

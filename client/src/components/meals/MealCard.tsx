@@ -249,6 +249,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
               {primaryCategory && (
                 <Badge className="bg-[#21706D] text-white px-3 py-1 flex items-center gap-1">
                   {categoryIcon && <span>{categoryIcon}</span>}
+                  <span>{primaryCategory}</span>
                 </Badge>
               )}
               {meal.prepTime && (
