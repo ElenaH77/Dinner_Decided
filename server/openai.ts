@@ -134,7 +134,26 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       for (const day of days) {
         const category = preferences.mealsByDay[day];
         if (category) {
-          const categoryDescription = preferences.categoryDefinitions?.[category] || category;
+          let categoryDescription = '';
+          
+          // Enhanced category descriptions
+          switch(category) {
+            case 'quick':
+              categoryDescription = 'Quick & Easy (15-20 minutes - assembly type meals and rotisserie chicken magic)';
+              break;
+            case 'weeknight':
+              categoryDescription = 'Weeknight Meals (About 30-40 minutes, balanced dinners for busy evenings)';
+              break;
+            case 'batch':
+              categoryDescription = 'Batch Cooking (Make once, eat multiple times)';
+              break;
+            case 'split':
+              categoryDescription = 'Split Prep (Prep ahead, cook later - including crockpot meals)';
+              break;
+            default:
+              categoryDescription = preferences.categoryDefinitions?.[category] || category;
+          }
+          
           mealSelections.push(`- ${day}: ${categoryDescription}`);
         }
       }
@@ -210,7 +229,14 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           Treat food allergies and appliance limitations as inviolable restrictions.
           For each meal, include 2-3 specific rationales on why it fits the family (based on meal notes, dietary needs, weather, or overall profile).
           Focus on practical, accessible recipes that are kid-friendly.
-          Always include specific ingredient details in meal descriptions (like "with roasted broccoli and garlic mashed potatoes").`
+          Always include specific ingredient details in meal descriptions (like "with roasted broccoli and garlic mashed potatoes").
+          
+          Adhere strictly to these meal type definitions:
+          - Quick & Easy: Meals ready in 15-20 minutes, focusing on assembly-type meals and rotisserie chicken magic
+          - Weeknight Meals: About 30-40 minutes, balanced dinners for busy evenings
+          - Batch Cooking: Make once, eat multiple times during the week
+          - Split Prep: Prep ahead, cook later - including crockpot and slow cooker meals
+          `
         },
         {
           role: "user" as const,
