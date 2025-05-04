@@ -177,6 +177,18 @@ export default function Profile() {
                 </div>
                 
                 <div>
+                  <Label htmlFor="location">Location (for weather-based meal suggestions)</Label>
+                  <Input 
+                    id="location" 
+                    value={household?.location || ""}
+                    onChange={(e) => queryClient.setQueryData(['/api/household'], {...household, location: e.target.value})}
+                    disabled={!isEditing}
+                    className="mt-1"
+                    placeholder="City, State or Zip Code"
+                  />
+                </div>
+                
+                <div>
                   <Label htmlFor="cookingSkill">Cooking Skill Level</Label>
                   <Select 
                     disabled={!isEditing} 
