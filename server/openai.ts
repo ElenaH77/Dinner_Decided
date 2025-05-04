@@ -277,9 +277,26 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         // Parse the JSON response
         let parsedResponse = JSON.parse(content);
         
-        // Handle both formats - array in the root or under a 'meals' property
-        let meals = Array.isArray(parsedResponse) ? parsedResponse : 
-                     (parsedResponse.meals && Array.isArray(parsedResponse.meals)) ? parsedResponse.meals : null;
+        // Handle multiple formats that OpenAI might return:
+        // 1. Array of meals directly
+        // 2. Object with 'meals' property containing an array
+        // 3. Single meal object (needs to be wrapped in an array)
+        let meals;
+        if (Array.isArray(parsedResponse)) {
+          // It's already an array of meals
+          meals = parsedResponse;
+        } else if (parsedResponse.meals && Array.isArray(parsedResponse.meals)) {
+          // It has a 'meals' property with an array
+          meals = parsedResponse.meals;
+        } else if (parsedResponse.name && parsedResponse.ingredients) {
+          // It's a single meal object, needs to be wrapped in an array
+          console.log('[MEAL PLAN] Detected single meal object, converting to array');
+          meals = [parsedResponse];
+        } else {
+          // Can't identify a valid meal format
+          console.log('[MEAL PLAN] Empty meals array from OpenAI');
+          meals = null;
+        }
         
         if (meals) {
           console.log(`[MEAL PLAN] Successfully parsed ${meals.length} meals from OpenAI response`);
