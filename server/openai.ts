@@ -183,7 +183,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         3. Appropriate day of the week based on the selections above
         4. Meal category from my selection
         5. Prep time (in minutes)
-        6. Detailed list of ALL ingredients needed with specific quantities (like "1 lb ground beef", "2 cloves garlic, minced")
+        6. Complete list of ALL ingredients needed with specific quantities (like "1 lb ground beef", "2 cloves garlic, minced"). IMPORTANT: Every ingredient mentioned anywhere in the directions MUST be included in this list with quantities
         7. Serving size (number of people)
         8. Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
         9. For "split prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
@@ -232,7 +232,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - categories (string[]): An array of meal categories (e.g., "quick", "batch cooking")
           - prepTime (number): Total preparation time in minutes
           - servings (number): Number of servings the meal makes
-          - ingredients (string[]): Detailed list of ALL ingredients with specific quantities
+          - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the directions
           - directions (string[]): Step-by-step cooking instructions (5-8 steps) with specific cooking times
           
           If the meal is assigned to a specific day, include:
@@ -263,6 +263,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
                   "1 large onion, sliced", 
                   "2 tbsp olive oil", 
                   "1 packet (2 tbsp) fajita seasoning", 
+                  "1 tsp salt (for seasoning)",
+                  "1/2 tsp black pepper (for seasoning)",
+                  "1 sheet parchment paper",
                   "8 small flour tortillas", 
                   "1 lime, cut into wedges", 
                   "1/2 cup sour cream for serving", 
