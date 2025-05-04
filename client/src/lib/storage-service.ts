@@ -214,6 +214,12 @@ export async function saveMealPlan(mealPlan: any) {
   localStorage.setItem('meal_plan_cache', JSON.stringify(mealPlan));
   localStorage.setItem('current_meal_plan', JSON.stringify(mealPlan));
   
+  // Make sure to save the current meal plan ID correctly
+  if (mealPlan && mealPlan.id) {
+    console.log('[DEBUG] Storing meal plan ID in localStorage:', mealPlan.id);
+    localStorage.setItem('current_meal_plan_id', String(mealPlan.id));
+  }
+  
   // Try to save to API if available
   if (mealPlan.id) {
     try {
@@ -277,6 +283,11 @@ export async function updateMealInPlan(mealPlanId: number, mealId: string, updat
             saveToStorage(STORAGE_KEYS.MEAL_PLAN, updatedPlan);
             localStorage.setItem('meal_plan_cache', JSON.stringify(updatedPlan));
             localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+            
+            // Also save the meal plan ID correctly
+            if (updatedPlan && updatedPlan.id) {
+              localStorage.setItem('current_meal_plan_id', String(updatedPlan.id));
+            }
           }
         }
       }
