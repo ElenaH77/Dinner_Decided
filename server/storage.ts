@@ -696,14 +696,66 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCurrentMealPlan(): Promise<MealPlan | undefined> {
-    const [mealPlan] = await db
-      .select()
-      .from(mealPlans)
-      .where(eq(mealPlans.isActive, true))
-      .orderBy(mealPlans.createdAt, 'desc')
-      .limit(1);
-    
-    return mealPlan;
+    try {
+      // First try to find an active meal plan
+      const activeMealPlans = await db
+        .select()
+        .from(mealPlans)
+        .where(eq(mealPlans.isActive, true))
+        .orderBy(mealPlans.createdAt, 'desc');
+      
+      console.log('[API GET CURRENT] Retrieved', activeMealPlans.length, 'active meal plans');
+
+      if (activeMealPlans.length > 0) {
+        // If we have multiple active meal plans, prioritize the one with meals
+        const plansWithMeals = activeMealPlans.filter(plan => 
+          plan.meals && Array.isArray(plan.meals) && plan.meals.length > 0
+        );
+        
+        // If there's a plan with meals, use it
+        if (plansWithMeals.length > 0) {
+          const selectedPlan = plansWithMeals[0];
+          console.log('[API GET CURRENT] Found active meal plan with meals. ID:', selectedPlan.id, 'Meals count:', selectedPlan.meals.length);
+          return selectedPlan;
+        }
+        
+        // Otherwise use the most recent active plan
+        console.log('[API GET CURRENT] Using most recent active plan. ID:', activeMealPlans[0].id);
+        return activeMealPlans[0];
+      }
+      
+      // If no active plans, look for any plan with meals, starting with the most recent
+      const allMealPlans = await db
+        .select()
+        .from(mealPlans)
+        .orderBy(mealPlans.createdAt, 'desc');
+      
+      const plansWithMeals = allMealPlans.filter(plan => 
+        plan.meals && Array.isArray(plan.meals) && plan.meals.length > 0
+      );
+      
+      if (plansWithMeals.length > 0) {
+        // Activate the most recent plan with meals
+        await this.updateMealPlan(plansWithMeals[0].id, { isActive: true });
+        console.log('[API GET CURRENT] Activated plan with meals. ID:', plansWithMeals[0].id);
+        return plansWithMeals[0];
+      }
+      
+      // If still nothing, return the most recent plan
+      if (allMealPlans.length > 0) {
+        // Activate the most recent plan
+        await this.updateMealPlan(allMealPlans[0].id, { isActive: true });
+        console.log('[API GET CURRENT] Activated most recent plan. ID:', allMealPlans[0].id);
+        return allMealPlans[0];
+      }
+      
+      // No meal plans at all
+      console.log('[API GET CURRENT] No meal plans found');
+      return undefined;
+    } catch (error) {
+      console.error('[API GET CURRENT] Error finding current meal plan:', error);
+      return undefined;
+    }
   }
 
   async createMealPlan(data: InsertMealPlan): Promise<MealPlan> {
