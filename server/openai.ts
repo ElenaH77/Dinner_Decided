@@ -505,11 +505,12 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           role: "system",
           content: `You are a helpful meal planning assistant tasked with modifying recipes.
           Your goal is to modify the provided recipe according to the user's request while keeping the same meal type and similar prep time.
-          Maintain the general structure of the meal but accommodate their modification requests.
-          Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise.
-          Treat food allergies and appliance limitations as inviolable restrictions.
-          For each meal, include 2-3 specific rationales for why it fits the family (based on meal notes, dietary needs, weather, or overall profile).
-          Always include specific ingredient details in meal descriptions (like "with roasted broccoli and garlic mashed potatoes").
+          
+          MODIFICATION APPROACH:
+          - Maintain the general structure of the meal but accommodate the user's modification requests
+          - Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions
+          - Keep the same meal category and day assignment as the original
+          - Preserve approximately the same prep time (±5 minutes)
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
@@ -521,26 +522,37 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           
           ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
+          RECIPE FORMAT REQUIREMENTS:
+          - Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise
+          - Treat food allergies and appliance limitations as inviolable restrictions
+          
+          INGREDIENTS FORMAT:
+          - Every ingredient MUST include specific quantities (e.g., "1 lb ground turkey", "2 cups pasta")
+          - List ingredients in order of use in the recipe
+          - Group ingredients logically (main protein, vegetables, seasonings, etc.)
+          - Include specifics like "thinly sliced" or "roughly chopped"
+          
+          INSTRUCTIONS FORMAT:
+          - Each recipe must include a detailed "instructions" array with 5-8 step-by-step cooking directions
+          - Format each step clearly: "1. Preheat oven to 350°F. Line a baking sheet with parchment paper."
+          - Include timing details: "Cook for 5-7 minutes until golden brown"
+          - Specify heat levels: "Heat oil in a large skillet over medium-high heat"
+          - Describe visual cues: "Stir until sauce thickens and coats the pasta"
+          
           Respond in JSON format with the following fields:
           - name: the modified recipe name
-          - description: brief description of the modified recipe
+          - description: brief description of the modified recipe including key ingredients
           - prepTime: preparation time in minutes (similar to original)
           - mealCategory: same category as the original
           - mealPrepTips: preparation tips for the modified recipe
-          - mainIngredients: array of ingredients WITH QUANTITIES (e.g., "1 lb ground turkey", "2 cups pasta")
-          - instructions: array of step-by-step cooking instructions (at least 5-7 detailed steps)
+          - mainIngredients: array of ingredients WITH QUANTITIES
+          - instructions: array of step-by-step cooking instructions (5-8 detailed steps)
           - appropriateDay: same as the original recipe day
           - rationales: array of 3-4 specific reasons why this meal suits this family, including:
              - How it accommodates their dietary needs
              - Why it's appropriate for their cooking skill level
              - How it works with their equipment
              - Why it's suitable for the current weather conditions
-          
-          IMPORTANT NOTES:
-          - Every ingredient MUST include specific quantities (e.g., "1 lb", "2 cups", "3 tablespoons")
-          - The cooking instructions must be detailed and complete, explaining the entire cooking process from start to finish
-          - Instructions should be in order and assume the reader needs guidance on all steps
-          - Rationales should be personalized to this specific family
           `
         },
         {
@@ -640,12 +652,15 @@ export async function replaceMeal(meal: any): Promise<any> {
         {
           role: "system",
           content: `You are a helpful meal planning assistant specializing in creating alternative recipes.
-          Your goal is to create a completely different meal that meets the same criteria as the original:
+          
+          MEAL REPLACEMENT REQUIREMENTS:
+          - Create a completely different meal that meets the same criteria as the original
           - Must have the same meal category/type (e.g., Quick & Easy, Batch Cooking)
           - Should have similar preparation time
           - Should be appropriate for the same day of the week
-          - Should use different primary ingredients than the original
-          - Should be appropriate for the current weather and forecast
+          - Use completely different primary ingredients than the original
+          - Create a meal appropriate for the current weather and forecast
+          - Design a beautiful, detailed recipe in the style of Hello Fresh with clear instructions
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
@@ -657,26 +672,37 @@ export async function replaceMeal(meal: any): Promise<any> {
           
           ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
+          RECIPE FORMAT REQUIREMENTS:
+          - Assume picky kids and use simple Hello Fresh-style recipes unless instructed otherwise
+          - Treat food allergies and appliance limitations as inviolable restrictions
+          
+          INGREDIENTS FORMAT:
+          - Every ingredient MUST include specific quantities (e.g., "1 lb ground turkey", "2 cups pasta")
+          - List ingredients in order of use in the recipe
+          - Group ingredients logically (main protein, vegetables, seasonings, etc.)
+          - Include specifics like "thinly sliced" or "roughly chopped"
+          
+          INSTRUCTIONS FORMAT:
+          - Each recipe must include a detailed "instructions" array with 5-8 step-by-step cooking directions
+          - Format each step clearly: "1. Preheat oven to 350°F. Line a baking sheet with parchment paper."
+          - Include timing details: "Cook for 5-7 minutes until golden brown"
+          - Specify heat levels: "Heat oil in a large skillet over medium-high heat"
+          - Describe visual cues: "Stir until sauce thickens and coats the pasta"
+          
           Respond in JSON format with the following fields:
           - name: a new recipe name (must be different and creative)
-          - description: detailed description of the new recipe
+          - description: detailed description of the new recipe including key ingredients
           - prepTime: preparation time in minutes (similar to original)
           - mealCategory: same category as the original
           - mealPrepTips: helpful preparation tips specific to this new recipe
-          - mainIngredients: array of ingredients WITH QUANTITIES (e.g., "1 lb ground turkey", "2 cups pasta") 
-          - instructions: array of step-by-step cooking instructions (at least 5-7 detailed steps)
+          - mainIngredients: array of ingredients WITH QUANTITIES
+          - instructions: array of step-by-step cooking instructions (5-8 detailed steps)
           - appropriateDay: same as the original recipe day
           - rationales: array of 3-4 specific reasons why this meal suits this family, including:
              - How it accommodates their dietary needs
              - Why it's appropriate for their cooking skill level
              - How it works with their equipment
              - Why it's suitable for the current weather conditions
-          
-          IMPORTANT NOTES:
-          - Every ingredient MUST include specific quantities (e.g., "1 lb", "2 cups", "3 tablespoons")
-          - The cooking instructions must be detailed and complete, explaining the entire cooking process from start to finish
-          - Instructions should be in order and assume the reader needs guidance on all steps
-          - Rationales should be personalized to this specific family
           `
         },
         {
