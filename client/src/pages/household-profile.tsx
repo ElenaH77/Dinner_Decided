@@ -481,23 +481,21 @@ export default function HouseholdProfile() {
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Fixed Save Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-md z-10">
-        <div className="container mx-auto max-w-6xl flex justify-between items-center">
-          <span className="text-sm text-gray-500">Don't forget to save your changes</span>
-          <Button 
-            onClick={savePreferences}
-            className="bg-[#F25C05] hover:bg-[#D95204] text-white py-2 px-6 font-medium transition-all"
-            size="lg"
-          >
-            Save Changes
-          </Button>
+        
+        <div className="border-t border-gray-200 pt-6 mt-8">
+          <div className="flex justify-end">
+            <Button 
+              onClick={savePreferences}
+              className="bg-[#F25C05] hover:bg-[#D95204] text-white py-2 px-8 font-medium transition-all"
+              size="lg"
+            >
+              Save Changes
+            </Button>
+          </div>
         </div>
       </div>
-      
-      {/* Add padding at the bottom to prevent content from being hidden behind the fixed button */}
+
+      {/* Add some spacing at the bottom */}
       <div className="h-20"></div>
     </div>
   );
