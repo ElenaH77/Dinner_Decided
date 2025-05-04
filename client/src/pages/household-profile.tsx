@@ -350,8 +350,22 @@ export default function HouseholdProfile() {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           {KITCHEN_APPLIANCES.map(appliance => {
-            const existingEquipment = equipment.find(e => e.name.toLowerCase() === appliance.name.toLowerCase());
-            const isOwned = existingEquipment ? existingEquipment.isOwned : false;
+            // Check if this appliance exists in the equipment list
+            const existingEquipment = equipment.find(e => {
+              const equipName = e.name.toLowerCase();
+              const applName = appliance.name.toLowerCase();
+              const applianceId = appliance.id.toLowerCase();
+              return equipName === applName || equipName === applianceId;
+            });
+            
+            // Also check against the household appliances array directly
+            const applianceIds = (preferences?.appliances || []).map(a => a.toLowerCase());
+            const isInAppliances = applianceIds.includes(appliance.id.toLowerCase());
+            
+            // Consider it owned if it exists in either place
+            const isOwned = existingEquipment ? existingEquipment.isOwned : isInAppliances;
+            
+            console.log(`Appliance: ${appliance.name}, ID: ${appliance.id}, Exists: ${!!existingEquipment}, In Appliances: ${isInAppliances}, Is Owned: ${isOwned}`);
             
             return (
               <div key={appliance.id} className="flex items-center space-x-2 p-3 border rounded-md shadow-sm">

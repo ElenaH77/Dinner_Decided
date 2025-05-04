@@ -45,6 +45,15 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         // Set kitchen equipment
         if (data.equipment && Array.isArray(data.equipment)) {
           setEquipment(data.equipment);
+        } else if (data.appliances && Array.isArray(data.appliances)) {
+          // Convert appliance strings to KitchenEquipment objects
+          const equipmentList = data.appliances.map((appName: string) => ({
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            userId: 1,
+            name: appName.charAt(0).toUpperCase() + appName.slice(1),
+            isOwned: true
+          }));
+          setEquipment(equipmentList);
         } else {
           setEquipment([]);
         }
