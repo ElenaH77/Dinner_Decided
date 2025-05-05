@@ -604,13 +604,17 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           - description: Description of the dish
           - day: Day of the week
           - category: Meal category (same as original)
+          - categories: Array of meal categories (same as original)
           - prepTime: Preparation time in minutes
-          - servingSize: Number of servings
-          - mainIngredients: Array of ingredients with quantities
-          - instructions: Array of step-by-step instructions
+          - servings: Number of servings (IMPORTANT: use "servings" not "servingSize")
+          - ingredients: Array of ingredients with quantities (CRITICAL: be extremely detailed with ALL ingredients)
+          - mainIngredients: Array of ingredients with quantities (same as ingredients, for backward compatibility)
+          - instructions: Array of step-by-step instructions (at least 5-7 detailed steps)
           - rationales: Array of reasons why this modification works well
           - modificationRequest: The modification that was requested
           - modifiedFrom: The name of the original meal
+          
+          IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
           
           Return your response as a single JSON object with these properties.`
         },
@@ -736,10 +740,13 @@ export async function replaceMeal(meal: any): Promise<any> {
           - categories: Array of meal categories (same as original)
           - prepTime: Preparation time in minutes
           - servings: Number of servings
-          - ingredients: Array of ingredients with quantities
-          - instructions: Array of step-by-step instructions
+          - ingredients: Array of ingredients with quantities (CRITICAL: be extremely detailed with ALL ingredients, specify exact quantities for each)
+          - mainIngredients: Duplicate of the ingredients array to ensure compatibility
+          - instructions: Array of step-by-step instructions (at least 5-7 detailed steps)
           - rationales: Array of reasons why this replacement works well
           - replacedFrom: The name of the original meal
+          
+          IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
           
           Return your response as a single JSON object with these properties.`
         },
@@ -845,18 +852,36 @@ export function normalizeMeal(meal: any): any {
   if (!meal) return meal;
   
   // Create a deep copy to avoid modifying the original object
-  const normalizedMeal = { ...meal };
+  const normalizedMeal = JSON.parse(JSON.stringify(meal));
   
-  // Normalize directions → instructions
-  if (normalizedMeal.directions && Array.isArray(normalizedMeal.directions) && !normalizedMeal.instructions) {
+  // Normalize directions → instructions (always use instructions field name)
+  if (normalizedMeal.directions && Array.isArray(normalizedMeal.directions)) {
     normalizedMeal.instructions = normalizedMeal.directions;
     console.log(`[MEAL NORMALIZE] Converted directions → instructions for meal: ${normalizedMeal.name || 'unnamed'}`);
+    // Keep both properties for backward compatibility, but instructions is the standard
   }
   
-  // Normalize mainIngredients → ingredients
-  if (normalizedMeal.mainIngredients && Array.isArray(normalizedMeal.mainIngredients) && !normalizedMeal.ingredients) {
-    normalizedMeal.ingredients = normalizedMeal.mainIngredients;
-    console.log(`[MEAL NORMALIZE] Converted mainIngredients → ingredients for meal: ${normalizedMeal.name || 'unnamed'}`);
+  // Normalize mainIngredients + ingredients - MERGE them instead of replacing
+  // If both exist, we want a complete set of ingredients
+  if (normalizedMeal.mainIngredients && Array.isArray(normalizedMeal.mainIngredients)) {
+    if (!normalizedMeal.ingredients) {
+      normalizedMeal.ingredients = [...normalizedMeal.mainIngredients];
+      console.log(`[MEAL NORMALIZE] Copied mainIngredients → ingredients for meal: ${normalizedMeal.name || 'unnamed'}`);
+    } else if (Array.isArray(normalizedMeal.ingredients)) {
+      // If both exist, merge them and remove duplicates
+      const combinedIngredients = [...normalizedMeal.ingredients, ...normalizedMeal.mainIngredients];
+      // Remove exact duplicates by converting to a Map and back to an array
+      // This avoids TypeScript errors with Set iteration
+      normalizedMeal.ingredients = combinedIngredients.filter((item, index) => {
+        return combinedIngredients.indexOf(item) === index;
+      });
+      console.log(`[MEAL NORMALIZE] Merged mainIngredients into ingredients for meal: ${normalizedMeal.name || 'unnamed'} (${normalizedMeal.ingredients.length} total ingredients)`);
+    }
+    // Keep both properties for backward compatibility, but ingredients is the standard
+  } else if (normalizedMeal.ingredients && Array.isArray(normalizedMeal.ingredients)) {
+    // Make sure mainIngredients exists too for backward compatibility
+    normalizedMeal.mainIngredients = [...normalizedMeal.ingredients];
+    console.log(`[MEAL NORMALIZE] Copied ingredients → mainIngredients for meal: ${normalizedMeal.name || 'unnamed'}`);
   }
   
   // Ensure servings is servings (not servingSize)
@@ -877,6 +902,9 @@ export function normalizeMeal(meal: any): any {
     normalizedMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     console.log(`[MEAL NORMALIZE] Added missing ID for meal: ${normalizedMeal.name || 'unnamed'}`);
   }
+  
+  // Debug log to check all properties
+  console.log(`[MEAL NORMALIZE] Normalized meal properties for ${normalizedMeal.name || 'unnamed'}: ${Object.keys(normalizedMeal).join(', ')}`);
   
   return normalizedMeal;
 }
