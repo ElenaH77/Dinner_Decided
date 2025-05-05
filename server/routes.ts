@@ -1525,14 +1525,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is the direct format (specific meal update)
       if (req.body?.updatedMeal && req.body?.mealId) {
         console.log('[PATCH] Using direct updatedMeal/mealId format');
-        updatedMeal = req.body.updatedMeal;
+        // Import normalizeMeal to ensure field consistency
+        const { normalizeMeal } = await import('./openai');
+        updatedMeal = normalizeMeal(req.body.updatedMeal);
         mealId = req.body.mealId;
       } 
       // Check if this is a full meal plan update
       else if (req.body?.id && req.body?.meals && Array.isArray(req.body.meals)) {
         console.log('[PATCH] Detected full meal plan format, extracting meals array');
-        // Use the full meal plan directly
-        fullMealPlan = req.body;
+        
+        // Normalize each meal in the meal plan for consistency
+        const { normalizeMeal } = await import('./openai');
+        const normalizedMeals = req.body.meals.map((meal: any) => normalizeMeal(meal));
+        
+        // Use the full meal plan with normalized meals
+        fullMealPlan = {
+          ...req.body,
+          meals: normalizedMeals
+        };
         
         // If we've received a full plan, we can simply update the entire plan
         try {

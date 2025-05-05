@@ -651,6 +651,18 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
         modifiedMeal.categories = meal.categories;
       }
       
+      // Normalize property names for consistency
+      if (modifiedMeal.directions && Array.isArray(modifiedMeal.directions) && !modifiedMeal.instructions) {
+        modifiedMeal.instructions = modifiedMeal.directions;
+        console.log(`[MEAL MODIFICATION] Normalized directions → instructions for modified meal: ${modifiedMeal.name}`);
+      }
+      
+      // Normalize ingredient lists
+      if (modifiedMeal.mainIngredients && Array.isArray(modifiedMeal.mainIngredients) && !modifiedMeal.ingredients) {
+        modifiedMeal.ingredients = modifiedMeal.mainIngredients;
+        console.log(`[MEAL MODIFICATION] Normalized mainIngredients → ingredients for modified meal: ${modifiedMeal.name}`);
+      }
+      
       console.log(`[MEAL MODIFICATION] Successfully modified "${meal.name}" to "${modifiedMeal.name}"`);
       return modifiedMeal;
       
@@ -784,6 +796,18 @@ export async function replaceMeal(meal: any): Promise<any> {
         }
       }
       
+      // Normalize property names for consistency
+      if (replacementMeal.directions && Array.isArray(replacementMeal.directions) && !replacementMeal.instructions) {
+        replacementMeal.instructions = replacementMeal.directions;
+        console.log(`[MEAL REPLACEMENT] Normalized directions → instructions for replacement meal: ${replacementMeal.name}`);
+      }
+      
+      // Normalize ingredient lists
+      if (replacementMeal.mainIngredients && Array.isArray(replacementMeal.mainIngredients) && !replacementMeal.ingredients) {
+        replacementMeal.ingredients = replacementMeal.mainIngredients;
+        console.log(`[MEAL REPLACEMENT] Normalized mainIngredients → ingredients for replacement meal: ${replacementMeal.name}`);
+      }
+      
       console.log(`[MEAL REPLACEMENT] Successfully replaced "${meal.name}" with "${replacementMeal.name}"`);
       return replacementMeal;
       
@@ -810,6 +834,51 @@ async function getHouseholdData() {
     console.error('Error getting household data:', error);
     return null;
   }
+}
+
+/**
+ * Normalize meal object field names for consistency
+ * This function ensures backward compatibility with older meal formats
+ * by normalizing field names to the current standard
+ */
+export function normalizeMeal(meal: any): any {
+  if (!meal) return meal;
+  
+  // Create a deep copy to avoid modifying the original object
+  const normalizedMeal = { ...meal };
+  
+  // Normalize directions → instructions
+  if (normalizedMeal.directions && Array.isArray(normalizedMeal.directions) && !normalizedMeal.instructions) {
+    normalizedMeal.instructions = normalizedMeal.directions;
+    console.log(`[MEAL NORMALIZE] Converted directions → instructions for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  // Normalize mainIngredients → ingredients
+  if (normalizedMeal.mainIngredients && Array.isArray(normalizedMeal.mainIngredients) && !normalizedMeal.ingredients) {
+    normalizedMeal.ingredients = normalizedMeal.mainIngredients;
+    console.log(`[MEAL NORMALIZE] Converted mainIngredients → ingredients for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  // Ensure servings is servings (not servingSize)
+  if (normalizedMeal.servingSize && !normalizedMeal.servings) {
+    normalizedMeal.servings = normalizedMeal.servingSize;
+    console.log(`[MEAL NORMALIZE] Converted servingSize → servings for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  // Ensure categories is an array
+  if (normalizedMeal.category && !normalizedMeal.categories) {
+    normalizedMeal.categories = Array.isArray(normalizedMeal.category) ? 
+      normalizedMeal.category : [normalizedMeal.category];
+    console.log(`[MEAL NORMALIZE] Converted category → categories array for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  // Ensure ID is always present
+  if (!normalizedMeal.id) {
+    normalizedMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    console.log(`[MEAL NORMALIZE] Added missing ID for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  return normalizedMeal;
 }
 
 // Dummy responses for when no API key is available
