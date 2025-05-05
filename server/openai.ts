@@ -203,15 +203,15 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         
         For each meal, please provide:
         1. Name of dish
-        2. Brief description of why the dish was selected for this family
+        2. Description of the dish
         3. Appropriate meal category (e.g., "Quick & Easy", "Weeknight", "Batch Cooking", "Split Prep")
         4. Prep time (in minutes)
-        5. List of main ingredients needed (with quantities)
+        5. Complete list of ALL ingredients needed with specific quantities (like "1 lb ground beef", "2 cloves garlic, minced")
         6. Serving size (number of people)
-        7. Brief instructions with cooking times
-        8. Any meal prep tips
+        7. Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
+        8. 2-3 reasons why this meal is a good fit for this specific family
         
-        Format the response as a JSON array of meal objects.`;
+        Format the response as a JSON array of meal objects with detailed ingredients and cooking instructions.`;
     }
     
     console.log('[MEAL PLAN] Generating meal plan with this prompt:', promptContent);
@@ -233,7 +233,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - prepTime (number): Total preparation time in minutes
           - servings (number): Number of servings the meal makes
           - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the directions
-          - directions (string[]): Step-by-step cooking instructions (5-8 steps) with specific cooking times
+          - instructions (string[]): Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
           
           If the meal is assigned to a specific day, include:
           - day (string): The day of the week
@@ -271,7 +271,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
                   "1/2 cup sour cream for serving", 
                   "1/4 cup chopped fresh cilantro for garnish"
                 ],
-                "directions": [
+                "instructions": [
                   "Preheat oven to 425°F (220°C) and line a large baking sheet with parchment paper",
                   "In a large bowl, combine sliced chicken, bell peppers, and onion",
                   "Drizzle with olive oil and sprinkle with fajita seasoning, then toss until evenly coated",
@@ -340,10 +340,24 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           
           // Add a unique ID to each meal if it doesn't already have one
           meals = meals.map((meal: any, index: number) => {
+            // Add ID if missing
             if (!meal.id) {
               const uniqueTimestamp = Date.now() + index * 100;
               meal.id = `meal-${uniqueTimestamp}-${Math.floor(Math.random() * 1000)}`;
             }
+            
+            // Normalize property names (directions → instructions) for consistency
+            if (meal.directions && Array.isArray(meal.directions) && !meal.instructions) {
+              meal.instructions = meal.directions;
+              console.log(`[MEAL PLAN] Normalized directions → instructions for meal: ${meal.name}`);
+            }
+            
+            // Normalize ingredient lists
+            if (meal.mainIngredients && Array.isArray(meal.mainIngredients) && !meal.ingredients) {
+              meal.ingredients = meal.mainIngredients;
+              console.log(`[MEAL PLAN] Normalized mainIngredients → ingredients for meal: ${meal.name}`);
+            }
+            
             return meal;
           });
           
@@ -417,8 +431,9 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       // These should have been generated from our updated OpenAI functions
       const ingredients = meal.mainIngredients || meal.ingredients || [];
       
-      // If we have instructions, we might have detailed ingredients with quantities in there
-      if (meal.instructions && Array.isArray(meal.instructions) && meal.instructions.length > 0) {
+      // If we have instructions or directions, we might have detailed ingredients with quantities in there
+      if ((meal.instructions && Array.isArray(meal.instructions) && meal.instructions.length > 0) ||
+          (meal.directions && Array.isArray(meal.directions) && meal.directions.length > 0)) {
         console.log('[GROCERY] Meal has detailed instructions, using full recipe details');
       }
       
