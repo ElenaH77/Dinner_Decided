@@ -399,6 +399,17 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
               console.log(`[MEAL PLAN] Normalized mainIngredients → ingredients for meal: ${meal.name}`);
             }
             
+            // Validate meal quality
+            const validationResult = validateMealQuality(meal);
+            if (!validationResult.isValid) {
+              console.warn(`[MEAL PLAN] Quality validation failed for meal "${meal.name}":`, validationResult.issues);
+              
+              // Store quality issues for debugging
+              meal._qualityIssues = validationResult.issues;
+            } else {
+              console.log(`[MEAL PLAN] Meal "${meal.name}" passed quality validation`);
+            }
+            
             return meal;
           });
           
@@ -728,6 +739,24 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
         console.log(`[MEAL MODIFICATION] Normalized mainIngredients → ingredients for modified meal: ${modifiedMeal.name}`);
       }
       
+      // Validate the meal quality
+      const validationResult = validateMealQuality(modifiedMeal);
+      if (!validationResult.isValid) {
+        console.warn(`[MEAL MODIFICATION] Quality validation failed for modified meal "${modifiedMeal.name}":`, validationResult.issues);
+        
+        // If the meal didn't pass validation, we could:
+        // 1. Regenerate it by calling OpenAI again
+        // 2. Fix the issues automatically
+        // 3. Return it anyway with a warning
+        // 4. Throw an error
+        
+        // For now, we'll log the issues but still return the meal
+        // This is helpful for debugging without breaking functionality
+        modifiedMeal._qualityIssues = validationResult.issues;
+      } else {
+        console.log(`[MEAL MODIFICATION] Meal "${modifiedMeal.name}" passed quality validation`);
+      }
+      
       console.log(`[MEAL MODIFICATION] Successfully modified "${meal.name}" to "${modifiedMeal.name}"`);
       return modifiedMeal;
       
@@ -893,6 +922,30 @@ export async function replaceMeal(meal: any): Promise<any> {
         console.log(`[MEAL REPLACEMENT] Normalized mainIngredients → ingredients for replacement meal: ${replacementMeal.name}`);
       }
       
+      // Validate the meal quality
+      const validationResult = validateMealQuality(replacementMeal);
+      if (!validationResult.isValid) {
+        console.warn(`[MEAL REPLACEMENT] Quality validation failed for replacement meal "${replacementMeal.name}":`, validationResult.issues);
+        
+        // If the meal didn't pass validation, we could:
+        // 1. Regenerate it by calling OpenAI again (recursive)
+        // 2. Fix the issues automatically
+        // 3. Return it anyway with a warning
+        // 4. Throw an error
+        
+        // For now, we'll log the issues but still return the meal
+        // This is helpful for debugging without breaking functionality
+        replacementMeal._qualityIssues = validationResult.issues;
+        
+        // In the future, we could implement regeneration:
+        // if (retryCount < 2) {
+        //   console.log(`[MEAL REPLACEMENT] Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+        //   return await replaceMeal(meal, retryCount + 1);
+        // }
+      } else {
+        console.log(`[MEAL REPLACEMENT] Meal "${replacementMeal.name}" passed quality validation`);
+      }
+      
       console.log(`[MEAL REPLACEMENT] Successfully replaced "${meal.name}" with "${replacementMeal.name}"`);
       return replacementMeal;
       
@@ -919,6 +972,101 @@ async function getHouseholdData() {
     console.error('Error getting household data:', error);
     return null;
   }
+}
+
+/**
+ * Validate a meal to ensure it meets quality standards
+ * Returns an object with a boolean indicating if the meal is valid and any error messages
+ */
+export function validateMealQuality(meal: any): { isValid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check if meal object exists
+  if (!meal) {
+    return { isValid: false, issues: ['Meal object is missing or null'] };
+  }
+  
+  // Check for required properties
+  if (!meal.name) issues.push('Meal name is missing');
+  if (!meal.description) issues.push('Meal description is missing');
+  
+  // Validate ingredients
+  const ingredients = meal.ingredients || meal.mainIngredients || [];
+  if (!Array.isArray(ingredients)) {
+    issues.push('Ingredients must be an array');
+  } else {
+    // Check ingredient count
+    if (ingredients.length < 8) {
+      issues.push(`Insufficient ingredients: found ${ingredients.length}, minimum 8 required`);
+    }
+    
+    // Check if ingredients have measurements
+    const ingredientsWithoutMeasurements = ingredients.filter(ingredient => {
+      if (typeof ingredient !== 'string') return true;
+      
+      // Check for common measurement patterns
+      const hasMeasurement = /\d+\s*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|bunch|clove|pinch|dash)/i.test(ingredient);
+      return !hasMeasurement;
+    });
+    
+    if (ingredientsWithoutMeasurements.length > ingredients.length * 0.25) {
+      issues.push(`Many ingredients (${ingredientsWithoutMeasurements.length}) lack specific measurements`);
+    }
+  }
+  
+  // Validate instructions
+  const instructions = meal.instructions || meal.directions || [];
+  if (!Array.isArray(instructions)) {
+    issues.push('Instructions must be an array');
+  } else {
+    // Check instruction count
+    if (instructions.length < 7) {
+      issues.push(`Insufficient instructions: found ${instructions.length}, minimum 7 required`);
+    }
+    
+    // Check for generic steps
+    const genericPhrases = [
+      'standard procedure',
+      'cook until done',
+      'cook as usual',
+      'cook according to',
+      'package directions',
+      'to taste',
+      'follow instructions',
+      'standard method'
+    ];
+    
+    const genericSteps = instructions.filter(step => {
+      if (typeof step !== 'string') return false;
+      return genericPhrases.some(phrase => step.toLowerCase().includes(phrase.toLowerCase()));
+    });
+    
+    if (genericSteps.length > 0) {
+      issues.push(`Found ${genericSteps.length} generic instruction step(s) containing phrases like "standard procedure" or "cook until done"`);
+    }
+    
+    // Check for temperature and timing information
+    const cookingStepsWithoutDetails = instructions.filter(step => {
+      if (typeof step !== 'string') return false;
+      const containsCookingWords = /(cook|bake|roast|simmer|boil|sauté|fry)/i.test(step);
+      if (!containsCookingWords) return false;
+      
+      // Check if step has time or temperature information
+      const hasTimeInfo = /\d+\s*(minute|min|second|sec|hour)/i.test(step);
+      const hasTempInfo = /\d+\s*(degree|°F|°C|F|C)/i.test(step) || /(low|medium|high)\s+heat/i.test(step);
+      
+      return containsCookingWords && !(hasTimeInfo || hasTempInfo);
+    });
+    
+    if (cookingStepsWithoutDetails.length > 0) {
+      issues.push(`Found ${cookingStepsWithoutDetails.length} cooking steps without specific time or temperature information`);
+    }
+  }
+  
+  return {
+    isValid: issues.length === 0,
+    issues
+  };
 }
 
 /**
