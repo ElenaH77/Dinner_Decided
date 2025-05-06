@@ -787,8 +787,11 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
         console.log(`[MEAL MODIFICATION] Meal "${modifiedMeal.name}" passed quality validation`);
       }
       
-      console.log(`[MEAL MODIFICATION] Successfully modified "${meal.name}" to "${modifiedMeal.name}"`);
-      return modifiedMeal;
+      // Improve instructions quality post-generation
+      const improvedMeal = improveRecipeInstructions(modifiedMeal);
+      
+      console.log(`[MEAL MODIFICATION] Successfully modified "${meal.name}" to "${improvedMeal.name}"`);
+      return improvedMeal;
       
     } catch (parseError) {
       console.error('[MEAL MODIFICATION] Error parsing OpenAI response:', parseError);
@@ -994,8 +997,11 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
         console.log(`[MEAL REPLACEMENT] Meal "${replacementMeal.name}" passed quality validation`);
       }
       
-      console.log(`[MEAL REPLACEMENT] Successfully replaced "${meal.name}" with "${replacementMeal.name}"`);
-      return replacementMeal;
+      // Improve instructions quality post-generation
+      const improvedMeal = improveRecipeInstructions(replacementMeal);
+      
+      console.log(`[MEAL REPLACEMENT] Successfully replaced "${meal.name}" with "${improvedMeal.name}"`);
+      return improvedMeal;
       
     } catch (parseError) {
       console.error('[MEAL REPLACEMENT] Error parsing OpenAI response:', parseError);
@@ -1020,6 +1026,50 @@ async function getHouseholdData() {
     console.error('Error getting household data:', error);
     return null;
   }
+}
+
+/**
+ * Improve the quality of a meal's instructions to ensure they're detailed and specific
+ * This is a post-processing step to fix common issues
+ */
+function improveRecipeInstructions(recipe: any): any {
+  if (!recipe || !recipe.instructions || !Array.isArray(recipe.instructions)) {
+    return recipe;
+  }
+  
+  // Deep clone to avoid modifying the original
+  const improvedRecipe = JSON.parse(JSON.stringify(recipe));
+  let modified = false;
+  
+  // Check for and fix "standard procedures" instruction
+  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string) => {
+    if (typeof step !== 'string') return step;
+    
+    // Fix stir-fry generic cooking steps
+    if (step.toLowerCase().includes('standard procedure') || 
+        step.toLowerCase().includes('standard procedures') ||
+        (step.toLowerCase().includes('cook') && step.toLowerCase().includes('for this type of dish'))) {
+      
+      if (recipe.name.toLowerCase().includes('stir fry') || 
+          recipe.description.toLowerCase().includes('stir-fry') || 
+          recipe.description.toLowerCase().includes('stir fry')) {
+        modified = true;
+        return "Heat a wok or large skillet over high heat for 1 minute. Add 1 tablespoon oil and swirl to coat the pan. Add chicken and stir-fry for 4-5 minutes until golden brown and cooked through (internal temperature 165°F). Transfer to a plate.";
+      }
+      
+      // General replacement for other dishes
+      modified = true;
+      return "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat).";
+    }
+    
+    return step;
+  });
+  
+  if (modified) {
+    console.log(`[RECIPE IMPROVE] Fixed generic cooking instructions in recipe: ${recipe.name}`);
+  }
+  
+  return improvedRecipe;
 }
 
 /**
@@ -1075,13 +1125,18 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
     // Check for generic steps
     const genericPhrases = [
       'standard procedure',
+      'standard procedures',
       'cook until done',
       'cook as usual',
       'cook according to',
       'package directions',
       'to taste',
       'follow instructions',
-      'standard method'
+      'following instructions',
+      'standard method',
+      'according to the main',
+      'thoroughly cooked',
+      'for this type of dish'
     ];
     
     const genericSteps = instructions.filter(step => {
