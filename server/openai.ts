@@ -406,6 +406,10 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
               
               // Store quality issues for debugging
               meal._qualityIssues = validationResult.issues;
+              
+              // For initial meal plan, we won't regenerate individual meals as that would be too expensive
+              // But we'll mark them for potential future regeneration
+              meal._needsRegeneration = true;
             } else {
               console.log(`[MEAL PLAN] Meal "${meal.name}" passed quality validation`);
             }
@@ -605,9 +609,16 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
 /**
  * Modify a meal based on user requirements
  */
-export async function modifyMeal(meal: any, modificationRequest: string): Promise<any> {
+export async function modifyMeal(meal: any, modificationRequest: string, retryCount: number = 0): Promise<any> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OpenAI API key is required for this operation");
+  }
+  
+  // Safety check to prevent infinite recursion
+  if (retryCount >= 3) {
+    console.warn(`[MEAL MODIFICATION] Maximum retry attempts (${retryCount}) reached for modifying "${meal.name}". Returning best attempt.`);
+    // Return the meal anyway, even with quality issues
+    return meal;
   }
 
   try {
@@ -744,15 +755,34 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
       if (!validationResult.isValid) {
         console.warn(`[MEAL MODIFICATION] Quality validation failed for modified meal "${modifiedMeal.name}":`, validationResult.issues);
         
-        // If the meal didn't pass validation, we could:
-        // 1. Regenerate it by calling OpenAI again
-        // 2. Fix the issues automatically
-        // 3. Return it anyway with a warning
-        // 4. Throw an error
-        
-        // For now, we'll log the issues but still return the meal
-        // This is helpful for debugging without breaking functionality
+        // Store issues for reference
         modifiedMeal._qualityIssues = validationResult.issues;
+        
+        // Check if we should retry based on severity of issues
+        const criticalIssues = validationResult.issues.filter(issue => 
+          issue.includes("Insufficient instructions") || 
+          issue.includes("Insufficient ingredients") ||
+          issue.includes("generic instruction")
+        );
+        
+        if (criticalIssues.length > 0 && retryCount < 2) {
+          console.log(`[MEAL MODIFICATION] Critical quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+          
+          // Create a more specific prompt for regeneration based on issues
+          const improvementPrompt = {
+            ...meal,
+            name: modifiedMeal.name, // Keep the modified name but improve the quality
+            regenerationNotes: `Please improve this recipe to fix the following issues: ${criticalIssues.join(", ")}. 
+            The modification request was: "${modificationRequest}".
+            Ensure there are at least 8 ingredients with specific measurements and at least 7 detailed instruction steps.
+            Include specific cooking times and temperatures.`
+          };
+          
+          // Retry with the improved prompt and same modification request
+          return await modifyMeal(improvementPrompt, modificationRequest, retryCount + 1);
+        }
+        
+        console.log(`[MEAL MODIFICATION] Proceeding with meal despite quality issues (${retryCount} retries attempted)`);
       } else {
         console.log(`[MEAL MODIFICATION] Meal "${modifiedMeal.name}" passed quality validation`);
       }
@@ -776,9 +806,16 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
 /**
  * Generate a completely new replacement meal based on the criteria of the original
  */
-export async function replaceMeal(meal: any): Promise<any> {
+export async function replaceMeal(meal: any, retryCount: number = 0): Promise<any> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OpenAI API key is required for this operation");
+  }
+
+  // Safety check to prevent infinite recursion
+  if (retryCount >= 3) {
+    console.warn(`[MEAL REPLACEMENT] Maximum retry attempts (${retryCount}) reached for replacing "${meal.name}". Returning best attempt.`);
+    // Return the meal anyway, even with quality issues
+    return meal;
   }
 
   try {
@@ -927,21 +964,32 @@ export async function replaceMeal(meal: any): Promise<any> {
       if (!validationResult.isValid) {
         console.warn(`[MEAL REPLACEMENT] Quality validation failed for replacement meal "${replacementMeal.name}":`, validationResult.issues);
         
-        // If the meal didn't pass validation, we could:
-        // 1. Regenerate it by calling OpenAI again (recursive)
-        // 2. Fix the issues automatically
-        // 3. Return it anyway with a warning
-        // 4. Throw an error
-        
-        // For now, we'll log the issues but still return the meal
-        // This is helpful for debugging without breaking functionality
+        // Store issues for reference
         replacementMeal._qualityIssues = validationResult.issues;
         
-        // In the future, we could implement regeneration:
-        // if (retryCount < 2) {
-        //   console.log(`[MEAL REPLACEMENT] Attempting to regenerate meal (attempt ${retryCount + 1})...`);
-        //   return await replaceMeal(meal, retryCount + 1);
-        // }
+        // Check if we should retry based on severity of issues
+        const criticalIssues = validationResult.issues.filter(issue => 
+          issue.includes("Insufficient instructions") || 
+          issue.includes("Insufficient ingredients") ||
+          issue.includes("generic instruction")
+        );
+        
+        if (criticalIssues.length > 0 && retryCount < 2) {
+          console.log(`[MEAL REPLACEMENT] Critical quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+          
+          // Create a more specific prompt for regeneration based on issues
+          const improvementPrompt = {
+            ...meal,
+            regenerationNotes: `Please improve this recipe to fix the following issues: ${criticalIssues.join(", ")}. 
+            Ensure there are at least 8 ingredients with specific measurements and at least 7 detailed instruction steps.
+            Include specific cooking times and temperatures.`
+          };
+          
+          // Retry with the improved prompt
+          return await replaceMeal(improvementPrompt, retryCount + 1);
+        }
+        
+        console.log(`[MEAL REPLACEMENT] Proceeding with meal despite quality issues (${retryCount} retries attempted)`);
       } else {
         console.log(`[MEAL REPLACEMENT] Meal "${replacementMeal.name}" passed quality validation`);
       }
