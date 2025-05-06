@@ -399,7 +399,10 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
               console.log(`[MEAL PLAN] Normalized mainIngredients → ingredients for meal: ${meal.name}`);
             }
             
-            // Validate meal quality
+            // Apply post-processing to fix common issues (like generic cooking instructions)
+            meal = improveRecipeInstructions(meal);
+            
+            // Validate meal quality after improvements
             const validationResult = validateMealQuality(meal);
             if (!validationResult.isValid) {
               console.warn(`[MEAL PLAN] Quality validation failed for meal "${meal.name}":`, validationResult.issues);
