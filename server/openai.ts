@@ -165,7 +165,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       
       promptContent = `Create a personalized meal plan with ${totalMeals} dinner ideas for a family with the following profile:
         - Family size: ${household.members.length} people
-        - Family members: ${household.members.map(m => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
+        - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
         - Preferences: ${household.preferences || "Family-friendly meals"}
@@ -218,7 +218,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       
       promptContent = `Create a single ${mealType} dinner meal for a family with the following profile:
         - Family size: ${household.members.length} people
-        - Family members: ${household.members.map(m => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
+        - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
         - Preferences: ${household.preferences || "Family-friendly meals"}
@@ -261,7 +261,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
       // Standard meal plan request (fallback)
       promptContent = `Create a meal plan with ${preferences.numberOfMeals || 5} dinner ideas for a family with the following profile:
         - Family size: ${household.members.length} people
-        - Family members: ${household.members.map(m => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
+        - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
         - Preferences: ${household.preferences || "Family-friendly meals"}
@@ -565,7 +565,7 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
     
     // Log grocery list generation - check for duplicate meals
     const mealNames = meals.map((m: any) => m.name);
-    const uniqueMealNames = [...new Set(mealNames)] as string[];
+    const uniqueMealNames = Array.from(new Set(mealNames)) as string[];
     
     console.log(`[GROCERY] Generating grocery list with ${meals.length} meals, ${uniqueMealNames.length} unique meal types`);
     if (uniqueMealNames.length < meals.length) {
