@@ -209,6 +209,54 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         10. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
         
         Generate a JSON response with an array of meal objects, ensuring that you include the rationales as an array of strings in a "rationales" field for each meal. Every meal MUST have detailed ingredients with quantities.`;
+    } else if (preferences.singleMeal) {
+      // Special handling for single meal generation
+      const mealType = preferences.mealType || "any";
+      const additionalPrefs = preferences.additionalPreferences 
+        ? `with specific preferences: ${preferences.additionalPreferences}` 
+        : "";
+      
+      promptContent = `Create a single ${mealType} dinner meal for a family with the following profile:
+        - Family size: ${household.members.length} people
+        - Family members: ${household.members.map(m => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
+        - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
+        - Cooking skill level (1-5): ${household.cookingSkill || 3}
+        - Preferences: ${household.preferences || "Family-friendly meals"}
+        - Location: ${household.location || "Unknown location"}
+        ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
+        ${additionalPrefs}
+        
+        For the meal, please provide:
+        1. Name of dish - be specific and descriptive
+        2. Description of the dish (2-3 sentences)
+        3. Appropriate meal category (e.g., "Quick & Easy", "Weeknight", "Batch Cooking", "Split Prep")
+        4. Prep time (in minutes)
+        5. Serving size (number of people)
+        
+        FOR INGREDIENTS - THIS IS CRITICAL:
+        6. Complete list of ALL ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+          * Include 10-15 ingredients with specific quantities for the recipe
+          * Include all seasonings, oils, and garnishes with specific quantities 
+          * Every single ingredient mentioned in the instructions MUST be listed here with quantities
+          * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
+          * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
+        
+        7. Step-by-step cooking instructions (minimum 8-10 detailed steps)
+          * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
+          * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
+          * Include exact time and temperature for any oven, slow cooker, or instant pot steps
+          * Mention each ingredient specifically when it's used with exact quantities
+          * Break complex processes into multiple detailed steps
+          * Include specific guidance on how to tell when things are properly cooked
+          * NO generic steps like "cook according to standard procedure" - every step must be explicit
+          * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
+          * For mixed dishes, include how to assemble and serve
+        
+        8. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
+        
+        Format the response as a JSON array with a single meal object. Ensure to include the rationales as an array of strings in a "rationales" field. The meal MUST have detailed ingredients with quantities.`;
+        
+        console.log('[MEAL PLAN] Generating single meal with type:', mealType);
     } else {
       // Standard meal plan request (fallback)
       promptContent = `Create a meal plan with ${preferences.numberOfMeals || 5} dinner ideas for a family with the following profile:
@@ -246,9 +294,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
           * For mixed dishes, include how to assemble and serve
         
-        8. 2-3 specific reasons why this meal is a good fit for this family based on their preferences and needs
+        8. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
         
-        Format the response as a JSON array of meal objects with detailed ingredients and cooking instructions. Every meal MUST have detailed ingredients with quantities.`;
+        Format the response as a JSON array of meal objects with detailed ingredients and cooking instructions. Ensure to include the rationales as an array of strings in a "rationales" field for each meal. Every meal MUST have detailed ingredients with quantities.`;
     }
     
     console.log('[MEAL PLAN] Generating meal plan with this prompt:', promptContent);
