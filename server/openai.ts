@@ -193,11 +193,16 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
           * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
         
-        8. Step-by-step cooking instructions (minimum 6-8 detailed steps)
-          * Include precise cooking times and methods
-          * Include time and temperature for any oven, slow cooker, or instant pot steps
-          * Mention each ingredient specifically when it's used
-          * Break complex processes into multiple steps
+        8. Step-by-step cooking instructions (minimum 8-10 detailed steps)
+          * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
+          * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
+          * Include exact time and temperature for any oven, slow cooker, or instant pot steps
+          * Mention each ingredient specifically when it's used with exact quantities
+          * Break complex processes into multiple detailed steps
+          * Include specific guidance on how to tell when things are properly cooked
+          * NO generic steps like "cook according to standard procedure" - every step must be explicit
+          * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
+          * For mixed dishes, include how to assemble and serve
         
         9. For "Split Prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
         
@@ -230,11 +235,16 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
           * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
         
-        7. Step-by-step cooking instructions (minimum 6-8 detailed steps)
-          * Include precise cooking times and methods
-          * Include time and temperature for any oven, slow cooker, or instant pot steps
-          * Mention each ingredient specifically when it's used
-          * Break complex processes into multiple steps
+        7. Step-by-step cooking instructions (minimum 8-10 detailed steps)
+          * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
+          * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
+          * Include exact time and temperature for any oven, slow cooker, or instant pot steps
+          * Mention each ingredient specifically when it's used with exact quantities
+          * Break complex processes into multiple detailed steps
+          * Include specific guidance on how to tell when things are properly cooked
+          * NO generic steps like "cook according to standard procedure" - every step must be explicit
+          * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
+          * For mixed dishes, include how to assemble and serve
         
         8. 2-3 specific reasons why this meal is a good fit for this family based on their preferences and needs
         
@@ -260,7 +270,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - prepTime (number): Total preparation time in minutes
           - servings (number): Number of servings the meal makes
           - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the directions
-          - instructions (string[]): Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
+          - instructions (string[]): Step-by-step cooking instructions (8-10 detailed steps) with specific cooking times, temperatures and methods for every stage of cooking
           
           If the meal is assigned to a specific day, include:
           - day (string): The day of the week
@@ -299,12 +309,16 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
                   "1/4 cup chopped fresh cilantro for garnish"
                 ],
                 "instructions": [
-                  "Preheat oven to 425°F (220°C) and line a large baking sheet with parchment paper",
-                  "In a large bowl, combine sliced chicken, bell peppers, and onion",
-                  "Drizzle with olive oil and sprinkle with fajita seasoning, then toss until evenly coated",
-                  "Spread mixture evenly on prepared baking sheet and roast for 20-25 minutes until chicken is cooked through and vegetables are tender",
-                  "While the fajita mixture cooks, warm the tortillas according to package directions",
-                  "Serve the chicken and vegetable mixture with warm tortillas, lime wedges, sour cream, and cilantro"
+                  "Preheat oven to 425°F (220°C) and position rack in the center. Line a large baking sheet with parchment paper.",
+                  "Cut 1.5 lbs chicken breast into 1/4-inch strips. Place in a large bowl.",
+                  "Slice 1 red bell pepper, 1 green bell pepper, 1 yellow bell pepper, and 1 large onion into 1/4-inch strips and add to the bowl with chicken.",
+                  "Drizzle 2 tbsp olive oil over the mixture, then sprinkle with 2 tbsp fajita seasoning, 1 tsp salt, and 1/2 tsp black pepper.",
+                  "Using clean hands or tongs, toss everything until the chicken and vegetables are evenly coated with oil and seasonings.",
+                  "Spread the mixture in a single layer on the prepared baking sheet, making sure pieces aren't overlapping.",
+                  "Roast in preheated oven for 20-25 minutes, stirring halfway through cooking time, until chicken reaches 165°F internal temperature and vegetables are tender with light charring on edges.",
+                  "During the last 5 minutes of cooking, wrap 8 flour tortillas in aluminum foil and place in the oven to warm.",
+                  "Cut 1 lime into 8 wedges and chop 1/4 cup fresh cilantro for garnish.",
+                  "Serve by allowing each person to build their own fajitas with the roasted chicken mixture, warm tortillas, lime wedges, 1/2 cup sour cream, and cilantro."
                 ],
                 "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein", "One-pan meal means easy cleanup"]
               },
@@ -645,17 +659,22 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           
           - mainIngredients: Array of ingredients with quantities (same as ingredients, for backward compatibility)
           
-          - instructions: Array of step-by-step instructions (minimum 6-8 detailed steps)
-            * Include precise cooking times and methods
-            * Include time and temperature for any oven, slow cooker, or instant pot steps
-            * Mention each ingredient specifically when it's used
-            * Break complex processes into multiple steps
+          - instructions: Array of step-by-step instructions (minimum 8-10 detailed steps)
+            * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
+            * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
+            * Include exact time and temperature for any oven, slow cooker, or instant pot steps
+            * Mention each ingredient specifically when it's used with exact quantities
+            * Break complex processes into multiple detailed steps
+            * Include specific guidance on how to tell when things are properly cooked
+            * NO generic steps like "cook according to standard procedure" - every step must be explicit
+            * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
+            * For mixed dishes, include how to assemble and serve
           
           - rationales: Array of 2-3 reasons why this modification works well
           - modificationRequest: The modification that was requested
           - modifiedFrom: The name of the original meal
           
-          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity.
+          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
           IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
           
           Return your response as a single JSON object with these properties.`
@@ -791,16 +810,21 @@ export async function replaceMeal(meal: any): Promise<any> {
             * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
             * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
           
-          - instructions: Array of step-by-step instructions (minimum 6-8 detailed steps)
-            * Include precise cooking times and methods
-            * Include time and temperature for any oven, slow cooker, or instant pot steps
-            * Mention each ingredient specifically when it's used
-            * Break complex processes into multiple steps
+          - instructions: Array of step-by-step instructions (minimum 8-10 detailed steps)
+            * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
+            * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
+            * Include exact time and temperature for any oven, slow cooker, or instant pot steps
+            * Mention each ingredient specifically when it's used with exact quantities
+            * Break complex processes into multiple detailed steps
+            * Include specific guidance on how to tell when things are properly cooked
+            * NO generic steps like "cook according to standard procedure" - every step must be explicit
+            * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
+            * For mixed dishes, include how to assemble and serve
           
           - rationales: Array of 2-3 reasons why this replacement works well
           - replacedFrom: The name of the original meal
 
-          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity.
+          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
           
           Return your response as a single JSON object with these properties.`
         },
