@@ -178,18 +178,32 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         ${mealSelections.join("\n        ")}
         
         For each meal, please provide:
-        1. Name of dish
-        2. Brief description of the dish
+        1. Name of dish - be specific and descriptive
+        2. Brief description of the dish (2-3 sentences)
         3. Appropriate day of the week based on the selections above
         4. Meal category from my selection
         5. Prep time (in minutes)
-        6. Complete list of ALL ingredients needed with specific quantities (like "1 lb ground beef", "2 cloves garlic, minced"). IMPORTANT: Every ingredient mentioned anywhere in the directions MUST be included in this list with quantities
-        7. Serving size (number of people)
-        8. Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
-        9. For "split prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
+        6. Serving size (number of people)
+        
+        FOR INGREDIENTS - THIS IS CRITICAL:
+        7. Complete list of ALL ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+          * Include 10-15 ingredients with specific quantities for each recipe
+          * Include all seasonings, oils, and garnishes with specific quantities 
+          * Every single ingredient mentioned in the instructions MUST be listed here with quantities
+          * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
+          * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
+        
+        8. Step-by-step cooking instructions (minimum 6-8 detailed steps)
+          * Include precise cooking times and methods
+          * Include time and temperature for any oven, slow cooker, or instant pot steps
+          * Mention each ingredient specifically when it's used
+          * Break complex processes into multiple steps
+        
+        9. For "Split Prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
+        
         10. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
         
-        Generate a JSON response with an array of meal objects, ensuring that you include the rationales as an array of strings in a "rationales" field for each meal.`;
+        Generate a JSON response with an array of meal objects, ensuring that you include the rationales as an array of strings in a "rationales" field for each meal. Every meal MUST have detailed ingredients with quantities.`;
     } else {
       // Standard meal plan request (fallback)
       promptContent = `Create a meal plan with ${preferences.numberOfMeals || 5} dinner ideas for a family with the following profile:
@@ -202,16 +216,29 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
         
         For each meal, please provide:
-        1. Name of dish
-        2. Description of the dish
+        1. Name of dish - be specific and descriptive
+        2. Description of the dish (2-3 sentences)
         3. Appropriate meal category (e.g., "Quick & Easy", "Weeknight", "Batch Cooking", "Split Prep")
         4. Prep time (in minutes)
-        5. Complete list of ALL ingredients needed with specific quantities (like "1 lb ground beef", "2 cloves garlic, minced")
-        6. Serving size (number of people)
-        7. Step-by-step cooking instructions (5-8 steps) with specific cooking times and methods
-        8. 2-3 reasons why this meal is a good fit for this specific family
+        5. Serving size (number of people)
         
-        Format the response as a JSON array of meal objects with detailed ingredients and cooking instructions.`;
+        FOR INGREDIENTS - THIS IS CRITICAL:
+        6. Complete list of ALL ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+          * Include 10-15 ingredients with specific quantities for each recipe
+          * Include all seasonings, oils, and garnishes with specific quantities 
+          * Every single ingredient mentioned in the instructions MUST be listed here with quantities
+          * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
+          * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
+        
+        7. Step-by-step cooking instructions (minimum 6-8 detailed steps)
+          * Include precise cooking times and methods
+          * Include time and temperature for any oven, slow cooker, or instant pot steps
+          * Mention each ingredient specifically when it's used
+          * Break complex processes into multiple steps
+        
+        8. 2-3 specific reasons why this meal is a good fit for this family based on their preferences and needs
+        
+        Format the response as a JSON array of meal objects with detailed ingredients and cooking instructions. Every meal MUST have detailed ingredients with quantities.`;
     }
     
     console.log('[MEAL PLAN] Generating meal plan with this prompt:', promptContent);
@@ -601,19 +628,34 @@ export async function modifyMeal(meal: any, modificationRequest: string): Promis
           IMPORTANT OUTPUT FORMAT:
           Every meal MUST include camelCase field names exactly as specified:
           - name: Name of the dish
-          - description: Description of the dish
+          - description: Description of the dish (2-3 sentences)
           - day: Day of the week
           - category: Meal category (same as original)
           - categories: Array of meal categories (same as original)
           - prepTime: Preparation time in minutes
           - servings: Number of servings (IMPORTANT: use "servings" not "servingSize")
-          - ingredients: Array of ingredients with quantities (CRITICAL: be extremely detailed with ALL ingredients)
+          
+          FOR INGREDIENTS:
+          - ingredients: Array of ingredients with quantities
+            * THIS IS CRITICAL: Include 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+            * Include all seasonings, oils, and garnishes with specific quantities
+            * Every single ingredient mentioned in the instructions MUST be listed here
+            * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
+            * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
+          
           - mainIngredients: Array of ingredients with quantities (same as ingredients, for backward compatibility)
-          - instructions: Array of step-by-step instructions (at least 5-7 detailed steps)
-          - rationales: Array of reasons why this modification works well
+          
+          - instructions: Array of step-by-step instructions (minimum 6-8 detailed steps)
+            * Include precise cooking times and methods
+            * Include time and temperature for any oven, slow cooker, or instant pot steps
+            * Mention each ingredient specifically when it's used
+            * Break complex processes into multiple steps
+          
+          - rationales: Array of 2-3 reasons why this modification works well
           - modificationRequest: The modification that was requested
           - modifiedFrom: The name of the original meal
           
+          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity.
           IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
           
           Return your response as a single JSON object with these properties.`
@@ -735,18 +777,30 @@ export async function replaceMeal(meal: any): Promise<any> {
           IMPORTANT OUTPUT FORMAT:
           Every meal MUST include camelCase field names exactly as specified:
           - name: Name of the dish
-          - description: Description of the dish
+          - description: Description of the dish (2-3 sentences)
           - day: Day of the week (same as original)
           - categories: Array of meal categories (same as original)
           - prepTime: Preparation time in minutes
           - servings: Number of servings
-          - ingredients: Array of ingredients with quantities (CRITICAL: be extremely detailed with ALL ingredients, specify exact quantities for each)
-          - mainIngredients: Duplicate of the ingredients array to ensure compatibility
-          - instructions: Array of step-by-step instructions (at least 5-7 detailed steps)
-          - rationales: Array of reasons why this replacement works well
-          - replacedFrom: The name of the original meal
+
+          FOR INGREDIENTS:
+          - ingredients: Array of ingredients with quantities
+            * THIS IS CRITICAL: Include 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+            * Include all seasonings, oils, and garnishes with specific quantities
+            * Every single ingredient mentioned in the instructions MUST be listed here
+            * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
+            * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
           
-          IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
+          - instructions: Array of step-by-step instructions (minimum 6-8 detailed steps)
+            * Include precise cooking times and methods
+            * Include time and temperature for any oven, slow cooker, or instant pot steps
+            * Mention each ingredient specifically when it's used
+            * Break complex processes into multiple steps
+          
+          - rationales: Array of 2-3 reasons why this replacement works well
+          - replacedFrom: The name of the original meal
+
+          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity.
           
           Return your response as a single JSON object with these properties.`
         },
@@ -861,6 +915,14 @@ export function normalizeMeal(meal: any): any {
     // Keep both properties for backward compatibility, but instructions is the standard
   }
   
+  // Handle the case when we have main_ingredients instead of mainIngredients (underscore vs camelCase)
+  if (normalizedMeal.main_ingredients && Array.isArray(normalizedMeal.main_ingredients)) {
+    if (!normalizedMeal.mainIngredients) {
+      normalizedMeal.mainIngredients = [...normalizedMeal.main_ingredients];
+      console.log(`[MEAL NORMALIZE] Converted main_ingredients → mainIngredients for meal: ${normalizedMeal.name || 'unnamed'}`);
+    }
+  }
+  
   // Normalize mainIngredients + ingredients - MERGE them instead of replacing
   // If both exist, we want a complete set of ingredients
   if (normalizedMeal.mainIngredients && Array.isArray(normalizedMeal.mainIngredients)) {
@@ -884,10 +946,37 @@ export function normalizeMeal(meal: any): any {
     console.log(`[MEAL NORMALIZE] Copied ingredients → mainIngredients for meal: ${normalizedMeal.name || 'unnamed'}`);
   }
   
+  // Check if we have a detailed mainIngredients but minimal ingredients
+  // This happens with some recipe types due to the prompt structure
+  if (normalizedMeal.ingredients && 
+      normalizedMeal.mainIngredients && 
+      Array.isArray(normalizedMeal.ingredients) && 
+      Array.isArray(normalizedMeal.mainIngredients)) {
+    
+    // If ingredients is very minimal (2-3 items) but mainIngredients has more items,
+    // replace ingredients with mainIngredients
+    if (normalizedMeal.ingredients.length <= 3 && normalizedMeal.mainIngredients.length > 3) {
+      console.log(`[MEAL NORMALIZE] Replacing minimal ingredients (${normalizedMeal.ingredients.length}) with more complete mainIngredients (${normalizedMeal.mainIngredients.length}) for meal: ${normalizedMeal.name || 'unnamed'}`);
+      normalizedMeal.ingredients = [...normalizedMeal.mainIngredients];
+    }
+  }
+  
   // Ensure servings is servings (not servingSize)
   if (normalizedMeal.servingSize && !normalizedMeal.servings) {
     normalizedMeal.servings = normalizedMeal.servingSize;
     console.log(`[MEAL NORMALIZE] Converted servingSize → servings for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  // Also handle serving_size (underscore version)
+  if (normalizedMeal.serving_size && !normalizedMeal.servings) {
+    normalizedMeal.servings = normalizedMeal.serving_size;
+    console.log(`[MEAL NORMALIZE] Converted serving_size → servings for meal: ${normalizedMeal.name || 'unnamed'}`);
+  }
+  
+  // Ensure prepTime is consistent (handle prep_time format)
+  if (normalizedMeal.prep_time && !normalizedMeal.prepTime) {
+    normalizedMeal.prepTime = normalizedMeal.prep_time;
+    console.log(`[MEAL NORMALIZE] Converted prep_time → prepTime for meal: ${normalizedMeal.name || 'unnamed'}`);
   }
   
   // Ensure categories is an array
