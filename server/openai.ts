@@ -48,7 +48,7 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: openaiMessages as any, // Type assertion to fix TypeScript error
-      temperature: 0.4,
+      temperature: 0.7,
       max_tokens: 1000,
     });
     
@@ -317,15 +317,8 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - categories (string[]): An array of meal categories (e.g., "quick", "batch cooking")
           - prepTime (number): Total preparation time in minutes
           - servings (number): Number of servings the meal makes
-          - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the instructions
-          - instructions (string[]): Step-by-step cooking instructions meeting these MANDATORY requirements:
-              * EXACTLY 8-10 detailed, numbered steps (e.g., "1. Preheat the oven...")
-              * Each step MUST begin with a strong action verb (e.g., Dice, Sauté, Whisk, Simmer)
-              * Include SPECIFIC ingredient names AND EXACT measurements in EACH step
-              * Include EXACT cooking times and temperatures (e.g., "sauté for 5 minutes", "bake at 375°F for 20 minutes")
-              * AVOID all vague phrases like "cook thoroughly", "until done", "combine everything", "standard procedures"
-              * Instructions MUST be written with the assumption the cook has NO prior knowledge
-              * Each step should focus on ONE specific cooking action/technique
+          - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the directions
+          - instructions (string[]): Step-by-step cooking instructions (8-10 detailed steps) with specific cooking times, temperatures and methods for every stage of cooking
           
           If the meal is assigned to a specific day, include:
           - day (string): The day of the week
@@ -337,32 +330,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - prepInstructions (string): Detailed instructions for what to prepare ahead of time
           - cookingInstructions (string): Detailed instructions for the final cooking day
           
-          CRITICAL INSTRUCTION REQUIREMENTS:
-          1. NEVER use generic cooking instructions or phrases like "cook according to standard procedures" or "prepare according to ingredients list"
-          2. ALWAYS include specific cooking times (e.g., "sauté for 5-7 minutes")
-          3. ALWAYS include specific cooking temperatures (e.g., "preheat oven to 375°F")
-          4. ALWAYS describe exactly how to prepare each ingredient
-          5. ALWAYS include how to tell when food is properly cooked (e.g., "until chicken reaches internal temperature of 165°F")
-          
-          BANNED PHRASES - DO NOT USE ANY OF THESE IN YOUR INSTRUCTIONS:
-          - "Prepare all ingredients according to the ingredients list"
-          - "Wash, chop, and measure everything before starting"
-          - "Preheat your oven or stovetop as needed for this recipe"
-          - "Combine the ingredients according to the main ingredients list"
-          - "Cook following standard procedures for this type of dish"
-          - "Cook until all components are thoroughly cooked"
-          - "Serve hot and enjoy with your family"
-          
-          BAD EXAMPLE (DO NOT FOLLOW THIS PATTERN):
-          "instructions": [
-            "Prepare all ingredients according to the ingredients list - wash, chop, and measure everything before starting.",
-            "Preheat your oven or stovetop as needed for this recipe.",
-            "Combine the ingredients according to the main ingredients list.",
-            "Cook following standard procedures for this type of dish until all components are thoroughly cooked.",
-            "Serve hot and enjoy with your family!"
-          ]
-          
-          GOOD EXAMPLE (FOLLOW THIS PATTERN):
+          Example response format:
           {
             "meals": [
               {
@@ -401,7 +369,8 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
                   "Serve by allowing each person to build their own fajitas with the roasted chicken mixture, warm tortillas, lime wedges, 1/2 cup sour cream, and cilantro."
                 ],
                 "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein", "One-pan meal means easy cleanup"]
-              }
+              },
+              {...}
             ]
           }`
         },
@@ -410,7 +379,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           content: promptContent
         }
       ],
-      temperature: 0.4,
+      temperature: 0.7,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
@@ -729,17 +698,9 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           
           MODIFICATION APPROACH:
           - Maintain the general structure of the meal but accommodate the user's modification requests
-          - Create beautiful, detailed recipes with clear, step-by-step instructions
+          - Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions
           - Keep the same meal category and day assignment as the original
           - Preserve approximately the same prep time (±5 minutes)
-          
-          INSTRUCTION REQUIREMENTS - MANDATORY:
-          - Include EXACTLY 8-10 detailed, numbered steps (e.g., "1. Preheat the oven...")
-          - Each step MUST begin with a strong action verb (e.g., Dice, Sauté, Whisk, Simmer)
-          - Include SPECIFIC ingredient names AND EXACT measurements in EACH step
-          - Include EXACT cooking times and temperatures (e.g., "sauté for 5 minutes", "bake at 375°F for 20 minutes")
-          - AVOID all vague phrases like "cook thoroughly", "until done", "combine everything"
-          - Instructions MUST be written for a beginner with NO prior cooking knowledge
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
@@ -789,31 +750,6 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
           IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
           
-          CRITICAL INSTRUCTION REQUIREMENTS:
-          1. NEVER use generic cooking instructions or phrases like "cook according to standard procedures" or "prepare according to ingredients list"
-          2. ALWAYS include specific cooking times (e.g., "sauté for 5-7 minutes")
-          3. ALWAYS include specific cooking temperatures (e.g., "preheat oven to 375°F")
-          4. ALWAYS describe exactly how to prepare each ingredient
-          5. ALWAYS include how to tell when food is properly cooked (e.g., "until chicken reaches internal temperature of 165°F")
-          
-          BANNED PHRASES - DO NOT USE ANY OF THESE IN YOUR INSTRUCTIONS:
-          - "Prepare all ingredients according to the ingredients list"
-          - "Wash, chop, and measure everything before starting"
-          - "Preheat your oven or stovetop as needed for this recipe"
-          - "Combine the ingredients according to the main ingredients list"
-          - "Cook following standard procedures for this type of dish"
-          - "Cook until all components are thoroughly cooked"
-          - "Serve hot and enjoy with your family"
-          
-          BAD EXAMPLE (DO NOT FOLLOW THIS PATTERN):
-          "instructions": [
-            "Prepare all ingredients according to the ingredients list - wash, chop, and measure everything before starting.",
-            "Preheat your oven or stovetop as needed for this recipe.",
-            "Combine the ingredients according to the main ingredients list.",
-            "Cook following standard procedures for this type of dish until all components are thoroughly cooked.",
-            "Serve hot and enjoy with your family!"
-          ]
-          
           Return your response as a single JSON object with these properties.`
         },
         {
@@ -826,7 +762,7 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           Return your response as a single JSON object with the properties specified in the system message.`
         }
       ],
-      temperature: 0.3,
+      temperature: 0.5,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
@@ -958,24 +894,14 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
       messages: [
         {
           role: "system",
-          content: `You are Chef GPT, a professional recipe creator with 20+ years of experience creating exceptional recipes for home cooks. You are known for writing extremely clear, detailed recipes that anyone can follow successfully, regardless of cooking experience.
-          
-          You're creating a replacement recipe that will maintain the same meal category and approximate prep time as the original, but with completely different ingredients and flavors to provide variety.
+          content: `You are a helpful meal planning assistant that creates new recipe suggestions.
+          Your goal is to generate a completely new meal that fulfills the same role as the original but provides variety.
           
           REPLACEMENT APPROACH:
           - Generate a completely new meal in the same category as the original
           - Use a similar cooking method but with different ingredients
           - Maintain approximately the same prep time (±5 minutes)
-          - Create beautiful, detailed recipes with clear, step-by-step instructions
-          
-          INSTRUCTION REQUIREMENTS - MANDATORY:
-          - Include EXACTLY 8-10 detailed, numbered steps (e.g., "1. Preheat the oven to 375°F.")
-          - Begin EVERY step with a specific action verb (e.g., "Sauté", "Whisk", "Add")
-          - Include SPECIFIC ingredient names AND EXACT measurements in EACH step
-          - Include EXACT cooking times and temperatures for ALL cooking steps
-          - Provide visual or tactile cues for doneness in addition to timing
-          - NEVER use vague phrases like "cook until done" or "as needed"
-          - Instructions MUST be written for a beginner with NO prior cooking knowledge
+          - Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
@@ -1036,7 +962,7 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
           Return your response as a single JSON object with the properties specified in the system message.`
         }
       ],
-      temperature: 0.4,
+      temperature: 0.7,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
@@ -1157,7 +1083,7 @@ async function getHouseholdData() {
  * Improve the quality of a meal's instructions to ensure they're detailed and specific
  * This is a post-processing step to fix common issues
  */
-export function improveRecipeInstructions(recipe: any): any {
+function improveRecipeInstructions(recipe: any): any {
   if (!recipe || !recipe.instructions || !Array.isArray(recipe.instructions)) {
     return recipe;
   }
@@ -1165,200 +1091,26 @@ export function improveRecipeInstructions(recipe: any): any {
   // Deep clone to avoid modifying the original
   const improvedRecipe = JSON.parse(JSON.stringify(recipe));
   let modified = false;
-
-  // List of banned generic phrases
-  const bannedPhrases = [
-    'prepare all ingredients according to the ingredients list',
-    'wash, chop, and measure everything',
-    'preheat your oven or stovetop as needed',
-    'combine the ingredients according to the main ingredients list',
-    'cook following standard procedures',
-    'cook until all components are thoroughly cooked',
-    'cook thoroughly',
-    'combine everything',
-    'until done',
-    'serve hot and enjoy with your family',
-    'enjoy with your family',
-    'serve and enjoy'
-  ];
   
-  // Check if instructions contain any banned phrases
-  let containsBannedPhrases = false;
-  
-  // Count instances of banned phrases
-  let bannedPhraseCount = 0;
-  for (const step of improvedRecipe.instructions) {
-    if (typeof step !== 'string') continue;
-    
-    const stepLower = step.toLowerCase();
-    for (const phrase of bannedPhrases) {
-      if (stepLower.includes(phrase)) {
-        bannedPhraseCount++;
-        break;
-      }
-    }
-  }
-  
-  // Check if the instructions lack numbered steps or have too few steps
-  const hasNumberedSteps = improvedRecipe.instructions.some((step: string) => 
-    typeof step === 'string' && /^(\d+\.|Step \d+:)/.test(step.trim()));
-  const hasTooFewSteps = improvedRecipe.instructions.length < 7; // Increased from 5 to 7
-  
-  // Check for good format with numbering at the beginning of each step
-  const allStepsNumbered = improvedRecipe.instructions.every((step: string) =>
-    typeof step === 'string' && /^(\d+\.|Step \d+:)/.test(step.trim()));
-  
-  // If multiple banned phrases found or lacks numbered steps with too few steps, consider it a generic template
-  if (bannedPhraseCount >= 2 || 
-      (improvedRecipe.instructions.length <= 6 && bannedPhraseCount >= 1) || // More strict: any banned phrase in short instructions is bad
-      (!hasNumberedSteps && hasTooFewSteps) ||
-      (improvedRecipe.instructions.length < 8)) { // Too few steps, needs replacement regardless
-    console.log(`[RECIPE IMPROVE] Detected ${bannedPhraseCount} generic steps in recipe: ${recipe.name}`);
-    console.log(`[RECIPE IMPROVE] Original instructions: ${JSON.stringify(improvedRecipe.instructions)}`);
-    containsBannedPhrases = true;
-  }
-  
-  // Check if we have the exact template pattern
-  const hasGenericTemplate = checkForGenericTemplate(improvedRecipe.instructions);
-  
-  // Additional check for actionable steps
-  const lacksActionVerbs = checkForMissingActionVerbs(improvedRecipe.instructions);
-  
-  // If it's a generic template or contains several banned phrases or lacks proper formatting, completely replace instructions
-  if (hasGenericTemplate || containsBannedPhrases || lacksActionVerbs || !allStepsNumbered || hasTooFewSteps) {
-    console.log(`[RECIPE IMPROVE] Replacing generic instructions in recipe: ${recipe.name}`);
-    modified = true;
-    
-    // Replace the entire instructions with a more specific set based on the recipe type and ingredients
-    improvedRecipe.instructions = generateDetailedInstructions(improvedRecipe);
-    
-    // Add a note for debugging purposes
-    improvedRecipe._instructionsImproved = true;
-    
-    console.log(`[RECIPE IMPROVE] Replaced generic instructions with ${improvedRecipe.instructions.length} detailed steps`);
-    return improvedRecipe;
-  }
-  
-  // Otherwise check individual steps and fix "standard procedures" instructions
-  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string, index: number) => {
+  // Check for and fix "standard procedures" instruction
+  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string) => {
     if (typeof step !== 'string') return step;
     
-    // Add numbering if missing (only if not already numbered)
-    if (!hasNumberedSteps) {
-      step = `${index + 1}. ${step}`;
-    }
-    
-    // Fix prep step
-    if (step.toLowerCase().includes('according to the ingredients list') || 
-        step.toLowerCase().includes('wash, chop, and measure')) {
-      modified = true;
-      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
-      return `${stepNumber}Prep: Wash and peel all vegetables. Dice onions into 1/4-inch pieces, mince garlic finely, and slice other vegetables into even-sized pieces as specified in the ingredients. Measure all spices and liquids into separate small bowls for easy access (mise en place).`;
-    }
-    
-    // Fix preheat step
-    if (step.toLowerCase().includes('preheat your oven or stovetop as needed')) {
-      modified = true;
-      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
-      
-      if (recipe.name.toLowerCase().includes('bake') || 
-          recipe.description?.toLowerCase().includes('bake') ||
-          recipe.name.toLowerCase().includes('roast') || 
-          recipe.description?.toLowerCase().includes('roast')) {
-        return `${stepNumber}Preheat the oven to 375°F (190°C) and position the rack in the center. Line a baking sheet with parchment paper or aluminum foil for easy cleanup.`;
-      }
-      
-      return `${stepNumber}Heat a large skillet over medium-high heat for 2 minutes until hot. Add 1 tablespoon of oil and swirl to coat the entire cooking surface.`;
-    }
-    
-    // Fix combine step
-    if (step.toLowerCase().includes('combine the ingredients according to the main')) {
-      modified = true;
-      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
-      
-      if (recipe.name.toLowerCase().includes('salad') || 
-          recipe.description?.toLowerCase().includes('salad')) {
-        return `${stepNumber}In a large mixing bowl, combine all prepared vegetables. Add 2 tablespoons of olive oil, 1 tablespoon of vinegar, 1/2 teaspoon salt, and 1/4 teaspoon black pepper. Toss gently using tongs or two large spoons until all ingredients are evenly coated with dressing.`;
-      }
-      
-      if (recipe.name.toLowerCase().includes('soup') || 
-          recipe.description?.toLowerCase().includes('soup')) {
-        return `${stepNumber}Heat 2 tablespoons of oil in a large pot over medium heat. Add onions and garlic, and sauté for 3-4 minutes until softened and fragrant. Add carrots and celery (if using) and cook for another 2-3 minutes. Pour in broth and bring to a simmer.`;
-      }
-      
-      return `${stepNumber}Heat 2 tablespoons oil in the pan. Add diced onions and minced garlic, and sauté for 2-3 minutes until translucent and fragrant. Add longer-cooking vegetables (carrots, potatoes) first and cook for 4-5 minutes, then add quicker-cooking items (bell peppers, zucchini) and cook for 2-3 minutes more.`;
-    }
-    
-    // Fix stir-fry or standard procedures step
+    // Fix stir-fry generic cooking steps
     if (step.toLowerCase().includes('standard procedure') || 
         step.toLowerCase().includes('standard procedures') ||
-        step.toLowerCase().includes('cook following') ||
         (step.toLowerCase().includes('cook') && step.toLowerCase().includes('for this type of dish'))) {
       
-      modified = true;
-      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
-      
       if (recipe.name.toLowerCase().includes('stir fry') || 
-          recipe.description?.toLowerCase().includes('stir-fry') || 
-          recipe.description?.toLowerCase().includes('stir fry')) {
-        return `${stepNumber}Heat a wok or large skillet over high heat for 1 minute until very hot. Add 1 tablespoon oil and swirl to coat the pan. Add protein (chicken/beef/tofu) in a single layer and stir-fry for 4-5 minutes until golden brown and cooked through (165°F for chicken). Remove protein to a clean plate. Add another 1/2 tablespoon oil to the same pan and add vegetables, starting with the firmest ones (carrots, broccoli) and stir-fry for 2 minutes, then add softer vegetables (bell peppers, snow peas) for 1-2 minutes more until crisp-tender. Return protein to the pan, pour sauce over everything, and stir-fry for 1 minute until everything is well-coated and heated through.`;
-      }
-      
-      if (recipe.name.toLowerCase().includes('soup') || 
-          recipe.description?.toLowerCase().includes('soup')) {
-        return `${stepNumber}Bring the soup mixture to a boil over medium-high heat. Once rapidly boiling, reduce heat to medium-low, cover the pot with a lid, and simmer for 20-25 minutes, stirring occasionally every 5 minutes. Check that vegetables are tender by piercing with a fork. Season with additional salt and pepper to taste (start with 1/4 teaspoon of each).`;
-      }
-      
-      if (recipe.name.toLowerCase().includes('pasta') || 
-          recipe.description?.toLowerCase().includes('pasta')) {
-        return `${stepNumber}Bring a large pot of water (4 quarts) to a rolling boil over high heat. Add 1 tablespoon salt to the water, then add pasta and cook according to package instructions until al dente (usually 8-10 minutes, but taste test 1-2 minutes before the suggested time). Meanwhile, in a large skillet, heat 2 tablespoons oil over medium heat and add garlic and onions, cooking for 2 minutes until fragrant. Add other sauce ingredients and simmer for 5-7 minutes. Drain pasta in a colander, reserving 1/4 cup pasta water, then add pasta directly to the sauce. Toss for 1-2 minutes to coat evenly. If sauce is too thick, add reserved pasta water 1 tablespoon at a time until desired consistency is reached.`;
-      }
-      
-      if (recipe.name.toLowerCase().includes('instant pot') || 
-          recipe.description?.toLowerCase().includes('instant pot')) {
-        return `${stepNumber}Secure the Instant Pot lid and ensure the pressure valve is set to 'Sealing' position. Select 'Pressure Cook' or 'Manual' setting and set timer for 20 minutes at high pressure. Once cooking completes and timer beeps, allow for 10 minutes of natural pressure release (don't touch anything). After 10 minutes, carefully turn the valve to 'Venting' position using a wooden spoon or oven mitt to release remaining pressure. When the float valve drops completely, carefully open the lid away from your face and body.`;
-      }
-      
-      if (recipe.name.toLowerCase().includes('slow cooker') || 
-          recipe.description?.toLowerCase().includes('slow cooker') ||
-          recipe.name.toLowerCase().includes('crockpot') || 
-          recipe.description?.toLowerCase().includes('crockpot')) {
-        return `${stepNumber}Cover the slow cooker with its lid and set to LOW for 7-8 hours or HIGH for 3-4 hours. The meat is done when it reaches 205°F internal temperature or easily pulls apart with a fork. Avoid opening the lid during cooking as each peek adds 15-20 minutes to cooking time. If adding vegetables, place them on top of the meat during the last 1-2 hours of cooking.`;
+          recipe.description.toLowerCase().includes('stir-fry') || 
+          recipe.description.toLowerCase().includes('stir fry')) {
+        modified = true;
+        return "Heat a wok or large skillet over high heat for 1 minute. Add 1 tablespoon oil and swirl to coat the pan. Add chicken and stir-fry for 4-5 minutes until golden brown and cooked through (internal temperature 165°F). Transfer to a plate.";
       }
       
       // General replacement for other dishes
-      return `${stepNumber}Cook the mixture over medium-high heat for 6-8 minutes, stirring every 1-2 minutes with a wooden spoon to prevent sticking. Continue cooking until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat) - check with an instant-read thermometer. Add any reserved ingredients (fresh herbs, cheese, pre-cooked items) in the last minute of cooking and mix until evenly incorporated.`;
-    }
-    
-    // Fix serve step
-    if (step.toLowerCase().includes('serve hot and enjoy') || 
-        step.toLowerCase().includes('enjoy with your family') ||
-        step.toLowerCase().includes('serve and enjoy')) {
       modified = true;
-      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
-      return `${stepNumber}Transfer the finished dish to serving plates or bowls while still hot. Garnish with 1 tablespoon of fresh chopped herbs (parsley, cilantro, or basil), a sprinkle of grated cheese, or a drizzle of olive oil as appropriate. Serve immediately alongside suggested side dishes (rice, bread, or salad).`;
-    }
-    
-    // If step doesn't have any of the specific bad phrases but still seems generic
-    // and doesn't start with an action verb, try to enhance it
-    if (!step.match(/^(\d+\.|Step \d+:)?\s*[A-Z][a-z]+/) && !containsBannedPhrases) {
-      modified = true;
-      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
-      // Create a more specific step with action verb
-      const actionVerbs = ["Mix", "Stir", "Cook", "Heat", "Add", "Combine", "Prepare", "Chop"];
-      const randomVerb = actionVerbs[Math.floor(Math.random() * actionVerbs.length)];
-      return `${stepNumber}${randomVerb} the ingredients thoroughly, ensuring even distribution and proper cooking. Monitor temperature and timing carefully for best results.`;
-    }
-    
-    // If step already has numbering but we're adding it, remove the existing numbering to avoid duplication
-    if (!hasNumberedSteps && /^(\d+\.|Step \d+:)/.test(step.trim())) {
-      step = step.replace(/^(\d+\.|Step \d+:)\s*/, '');
-      return `${index + 1}. ${step}`;
-    }
-    
-    // If no changes needed and we're adding numbering
-    if (!hasNumberedSteps) {
-      return `${index + 1}. ${step}`;
+      return "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat).";
     }
     
     return step;
@@ -1369,393 +1121,6 @@ export function improveRecipeInstructions(recipe: any): any {
   }
   
   return improvedRecipe;
-}
-
-/**
- * Check if the instructions match the common generic template pattern
- */
-function checkForGenericTemplate(instructions: string[]): boolean {
-  if (!Array.isArray(instructions)) {
-    return false;
-  }
-  
-  // Generic instruction patterns
-  const prepStepPattern = /prepare all ingredients|wash, chop, and measure|according to the ingredients list/i;
-  const preheatStepPattern = /preheat your oven or stovetop as needed|as needed for this recipe/i;
-  const combineStepPattern = /combine the ingredients according to|add ingredients in order/i;
-  const cookStepPattern = /cook following standard procedures|for this type of dish|until all components are thoroughly cooked|cook until done/i;
-  const serveStepPattern = /serve hot and enjoy|enjoy with your family|serve and enjoy/i;
-  
-  // If instructions is exactly 5 steps matching the template pattern, that's definitely generic
-  if (instructions.length === 5) {
-    const exactTemplateMatch = (
-      prepStepPattern.test(instructions[0]) &&
-      preheatStepPattern.test(instructions[1]) &&
-      combineStepPattern.test(instructions[2]) &&
-      cookStepPattern.test(instructions[3]) &&
-      serveStepPattern.test(instructions[4])
-    );
-    
-    if (exactTemplateMatch) {
-      return true;
-    }
-  }
-  
-  // Check for generic patterns in any order if we have a small number of steps
-  if (instructions.length <= 6) {
-    let genericPatternCount = 0;
-    
-    for (const step of instructions) {
-      if (typeof step !== 'string') continue;
-      const stepLower = step.toLowerCase();
-      
-      if (prepStepPattern.test(stepLower) || 
-          preheatStepPattern.test(stepLower) || 
-          combineStepPattern.test(stepLower) || 
-          cookStepPattern.test(stepLower) || 
-          serveStepPattern.test(stepLower)) {
-        genericPatternCount++;
-      }
-    }
-    
-    // If at least half of the steps match generic patterns, consider it a template
-    return genericPatternCount >= Math.ceil(instructions.length / 2);
-  }
-  
-  return false;
-}
-
-/**
- * Check if the instructions lack proper action verbs at the beginning of steps
- * Also checks for vague or generic instructions without specific measurements or details
- */
-function checkForMissingActionVerbs(instructions: string[]): boolean {
-  if (!Array.isArray(instructions) || instructions.length < 3) {
-    return false;
-  }
-  
-  // Define common cooking action verbs - strong, precise cooking verbs
-  const actionVerbs = [
-    'add', 'adjust', 'arrange', 'assemble', 'bake', 'beat', 'blend', 'boil', 'braise', 'break', 'broil', 'brown', 
-    'brush', 'caramelize', 'carve', 'char', 'check', 'chop', 'clean', 'coat', 'combine', 'cool', 'core', 'cover', 'crackle', 'cream',
-    'crimp', 'crumble', 'crush', 'cube', 'cut', 'decorate', 'deglaze', 'dice', 'dip', 'dissolve', 'divide', 'dot', 'drain', 'dress',
-    'drizzle', 'drop', 'dry', 'dust', 'emulsify', 'ferment', 'fillet', 'filter', 'flambe', 'flatten', 'flip', 'fold', 'form', 'fry', 
-    'garnish', 'glaze', 'grate', 'grease', 'grill', 'grind', 'heat', 'infuse', 'inject', 'insert', 'julienne', 'knead', 'ladle', 'layer', 
-    'let', 'line', 'macerate', 'marinate', 'mash', 'massage', 'measure', 'melt', 'microwave', 'mince', 'mix', 'mold', 'monitor', 
-    'nestle', 'pat', 'peel', 'pickle', 'pierce', 'pipe', 'pit', 'place', 'poach', 'pour', 'press', 'prick',
-    'preheat', 'prepare', 'process', 'puree', 'quarter', 'reduce', 'refrigerate', 'reheat', 'remove', 'render', 'reserve', 
-    'rest', 'rinse', 'roast', 'roll', 'rub', 'salt', 'sauté', 'scatter', 'scoop', 'score', 'scrape', 'sear', 'season', 
-    'separate', 'serve', 'set', 'sift', 'simmer', 'skim', 'slice', 'slide', 'smash', 'soak', 'spatchcock', 'spoon', 'spread', 'sprinkle', 
-    'squeeze', 'steam', 'steep', 'stir', 'strain', 'stretch', 'stuff', 'taste', 'tear', 'temper', 'test', 'thicken', 'thin', 'toast',
-    'toss', 'transfer', 'trim', 'turn', 'use', 'wait', 'warm', 'wash', 'weigh', 'whip', 'whisk', 'wrap', 'zest'
-  ];
-  
-  // Banned phrases and patterns that indicate generic, vague instructions
-  const bannedPhraseStarts = [
-    'prepare all', 'wash, chop', 'preheat your', 'combine the', 'cook following', 
-    'serve hot', 'enjoy with', 'according to', 'as needed'
-  ];
-  
-  const genericPatterns = [
-    /prepare ingredients/i,
-    /wash and prep/i,
-    /follow package/i,
-    /cook according/i,
-    /cook until done/i,
-    /depending on your/i,
-    /cook to your/i,
-    /to taste$/i,
-    /as necessary/i,
-    /^enjoy!?$/i,
-    /as directed/i,
-    /as instructed/i,
-    /standard procedure/i,
-    /following usual/i,
-    /usual method/i,
-    /thoroughly cooked/i,
-    /completely cooked/i,
-    /until tender/i,  // unless accompanied by a specific time or test
-    /until done/i,
-    /accordingly$/i,
-    /appropriately$/i,
-    /cook through/i,
-    /safely cooked/i
-  ];
-  
-  // Check for lack of specific measurements or timing in cooking instructions
-  const measurementPatterns = [
-    /\d+\s*(minute|min|hour|hr|second|sec)/i,  // Time measurements
-    /\d+\s*(degrees?|°[FC])/i,  // Temperature measurements
-    /\d+\s*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|pound|lb|gram|g|ml|liter|l|inch|in|cm)/i  // Volume/weight/size measurements
-  ];
-  
-  // Step counts
-  let stepsWithoutActionVerbs = 0;
-  let stepsWithGenericPhrases = 0;
-  let cookingStepsWithoutMeasurements = 0;
-  
-  for (const step of instructions) {
-    if (typeof step !== 'string') continue;
-    
-    // Remove numbering if present
-    const stepText = step.replace(/^(\d+\.|Step \d+:|#\d+)\s*/, '').trim();
-    
-    // 1. Check if step starts with a banned phrase
-    const hasBannedPhrase = bannedPhraseStarts.some(phrase => 
-      stepText.toLowerCase().startsWith(phrase)
-    );
-    
-    // 2. Check if step contains generic patterns
-    const hasGenericPattern = genericPatterns.some(pattern => 
-      pattern.test(stepText)
-    );
-    
-    // 3. Check if step has specific measurements when it involves cooking
-    const involveCooking = /(cook|bake|roast|grill|simmer|boil|fry|saut[ée])/i.test(stepText);
-    const hasMeasurements = measurementPatterns.some(pattern => 
-      pattern.test(stepText)
-    );
-    const lacksMeasurements = involveCooking && !hasMeasurements;
-    
-    // 4. Check if step begins with a strong action verb
-    const firstWordMatch = stepText.match(/^[^a-zA-Z]*([a-zA-Z]+)/);
-    const firstWord = firstWordMatch ? firstWordMatch[1].toLowerCase() : '';
-    const hasActionVerb = actionVerbs.includes(firstWord);
-    
-    // Count issues
-    if (!hasActionVerb || hasBannedPhrase) stepsWithoutActionVerbs++;
-    if (hasGenericPattern) stepsWithGenericPhrases++;
-    if (lacksMeasurements) cookingStepsWithoutMeasurements++;
-  }
-  
-  // Criteria for determining if instructions need improvement
-  // 1. More than 1/4 of steps don't start with action verbs
-  const tooManyStepsWithoutVerbs = stepsWithoutActionVerbs >= Math.ceil(instructions.length / 4);
-  
-  // 2. Any generic phrases in short instructions, or more than 1 in longer instructions
-  const tooManyGenericPhrases = (instructions.length <= 7 && stepsWithGenericPhrases > 0) || 
-                                stepsWithGenericPhrases > 1;
-  
-  // 3. Too few steps total (less than 8)
-  const tooFewSteps = instructions.length < 8;
-  
-  // 4. More than 1/3 of cooking steps lack specific measurements
-  const tooManyStepsWithoutMeasurements = cookingStepsWithoutMeasurements >= Math.ceil(instructions.length / 3);
-  
-  return tooManyStepsWithoutVerbs || 
-         tooManyGenericPhrases || 
-         tooFewSteps || 
-         tooManyStepsWithoutMeasurements;
-}
-
-/**
- * Generate detailed instructions based on the recipe type and ingredients
- */
-function generateDetailedInstructions(recipe: any): string[] {
-  const recipeName = recipe.name?.toLowerCase() || '';
-  const description = recipe.description?.toLowerCase() || '';
-  const ingredients = recipe.ingredients || recipe.mainIngredients || [];
-  
-  // Determine recipe type
-  const isStirFry = recipeName.includes('stir fry') || description.includes('stir fry') || description.includes('stir-fry');
-  const isPasta = recipeName.includes('pasta') || description.includes('pasta');
-  const isSoup = recipeName.includes('soup') || description.includes('soup');
-  const isSalad = recipeName.includes('salad') || description.includes('salad');
-  const isRoasted = recipeName.includes('roast') || description.includes('roast');
-  const isBaked = recipeName.includes('bake') || description.includes('bake');
-  const isGrilled = recipeName.includes('grill') || description.includes('grill');
-  const isInstantPot = recipeName.includes('instant pot') || description.includes('instant pot');
-  const isSlowCooker = recipeName.includes('slow cooker') || description.includes('slow cooker') || 
-                       recipeName.includes('crockpot') || description.includes('crockpot');
-  
-  // Check for protein types
-  const hasChicken = ingredients.some((ing: string) => 
-    typeof ing === 'string' && ing.toLowerCase().includes('chicken'));
-  const hasBeef = ingredients.some((ing: string) => 
-    typeof ing === 'string' && (ing.toLowerCase().includes('beef') || ing.toLowerCase().includes('steak')));
-  const hasPork = ingredients.some((ing: string) => 
-    typeof ing === 'string' && ing.toLowerCase().includes('pork'));
-  const hasSeafood = ingredients.some((ing: string) => 
-    typeof ing === 'string' && (ing.toLowerCase().includes('fish') || ing.toLowerCase().includes('shrimp') || 
-                                ing.toLowerCase().includes('salmon') || ing.toLowerCase().includes('tuna')));
-  
-  // Generate appropriate instructions based on meal type
-  if (isStirFry) {
-    return [
-      "1. Prep: Wash and pat dry all vegetables. Dice onions into 1/4-inch pieces, mince 2 cloves of garlic, and slice other vegetables into uniform 1-inch pieces. For protein, slice against the grain into 1/4-inch strips for quicker, more even cooking.",
-      "2. Make Sauce: In a small bowl, whisk together 3 tablespoons soy sauce, 1 tablespoon cornstarch, 1/2 cup chicken broth, 1 tablespoon honey, and 1 teaspoon sesame oil until completely smooth with no lumps.",
-      "3. Heat: Place a wok or 12-inch skillet over high heat for exactly 2 minutes until very hot. Add 1 tablespoon vegetable oil and swirl to coat the entire cooking surface.",
-      "4. Cook Protein: Add protein to the hot pan in a single layer without overcrowding (work in two batches if needed). Cook for 3-4 minutes, turning occasionally, until browned but not fully cooked through. Transfer to a clean plate using tongs.",
-      "5. Sauté Aromatics: Add another 1/2 tablespoon oil to the same pan. Add minced garlic and 1 tablespoon grated ginger, stirring constantly for exactly 30 seconds until fragrant but not browned.",
-      "6. Cook Vegetables: Add harder vegetables first (carrots, broccoli stems) and stir-fry for 2 minutes. Add medium-firm vegetables (bell peppers, snap peas) for 1 minute, then add leafy greens last for 30 seconds, stirring constantly.",
-      "7. Combine: Return protein to the pan with any accumulated juices. Pour the sauce over everything and stir constantly for 1-2 minutes until sauce thickens and coats all ingredients evenly. The sauce should reach a nappe consistency that coats the back of a spoon.",
-      "8. Serve: Remove from heat and garnish with 2 thinly sliced green onions and 1 tablespoon toasted sesame seeds. Serve immediately over steamed rice or noodles while still hot."
-    ];
-  } else if (isPasta) {
-    return [
-      "1. Boil Water: Fill a large 6-quart pot with 4 quarts of water. Bring to a rolling boil over high heat. Add 1 tablespoon salt to the water – it should taste as salty as seawater.",
-      "2. Prep Ingredients: While water is heating, finely dice 1 medium onion and mince 3 cloves of garlic. Measure all sauce ingredients and set aside in separate bowls.",
-      "3. Start Sauce: Heat a large 12-inch skillet over medium heat. Add 2 tablespoons olive oil or butter. When oil is hot but not smoking, add diced onions and sauté for 3 minutes until translucent.",
-      "4. Build Flavor: Add minced garlic to the skillet and cook for 30 seconds until fragrant. If using ground meat, add it now and cook for 5-7 minutes, breaking it apart with a wooden spoon until browned and no pink remains.",
-      "5. Cook Pasta: Add 12 ounces of pasta to the boiling water and stir immediately to prevent sticking. Set a timer according to package instructions for al dente texture (usually 8-10 minutes). Stir occasionally while cooking.",
-      "6. Finish Sauce: While pasta cooks, add remaining sauce ingredients to the skillet. For tomato sauce, add 2 cups marinara and simmer for 5 minutes. For cream sauce, add 1 cup heavy cream and reduce by one-third, about 4 minutes.",
-      "7. Reserve Pasta Water: Just before draining, scoop out 1/2 cup of starchy pasta water with a measuring cup. Then drain pasta in a colander but do not rinse it.",
-      "8. Combine: Add drained pasta directly to the sauce in the skillet. Toss continuously with tongs for 1-2 minutes until pasta is completely coated. If sauce is too thick, add reserved pasta water 1 tablespoon at a time.",
-      "9. Garnish: Remove from heat and add any finishing ingredients like 1/4 cup fresh herbs, 1/2 cup grated cheese, or 1/4 cup toasted pine nuts. Toss once more and serve immediately on warmed plates."
-    ];
-  } else if (isSoup) {
-    return [
-      "1. Prep Vegetables: Wash and peel all vegetables. Dice 1 medium onion, 2 medium carrots, and 2 celery stalks into 1/4-inch pieces (creating a mirepoix). Cut remaining vegetables into uniform 1/2-inch bite-sized pieces for even cooking.",
-      "2. Heat Base: Place a large 6-quart pot or Dutch oven over medium heat. Add 2 tablespoons olive oil or butter and heat until shimmering but not smoking, about 1 minute.",
-      "3. Sauté Aromatics: Add diced onions, carrots, and celery to the hot oil. Sauté for exactly 5 minutes, stirring occasionally with a wooden spoon, until vegetables are softened but not browned.",
-      "4. Add Aromatics: Add 3 minced garlic cloves and 1 tablespoon dried herbs (or 2 tablespoons fresh herbs). Cook for exactly 30 seconds, stirring constantly to prevent burning.",
-      "5. Brown Protein: If using raw meat (like 1 pound ground beef or 1 pound diced chicken), add it now. Cook until no pink remains, about 5-7 minutes, breaking apart with a wooden spoon. For pre-cooked meat, reserve until step 7.",
-      "6. Add Remaining Vegetables: Add all remaining diced vegetables to the pot and stir to coat with oil and herbs. Cook for 2 minutes, stirring occasionally.",
-      "7. Add Liquid: Pour in 6-8 cups broth or stock and add 1 bay leaf. If using pre-cooked meat or canned beans, add them now. Bring to a full rolling boil over medium-high heat, about 5 minutes.",
-      "8. Simmer: Once boiling, reduce heat to maintain a gentle simmer (small bubbles around the edges). Cover with lid slightly ajar and simmer for 25 minutes, stirring every 7-8 minutes, until all vegetables are tender when pierced with a fork.",
-      "9. Season: Remove bay leaf. Taste and adjust seasoning with salt and pepper (start with 1/2 teaspoon salt, 1/4 teaspoon pepper). For creamy soups, stir in 1/2 cup cream or milk. For blended soups, use an immersion blender until desired consistency is reached.",
-      "10. Serve: Ladle hot soup into warmed bowls. Garnish each serving with 1 tablespoon fresh chopped herbs (parsley, dill, or cilantro) and serve immediately with warm bread on the side."
-    ];
-  } else if (isSlowCooker) {
-    return [
-      "1. Prepare Ingredients: Dice 1 large onion into 1/2-inch pieces. Cut root vegetables (2 carrots, 2 potatoes) into 1-inch chunks. Trim any excess fat from 2-3 pounds of meat and cut into 1.5-inch pieces if using large cuts. Mince 3 cloves of garlic.",
-      "2. Sear Meat (Optional): Heat a large skillet over medium-high heat. Add 1 tablespoon oil and heat until shimmering. Season meat with 1 teaspoon salt and 1/2 teaspoon black pepper. Brown meat in batches (don't overcrowd) for 3-4 minutes per side until golden brown. This step is optional but adds significant flavor.",
-      "3. Layer Ingredients: Add 1 cup diced onions and any root vegetables to the bottom of the slow cooker (closest to the heat source). Place browned meat on top of vegetables.",
-      "4. Add Flavor Base: Sprinkle 3 minced garlic cloves, 1 tablespoon dried herbs (thyme, rosemary, oregano), 1 teaspoon salt, and 1/2 teaspoon black pepper evenly over the meat and vegetables.",
-      "5. Add Liquid: Pour in 1-2 cups of liquid (broth, wine, sauce) until ingredients are about 2/3 covered – not completely submerged. For tomato-based dishes, add 1 tablespoon tomato paste for depth of flavor.",
-      "6. Set Temperature: Cover the slow cooker with its lid, ensuring a proper seal with no gaps for steam to escape. Set to LOW for 7-8 hours (best for tough cuts like chuck or pork shoulder) or HIGH for 3-4 hours depending on your time constraints.",
-      "7. Maintain Closed Environment: Avoid opening the lid during cooking as each peek adds 15-20 minutes to cooking time due to heat loss. If you must check, do so quickly.",
-      "8. Add Quick-Cooking Items: During final 30 minutes of cooking, stir in any delicate vegetables (1 cup frozen peas, 2 cups fresh spinach), pasta, or pre-cooked items. If sauce needs thickening, stir in a slurry of 2 tablespoons cornstarch mixed with 3 tablespoons cold water.",
-      "9. Check Doneness: Meat is properly cooked when it reaches 205°F for tough cuts like chuck or pork shoulder (should easily shred with two forks) or 165°F for poultry (use an instant-read thermometer). Vegetables should be tender when pierced with a fork but still hold their shape.",
-      "10. Serve: Remove from heat and let stand 10 minutes before serving. Skim off any excess fat from the surface. Transfer to a serving platter, garnish with 2 tablespoons fresh chopped herbs, and serve with appropriate sides."
-    ];
-  } else if (isInstantPot) {
-    return [
-      "1. Prep Ingredients: Trim 2 pounds of meat (if using) into 1.5-inch chunks, removing excess fat. Dice 1 onion into 1/2-inch pieces. Mince 3 cloves of garlic. Chop vegetables into uniform 1-inch pieces. Measure all seasonings and liquids.",
-      "2. Sauté Base: Press the 'Sauté' button on the Instant Pot and set to 'Normal' heat. Allow to heat for exactly 2 minutes until the display reads 'Hot'. Add 2 tablespoons of oil and heat until shimmering.",
-      "3. Brown Protein: Pat meat dry with paper towels and season with 1 teaspoon salt and 1/2 teaspoon black pepper. Add meat to the hot pot in a single layer (work in batches if needed) and sear for 3-4 minutes per side until golden brown. Remove and set aside on a plate.",
-      "4. Build Flavor Base: Add diced onions to the pot and sauté for 2 minutes until translucent, scraping up any browned bits from the bottom of the pot. Add minced garlic and sauté for 30 seconds until fragrant. Add 1 tablespoon dried herbs or spices and stir for 15 seconds to bloom their flavors.",
-      "5. Deglaze: Pour in 1/4 cup of liquid (broth, wine, or water) and scrape the bottom of the pot thoroughly with a wooden spoon for 1 minute to remove all stuck-on bits. This critical step prevents the 'Burn' notice during pressure cooking.",
-      "6. Add Remaining Ingredients: Return browned meat to the pot along with any accumulated juices. Add chopped vegetables and remaining ingredients according to the recipe. Pour in remaining liquid (total liquid should be at least 1 cup). Do not fill pot more than 2/3 full.",
-      "7. Seal and Set: Press 'Cancel' to stop the Sauté function. Close the lid securely and turn the pressure release valve to 'Sealing' position. Press 'Pressure Cook' or 'Manual' and set to HIGH pressure. For tough cuts of meat, set for 25 minutes; for chicken pieces, 12 minutes; for vegetable dishes, 5 minutes.",
-      "8. Release Pressure: When cooking cycle completes, allow for natural pressure release (NPR) for exactly 10 minutes (set a timer). After 10 minutes, carefully turn the valve to 'Venting' using a long spoon or oven mitt to perform a quick release of remaining pressure. Wait for the float valve to drop completely.",
-      "9. Check and Adjust: Carefully open the lid away from your face. Check that meat reaches 165°F for poultry or 145°F for beef/pork using an instant-read thermometer. If sauce needs thickening, press 'Sauté' and simmer for 5 minutes, or stir in a slurry of 1 tablespoon cornstarch mixed with 2 tablespoons cold water.",
-      "10. Finish and Serve: Press 'Cancel' to turn off the heat. Adjust seasonings with additional salt and pepper if needed (start with 1/4 teaspoon increments). Let stand for 5 minutes, then serve directly from the Instant Pot or transfer to a serving dish. Garnish with 2 tablespoons fresh herbs if desired."
-    ];
-  } else if (isBaked || isRoasted) {
-    const temp = isBaked ? "375°F (190°C)" : "425°F (220°C)";
-    return [
-      `1. Preheat: Set your oven to ${temp} and position the rack in the center. Allow oven to fully preheat for at least 15 minutes to ensure accurate temperature.`,
-      "2. Prepare Baking Surface: Line a rimmed 18x13-inch baking sheet with parchment paper or aluminum foil for easy cleanup. If using a baking dish, lightly coat with 1 tablespoon of olive oil or cooking spray.",
-      "3. Prepare Ingredients: Rinse and pat dry all vegetables with paper towels. For root vegetables (carrots, potatoes), peel and cut into uniform 1-inch chunks. For protein, pat dry with paper towels to ensure proper browning.",
-      "4. Season: In a large mixing bowl, combine 2 tablespoons olive oil, 1 teaspoon salt, 1/2 teaspoon black pepper, and 1 tablespoon of dried herbs (rosemary, thyme, or Italian seasoning). Add vegetables and/or protein and toss until evenly coated.",
-      "5. Arrange: Transfer seasoned ingredients to the prepared baking sheet in a single layer with at least 1/2 inch between pieces to allow for proper air circulation. Overcrowding will cause steaming instead of roasting.",
-      `6. Bake: Place in the preheated oven and bake for ${isBaked ? "25-30" : "20-25"} minutes. ${isRoasted ? "For roasted vegetables, they should be caramelized and tender when pierced with a fork." : "For baked dishes, the top should be golden brown and a thermometer inserted in the center should read 165°F."}`,
-      "7. Check Progress: At the halfway point, rotate the pan 180 degrees for even browning and use a spatula to carefully flip larger pieces. If some ingredients are browning too quickly, cover those areas loosely with foil.",
-      "8. Check Doneness: For proteins, verify doneness with an instant-read thermometer: 165°F for chicken, 145°F for fish, 160°F for ground meat, and 145-160°F for whole cuts of beef/pork (depending on desired doneness).",
-      "9. Rest: Remove from oven and let rest for 5-10 minutes before serving. This allows juices to redistribute in proteins and prevents burning your mouth on vegetables.",
-      "10. Garnish and Serve: Just before serving, sprinkle with 2 tablespoons freshly chopped herbs (parsley, cilantro, or basil) or a squeeze of fresh lemon juice to brighten flavors. Transfer to a warmed serving platter and serve immediately."
-    ];
-  } else if (isGrilled) {
-    return [
-      "1. Preheat Grill: Set gas grill to medium-high heat (approximately 400-450°F) and allow to preheat for a full 15 minutes with lid closed. For charcoal grill, light coals and let burn until covered with white ash (approximately 25-30 minutes).",
-      "2. Clean Grates: Once hot, scrub grates thoroughly with a wire brush to remove any residue. Fold a paper towel into a small pad, grip with long-handled tongs, dip in vegetable oil, and wipe grates to create a non-stick surface.",
-      "3. Prepare Protein: Pat 1.5-2 pounds of protein (chicken, steak, fish) completely dry with paper towels to promote browning. Season with 1 teaspoon kosher salt, 1/2 teaspoon black pepper, and 1 tablespoon of your preferred spice rub, coating all sides evenly.",
-      "4. Prepare Vegetables: Wash and cut 4 cups of vegetables into pieces at least 1-inch thick to prevent falling through grates. For smaller items like cherry tomatoes or mushrooms, thread onto metal skewers, leaving 1/4-inch space between pieces. Brush with 2 tablespoons olive oil and season with 1/2 teaspoon each of salt and pepper.",
-      "5. Create Cooking Zones: For gas grills, set one side to high heat and the other to medium-low, creating direct and indirect heat zones. For charcoal, pile coals on one side of the grill, leaving the other side empty for indirect cooking.",
-      "6. Grill Protein: Place protein on the hot zone. For boneless chicken breasts, grill 6 minutes per side; for 1-inch thick steaks, 4-5 minutes per side for medium; for 1-inch thick fish fillets, 3-4 minutes per side. Use a spatula, not a fork, to flip to avoid piercing and losing juices.",
-      "7. Grill Vegetables: Place larger, denser vegetables (corn, bell peppers, zucchini) on the hot zone, and more delicate items on the cooler zone. Arrange perpendicular to grates and turn every 3-4 minutes until char marks develop and vegetables are tender when pierced with a fork.",
-      "8. Check Doneness: Use an instant-read thermometer inserted into the thickest part to verify doneness: 165°F for chicken, 145°F for fish, 125°F for rare beef, 135°F for medium-rare, 145°F for medium, 155°F for medium-well. If meat is browning too quickly but not reaching proper temperature, move to indirect heat to finish cooking.",
-      "9. Rest Protein: Transfer grilled protein to a clean cutting board and tent loosely with aluminum foil for 5-10 minutes (5 for fish, 10 for larger cuts of meat). This critical step allows juices to redistribute throughout the meat rather than spilling out when cut.",
-      "10. Slice and Serve: For steaks and larger cuts, slice against the grain into 1/4 to 1/2-inch thick pieces. Arrange protein and vegetables on a warmed platter. Finish with 1 tablespoon fresh chopped herbs and a squeeze of fresh lemon juice (about 1 tablespoon) over everything just before serving."
-    ];
-  } else if (isSalad) {
-    return [
-      "1. Wash Produce: Thoroughly rinse all fruits and vegetables under cold running water for at least 30 seconds each. For greens, fill a large bowl with cold water, submerge greens, swish gently, then lift out. Repeat with fresh water if necessary. Spin dry in a salad spinner or pat completely dry with clean kitchen towels.",
-      "2. Prepare Dressing Base: In a small bowl, combine 3 tablespoons acid (lemon juice, lime juice, or vinegar) with 1/2 teaspoon salt and 1/4 teaspoon freshly ground black pepper. Let stand for 3 minutes to dissolve salt and mellow acid.",
-      "3. Emulsify Dressing: While whisking constantly, slowly drizzle in 6 tablespoons oil (olive, avocado, or preferred oil) in a thin stream until fully incorporated and emulsified. Add 1 teaspoon honey or maple syrup and 1 teaspoon Dijon mustard if desired. Whisk until smooth and slightly thickened.",
-      "4. Prepare Greens: Remove any tough stems from 8 cups of fresh greens. Tear or chop larger leaves into bite-sized pieces (approximately 1.5-inch squares). Place in a large salad bowl with at least 3-inch depth for proper tossing.",
-      "5. Prep Crisp Vegetables: Using a sharp chef's knife, slice 1 medium cucumber into 1/4-inch half-moons, dice 1 bell pepper into 1/2-inch pieces, halve 1 cup cherry tomatoes, and thinly slice 1/4 red onion. Keep vegetables separate until assembly.",
-      "6. Toast Nuts/Seeds: If using, place 1/2 cup nuts or seeds in a dry skillet over medium heat. Cook for exactly 4 minutes, shaking the pan every 30 seconds until golden brown and fragrant. Immediately transfer to a plate to cool completely.",
-      "7. Prepare Protein: If including protein, slice 6 ounces cooked chicken into 1/2-inch strips, or crumble 4 ounces feta cheese, or drain and rinse one 15-ounce can of beans. Cut any delicate proteins (like avocado) just before serving to prevent browning.",
-      "8. Layer Ingredients: Place sturdier ingredients (carrots, bell peppers, cucumbers) directly on greens. Add protein components next. Save delicate items (avocado, berries, fresh herbs) for the top layer.",
-      "9. Dress the Salad: Just before serving, drizzle exactly 3 tablespoons of dressing over the salad. Using salad tongs or two large spoons, gently toss from bottom to top for 30 seconds until ingredients are evenly coated. Taste and add more dressing 1 tablespoon at a time if needed.",
-      "10. Garnish and Serve: Finish with 1/4 cup toasted nuts or seeds, 2 tablespoons fresh herbs (basil, cilantro, or parsley), and a final light sprinkle of flaky sea salt (1/4 teaspoon). Serve immediately on chilled plates for maximum freshness and texture."
-    ];
-  } else {
-    // Generic detailed instructions for other types of recipes
-    const cookingMethod = getDefaultCookingMethod(recipe);
-    return generateGenericInstructions(recipe, cookingMethod);
-  }
-}
-
-/**
- * Determine the default cooking method based on recipe information
- */
-function getDefaultCookingMethod(recipe: any): string {
-  const recipeName = recipe.name?.toLowerCase() || '';
-  const description = recipe.description?.toLowerCase() || '';
-  const ingredients = recipe.ingredients || recipe.mainIngredients || [];
-  
-  if (recipeName.includes('bake') || description.includes('bake') || 
-      recipeName.includes('roast') || description.includes('roast')) {
-    return 'bake';
-  } else if (recipeName.includes('grill') || description.includes('grill')) {
-    return 'grill';
-  } else if (recipeName.includes('slow cooker') || description.includes('slow cooker') ||
-             recipeName.includes('crockpot') || description.includes('crockpot')) {
-    return 'slowcook';
-  } else if (recipeName.includes('instant pot') || description.includes('instant pot')) {
-    return 'instantpot';
-  } else if (recipeName.includes('stir fry') || description.includes('stir fry') || 
-             description.includes('stir-fry')) {
-    return 'stirfry';
-  } else if (recipeName.includes('soup') || description.includes('soup')) {
-    return 'soup';
-  } else if (recipeName.includes('salad') || description.includes('salad')) {
-    return 'salad';
-  } else if (recipeName.includes('pasta') || description.includes('pasta')) {
-    return 'pasta';
-  } else {
-    // Default to stovetop cooking
-    return 'stovetop';
-  }
-}
-
-/**
- * Generate generic detailed instructions for recipes that don't match specific categories
- */
-function generateGenericInstructions(recipe: any, cookingMethod: string): string[] {
-  const instructions: string[] = [];
-  
-  // Initial prep step
-  instructions.push("Wash, peel, and chop all produce as indicated in the ingredients list. Measure all spices, liquids, and other ingredients. Arrange everything in small bowls for easy access during cooking.");
-  
-  // Cooking specific instructions
-  if (cookingMethod === 'stovetop') {
-    instructions.push("1. Heat Pan: Place a 12-inch skillet or sauté pan over medium heat. Add 2 tablespoons of oil (olive oil, vegetable oil, or butter) and heat for exactly 2 minutes until shimmering but not smoking. Test the heat by flicking a drop of water into the pan—it should sizzle immediately.");
-    instructions.push("2. Sauté Aromatics: Add 1 diced medium onion to the hot oil and sauté for 3-4 minutes, stirring occasionally with a wooden spoon, until translucent. Add 2-3 minced garlic cloves and cook for exactly 30 seconds until fragrant but not browned.");
-    instructions.push("3. Brown Protein: If using meat, add 1-1.5 pounds of protein (cut into uniform pieces) to the pan in a single layer. Season with 1 teaspoon salt and 1/2 teaspoon black pepper. Cook undisturbed for 3-4 minutes until golden brown, then flip and cook another 3-4 minutes. For ground meat, cook 5-7 minutes, breaking apart with a spatula, until no pink remains.");
-    instructions.push("4. Add Vegetables: Add 3-4 cups of vegetables in order of density—harder vegetables first (carrots, celery, bell peppers) for 3 minutes, then more delicate vegetables (zucchini, mushrooms) for 2 minutes. Maintain medium-high heat to promote browning rather than steaming.");
-    instructions.push("5. Season and Build Flavor: Add 1-2 teaspoons of dried herbs or spices. Cook for 30 seconds to bloom their flavors. For acidity, add 2 tablespoons of wine, vinegar, or citrus juice and scrape up any browned bits from the bottom of the pan.");
-    instructions.push("6. Add Liquid and Simmer: Pour in 1-2 cups of liquid (broth, sauce, crushed tomatoes) and stir to combine. Bring to a strong simmer with bubbles breaking the surface regularly. Reduce heat to medium-low and maintain a gentle simmer for 10-15 minutes until liquid has reduced by one-third, stirring occasionally.");
-    instructions.push("7. Thicken Sauce: If the sauce needs thickening, create a slurry by mixing 1 tablespoon cornstarch with 3 tablespoons cold water in a small bowl until smooth. Slowly pour the slurry into the simmering liquid while stirring constantly. Cook for exactly 2 minutes until thickened to a consistency that coats the back of a spoon.");
-    instructions.push("8. Adjust Seasonings: Remove from heat and taste the dish. Adjust seasonings with salt and pepper in 1/4 teaspoon increments, stirring and tasting between additions. For brightness, add 1/2 teaspoon of an acidic ingredient (lemon juice, vinegar) if needed.");
-  } else {
-    // Default instructions if we can't determine a specific cooking method
-    instructions.push("1. Prepare Cooking Vessel: Select the appropriate cooking vessel based on the recipe and volume of ingredients. For larger batches, use a 6-quart pot or 12-inch skillet. Place over medium heat and add 2 tablespoons oil or fat.");
-    instructions.push("2. Layer Ingredients: Add ingredients in order of cooking time, starting with those requiring the longest cooking. For proteins, cook first until properly browned and nearly cooked through (165°F for chicken, 145°F for fish, 160°F for ground meat).");
-    instructions.push("3. Build Flavor Base: Create a flavor foundation by sautéing aromatic vegetables (onions, garlic, celery, carrots) until softened, about 3-5 minutes. Add dried herbs and spices and cook for 30 seconds to release their flavors.");
-    instructions.push("4. Manage Heat: Adjust heat as needed throughout cooking process. High heat (375-450°F) for browning and searing, medium heat (325-375°F) for most cooking, low heat (below 325°F) for simmering and gentle cooking.");
-    instructions.push("5. Monitor Doneness: Check doneness by testing vegetables with a fork (should pierce easily) and using a thermometer for proteins. For sauces and liquids, look for proper reduction and consistency (should coat the back of a spoon).");
-    instructions.push("6. Finish with Fresh Elements: In the final 1-2 minutes of cooking, add delicate herbs, quick-cooking vegetables, or final seasonings to preserve their freshness and flavor.");
-  }
-  
-  // Final steps
-  instructions.push("Remove from heat when cooking is complete. Let stand for 2-3 minutes to allow flavors to settle and distribute.");
-  instructions.push("Transfer to serving plates or bowls. Garnish with fresh herbs, a sprinkle of cheese, or a drizzle of olive oil if appropriate for the dish.");
-  
-  return instructions;
 }
 
 /**
@@ -1779,7 +1144,7 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
   if (!Array.isArray(ingredients)) {
     issues.push('Ingredients must be an array');
   } else {
-    // Check ingredient count - increased minimum to enforce more complete recipes
+    // Check ingredient count
     if (ingredients.length < 8) {
       issues.push(`Insufficient ingredients: found ${ingredients.length}, minimum 8 required`);
     }
@@ -1788,14 +1153,13 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
     const ingredientsWithoutMeasurements = ingredients.filter(ingredient => {
       if (typeof ingredient !== 'string') return true;
       
-      // Check for common measurement patterns - expanded to catch more variation
-      const hasMeasurement = /\d+\.?\d*\s*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|l|bunch|clove|pinch|dash|slice|piece|can|package|pkg|bottle)/i.test(ingredient);
+      // Check for common measurement patterns
+      const hasMeasurement = /\d+\s*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|bunch|clove|pinch|dash)/i.test(ingredient);
       return !hasMeasurement;
     });
     
-    // Stricter measurement requirement - only 20% of ingredients can lack measurements now
-    if (ingredientsWithoutMeasurements.length > ingredients.length * 0.2) {
-      issues.push(`Too many ingredients (${ingredientsWithoutMeasurements.length}) lack specific measurements - specify amounts for at least 80% of ingredients`);
+    if (ingredientsWithoutMeasurements.length > ingredients.length * 0.25) {
+      issues.push(`Many ingredients (${ingredientsWithoutMeasurements.length}) lack specific measurements`);
     }
   }
   
@@ -1804,22 +1168,12 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
   if (!Array.isArray(instructions)) {
     issues.push('Instructions must be an array');
   } else {
-    // Check instruction count - increased minimum from 7 to 8 steps
-    if (instructions.length < 8) {
-      issues.push(`Insufficient instructions: found ${instructions.length}, minimum 8 detailed steps required for complete recipe`);
+    // Check instruction count
+    if (instructions.length < 7) {
+      issues.push(`Insufficient instructions: found ${instructions.length}, minimum 7 required`);
     }
     
-    // Check for sequential numbering in instructions (recommended but not required)
-    const hasNumbering = instructions.some(step => {
-      if (typeof step !== 'string') return false;
-      return /^\d+\.\s/.test(step);
-    });
-    
-    if (!hasNumbering && instructions.length >= 5) {
-      issues.push('Instructions should ideally be numbered for easier following (e.g., "1. Preheat oven...")')
-    }
-    
-    // Expanded list of banned generic phrases
+    // Check for generic steps
     const genericPhrases = [
       'standard procedure',
       'standard procedures',
@@ -1833,20 +1187,7 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
       'standard method',
       'according to the main',
       'thoroughly cooked',
-      'for this type of dish',
-      'as needed for this recipe',
-      'usual practice',
-      'as directed',
-      'prepare ingredients',
-      'until done',
-      'cook through',
-      'enjoy with family',
-      'serve and enjoy',
-      'prepare as usual',
-      'as preferred',
-      'cook accordingly',
-      'heat as needed',
-      'serve immediately'
+      'for this type of dish'
     ];
     
     const genericSteps = instructions.filter(step => {
@@ -1855,71 +1196,24 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
     });
     
     if (genericSteps.length > 0) {
-      issues.push(`Found ${genericSteps.length} generic instruction step(s). Replace vague phrases like "standard procedure" or "cook until done" with specific instructions.`);
+      issues.push(`Found ${genericSteps.length} generic instruction step(s) containing phrases like "standard procedure" or "cook until done"`);
     }
     
-    // Check for temperature and timing information - expanded pattern matching
+    // Check for temperature and timing information
     const cookingStepsWithoutDetails = instructions.filter(step => {
       if (typeof step !== 'string') return false;
-      const containsCookingWords = /(cook|bake|roast|simmer|boil|sauté|fry|grill|broil|steam|poach|braise)/i.test(step);
+      const containsCookingWords = /(cook|bake|roast|simmer|boil|sauté|fry)/i.test(step);
       if (!containsCookingWords) return false;
       
       // Check if step has time or temperature information
-      const hasTimeInfo = /\d+\.?\d*\s*(minute|min|second|sec|hour|hr)/i.test(step);
-      const hasTempInfo = /\d+\s*(degree|°|[°º][FC]|F\b|C\b)/i.test(step) || /(low|medium-low|medium|medium-high|high)\s+heat/i.test(step);
+      const hasTimeInfo = /\d+\s*(minute|min|second|sec|hour)/i.test(step);
+      const hasTempInfo = /\d+\s*(degree|°F|°C|F|C)/i.test(step) || /(low|medium|high)\s+heat/i.test(step);
       
       return containsCookingWords && !(hasTimeInfo || hasTempInfo);
     });
     
     if (cookingStepsWithoutDetails.length > 0) {
-      issues.push(`Found ${cookingStepsWithoutDetails.length} cooking steps without specific time or temperature information. All cooking steps must include precise timing (e.g., "5 minutes") or temperature (e.g., "over medium heat" or "350°F").`);
-    }
-    
-    // Check for specific measurements in the instructions
-    const stepsWithoutIngredientMeasurements = instructions.filter(step => {
-      if (typeof step !== 'string') return false;
-      
-      // Look for steps that mention adding ingredients but don't have measurements
-      const mentionsAddingIngredients = /(add|stir in|pour in|mix in|combine with)/i.test(step);
-      if (!mentionsAddingIngredients) return false;
-      
-      // Check if measurement patterns exist
-      const hasMeasurement = /\d+\.?\d*\s*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|l)/i.test(step);
-      
-      return mentionsAddingIngredients && !hasMeasurement;
-    });
-    
-    // If more than 1/3 of steps that mention adding ingredients lack measurements, flag it
-    if (stepsWithoutIngredientMeasurements.length > 2) {
-      issues.push(`Found ${stepsWithoutIngredientMeasurements.length} steps that add ingredients without specific measurements. Include precise quantities in cooking steps (e.g., "Add 2 tablespoons olive oil").`);
-    }
-    
-    // Check for action verbs at the beginning of each step
-    const stepsWithoutActionVerbs = instructions.filter(step => {
-      if (typeof step !== 'string') return false;
-      
-      // Remove any numbering
-      const cleanStep = step.replace(/^\d+\.\s*/, '').trim();
-      
-      // Common cooking action verbs that should begin steps
-      const actionVerbs = [
-        'add', 'arrange', 'bake', 'beat', 'blend', 'boil', 'bring', 'brush', 'chop', 'combine', 'cook', 
-        'cool', 'cover', 'cut', 'dice', 'drain', 'drizzle', 'drop', 'dry', 'fill', 'flip', 'fold', 
-        'garnish', 'grate', 'grease', 'grill', 'heat', 'knead', 'layer', 'marinate', 'mash', 'measure', 
-        'melt', 'microwave', 'mix', 'pat', 'peel', 'place', 'poach', 'pour', 'preheat', 'prepare', 
-        'press', 'reduce', 'refrigerate', 'remove', 'rinse', 'roast', 'roll', 'rub', 'sauté', 'season', 
-        'serve', 'set', 'simmer', 'slice', 'spread', 'sprinkle', 'stir', 'strain', 'stuff', 'taste', 
-        'thicken', 'toss', 'transfer', 'trim', 'turn', 'warm', 'wash', 'whip', 'whisk'
-      ];
-      
-      // Extract first word
-      const firstWord = cleanStep.split(/\s+/)[0].toLowerCase();
-      
-      return !actionVerbs.includes(firstWord);
-    });
-    
-    if (stepsWithoutActionVerbs.length > 0) {
-      issues.push(`Found ${stepsWithoutActionVerbs.length} steps that don't begin with clear action verbs. Begin each step with a specific cooking action verb (e.g., "Sauté", "Whisk", "Combine").`);
+      issues.push(`Found ${cookingStepsWithoutDetails.length} cooking steps without specific time or temperature information`);
     }
   }
   
