@@ -96,6 +96,12 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
 // Generate a meal plan based on household profile and preferences
 export async function generateMealPlan(household: any, preferences: any = {}): Promise<any[]> {
   try {
+    // Debug the OpenAI API key issue
+    console.log('[MEAL PLAN] OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+    console.log('[MEAL PLAN] OPENAI_API_KEY length:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0);
+    console.log('[MEAL PLAN] OPENAI_API_KEY first 3 chars:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 3) : 'none');
+    console.log('[MEAL PLAN] ENV variables available:', Object.keys(process.env).filter(key => !key.includes('SECRET')).join(', '));
+    
     // For demo purposes with no API key, return canned meal suggestions
     if (!process.env.OPENAI_API_KEY) {
       console.log('[MEAL PLAN] Using mock data due to missing API key');
