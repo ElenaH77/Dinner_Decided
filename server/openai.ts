@@ -330,7 +330,32 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - prepInstructions (string): Detailed instructions for what to prepare ahead of time
           - cookingInstructions (string): Detailed instructions for the final cooking day
           
-          Example response format:
+          CRITICAL INSTRUCTION REQUIREMENTS:
+          1. NEVER use generic cooking instructions or phrases like "cook according to standard procedures" or "prepare according to ingredients list"
+          2. ALWAYS include specific cooking times (e.g., "sauté for 5-7 minutes")
+          3. ALWAYS include specific cooking temperatures (e.g., "preheat oven to 375°F")
+          4. ALWAYS describe exactly how to prepare each ingredient
+          5. ALWAYS include how to tell when food is properly cooked (e.g., "until chicken reaches internal temperature of 165°F")
+          
+          BANNED PHRASES - DO NOT USE ANY OF THESE IN YOUR INSTRUCTIONS:
+          - "Prepare all ingredients according to the ingredients list"
+          - "Wash, chop, and measure everything before starting"
+          - "Preheat your oven or stovetop as needed for this recipe"
+          - "Combine the ingredients according to the main ingredients list"
+          - "Cook following standard procedures for this type of dish"
+          - "Cook until all components are thoroughly cooked"
+          - "Serve hot and enjoy with your family"
+          
+          BAD EXAMPLE (DO NOT FOLLOW THIS PATTERN):
+          "instructions": [
+            "Prepare all ingredients according to the ingredients list - wash, chop, and measure everything before starting.",
+            "Preheat your oven or stovetop as needed for this recipe.",
+            "Combine the ingredients according to the main ingredients list.",
+            "Cook following standard procedures for this type of dish until all components are thoroughly cooked.",
+            "Serve hot and enjoy with your family!"
+          ]
+          
+          GOOD EXAMPLE (FOLLOW THIS PATTERN):
           {
             "meals": [
               {
@@ -369,8 +394,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
                   "Serve by allowing each person to build their own fajitas with the roasted chicken mixture, warm tortillas, lime wedges, 1/2 cup sour cream, and cilantro."
                 ],
                 "rationales": ["Fits your weeknight time constraints", "Uses your family's preferred protein", "One-pan meal means easy cleanup"]
-              },
-              {...}
+              }
             ]
           }`
         },
@@ -749,6 +773,31 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           
           ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
           IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
+          
+          CRITICAL INSTRUCTION REQUIREMENTS:
+          1. NEVER use generic cooking instructions or phrases like "cook according to standard procedures" or "prepare according to ingredients list"
+          2. ALWAYS include specific cooking times (e.g., "sauté for 5-7 minutes")
+          3. ALWAYS include specific cooking temperatures (e.g., "preheat oven to 375°F")
+          4. ALWAYS describe exactly how to prepare each ingredient
+          5. ALWAYS include how to tell when food is properly cooked (e.g., "until chicken reaches internal temperature of 165°F")
+          
+          BANNED PHRASES - DO NOT USE ANY OF THESE IN YOUR INSTRUCTIONS:
+          - "Prepare all ingredients according to the ingredients list"
+          - "Wash, chop, and measure everything before starting"
+          - "Preheat your oven or stovetop as needed for this recipe"
+          - "Combine the ingredients according to the main ingredients list"
+          - "Cook following standard procedures for this type of dish"
+          - "Cook until all components are thoroughly cooked"
+          - "Serve hot and enjoy with your family"
+          
+          BAD EXAMPLE (DO NOT FOLLOW THIS PATTERN):
+          "instructions": [
+            "Prepare all ingredients according to the ingredients list - wash, chop, and measure everything before starting.",
+            "Preheat your oven or stovetop as needed for this recipe.",
+            "Combine the ingredients according to the main ingredients list.",
+            "Cook following standard procedures for this type of dish until all components are thoroughly cooked.",
+            "Serve hot and enjoy with your family!"
+          ]
           
           Return your response as a single JSON object with these properties.`
         },
