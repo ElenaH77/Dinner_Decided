@@ -266,10 +266,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log meal count
       console.log(`[API GET CURRENT] Meal plan has ${Array.isArray(mealPlan.meals) ? mealPlan.meals.length : 0} meals`);
       
-      // Import the normalizeMeal function
-      const { normalizeMeal } = await import('./openai');
+      // Import the normalizeMeal and improveRecipeInstructions functions
+      const { normalizeMeal, improveRecipeInstructions } = await import('./openai');
       
-      // Ensure each meal has an ID and consistent field names
+      // Ensure each meal has an ID, consistent field names, and improved instructions
       if (Array.isArray(mealPlan.meals)) {
         mealPlan.meals = mealPlan.meals.map(meal => {
           // First check for missing ID
@@ -279,7 +279,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Then normalize field names for consistency
-          return normalizeMeal(meal);
+          let normalizedMeal = normalizeMeal(meal);
+          
+          // Finally, improve recipe instructions if they're generic
+          normalizedMeal = improveRecipeInstructions(normalizedMeal);
+          
+          return normalizedMeal;
         });
       }
       
@@ -354,10 +359,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[MEAL PLAN] Generated meals:', JSON.stringify(generatedMeals, null, 2));
       
-      // Import the normalizeMeal function
-      const { normalizeMeal } = await import('./openai');
+      // Import the normalizeMeal and improveRecipeInstructions functions
+      const { normalizeMeal, improveRecipeInstructions } = await import('./openai');
 
-      // Add unique stable IDs to each meal and normalize field names
+      // Add unique stable IDs to each meal, normalize field names, and improve instructions
       const mealsWithIds = generatedMeals.map((meal, index) => {
         // First assign ID if missing
         if (!meal.id) {
@@ -365,7 +370,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Then normalize all field names for consistency
-        return normalizeMeal(meal);
+        let normalizedMeal = normalizeMeal(meal);
+        
+        // Finally, improve recipe instructions if they're generic
+        normalizedMeal = improveRecipeInstructions(normalizedMeal);
+        
+        return normalizedMeal;
       });
       
       console.log('[MEAL PLAN] Added stable IDs to meals');
@@ -508,8 +518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to generate new meal - invalid meal format" });
       }
       
-      // Import normalizeMeal for field name consistency
-      const { normalizeMeal } = await import('./openai');
+      // Import normalizeMeal and improveRecipeInstructions for consistency and quality
+      const { normalizeMeal, improveRecipeInstructions } = await import('./openai');
       
       // Get the meal, assign ID if needed, and normalize field names
       let newMeal = newMeals[0];
@@ -519,6 +529,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Normalize field names for consistency
       newMeal = normalizeMeal(newMeal);
+      
+      // Improve recipe instructions if they're generic
+      newMeal = improveRecipeInstructions(newMeal);
       
       console.log('Generated new meal with ID:', newMeal.id);
       
@@ -601,8 +614,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to generate replacement meal - invalid meal format" });
       }
       
-      // Import normalizeMeal for field name consistency
-      const { normalizeMeal } = await import('./openai');
+      // Import normalizeMeal and improveRecipeInstructions for field name consistency and quality
+      const { normalizeMeal, improveRecipeInstructions } = await import('./openai');
       
       // Ensure replacement meal has an ID - keep original ID for continuity
       let replacementMeal = replacementMeals[0];
@@ -610,6 +623,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Normalize field names for consistency
       replacementMeal = normalizeMeal(replacementMeal);
+      
+      // Improve recipe instructions if they're generic
+      replacementMeal = improveRecipeInstructions(replacementMeal);
       
       console.log('Generated replacement meal with ID:', replacementMeal.id);
       

@@ -1132,7 +1132,7 @@ async function getHouseholdData() {
  * Improve the quality of a meal's instructions to ensure they're detailed and specific
  * This is a post-processing step to fix common issues
  */
-function improveRecipeInstructions(recipe: any): any {
+export function improveRecipeInstructions(recipe: any): any {
   if (!recipe || !recipe.instructions || !Array.isArray(recipe.instructions)) {
     return recipe;
   }
