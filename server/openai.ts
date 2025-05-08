@@ -1149,7 +1149,12 @@ export function improveRecipeInstructions(recipe: any): any {
     'combine the ingredients according to the main ingredients list',
     'cook following standard procedures',
     'cook until all components are thoroughly cooked',
-    'serve hot and enjoy with your family'
+    'cook thoroughly',
+    'combine everything',
+    'until done',
+    'serve hot and enjoy with your family',
+    'enjoy with your family',
+    'serve and enjoy'
   ];
   
   // Check if instructions contain any banned phrases
@@ -1169,9 +1174,15 @@ export function improveRecipeInstructions(recipe: any): any {
     }
   }
   
-  // If 3 or more steps contain banned phrases, consider it a generic template
-  if (bannedPhraseCount >= 3 || 
-      improvedRecipe.instructions.length <= 5 && bannedPhraseCount >= 2) {
+  // Check if the instructions lack numbered steps or have too few steps
+  const hasNumberedSteps = improvedRecipe.instructions.some((step: string) => 
+    typeof step === 'string' && /^(\d+\.|Step \d+:)/.test(step.trim()));
+  const hasTooFewSteps = improvedRecipe.instructions.length < 5;
+  
+  // If multiple banned phrases found or lacks numbered steps with too few steps, consider it a generic template
+  if (bannedPhraseCount >= 2 || 
+      (improvedRecipe.instructions.length <= 5 && bannedPhraseCount >= 1) ||
+      (!hasNumberedSteps && hasTooFewSteps)) {
     console.log(`[RECIPE IMPROVE] Detected ${bannedPhraseCount} generic steps in recipe: ${recipe.name}`);
     console.log(`[RECIPE IMPROVE] Original instructions: ${JSON.stringify(improvedRecipe.instructions)}`);
     containsBannedPhrases = true;
@@ -1180,8 +1191,11 @@ export function improveRecipeInstructions(recipe: any): any {
   // Check if we have the exact template pattern
   const hasGenericTemplate = checkForGenericTemplate(improvedRecipe.instructions);
   
+  // Additional check for actionable steps
+  const lacksActionVerbs = checkForMissingActionVerbs(improvedRecipe.instructions);
+  
   // If it's a generic template or contains several banned phrases, completely replace instructions
-  if (hasGenericTemplate || containsBannedPhrases) {
+  if (hasGenericTemplate || containsBannedPhrases || lacksActionVerbs) {
     console.log(`[RECIPE IMPROVE] Replacing generic instructions in recipe: ${recipe.name}`);
     modified = true;
     
@@ -1196,45 +1210,53 @@ export function improveRecipeInstructions(recipe: any): any {
   }
   
   // Otherwise check individual steps and fix "standard procedures" instructions
-  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string) => {
+  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string, index: number) => {
     if (typeof step !== 'string') return step;
+    
+    // Add numbering if missing (only if not already numbered)
+    if (!hasNumberedSteps) {
+      step = `${index + 1}. ${step}`;
+    }
     
     // Fix prep step
     if (step.toLowerCase().includes('according to the ingredients list') || 
         step.toLowerCase().includes('wash, chop, and measure')) {
       modified = true;
-      return "Wash, peel, and chop all vegetables as specified in the ingredients list. Measure all ingredients and arrange them in small bowls for easy access during cooking (mise en place).";
+      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
+      return `${stepNumber}Prep: Wash and peel all vegetables. Dice onions into 1/4-inch pieces, mince garlic finely, and slice other vegetables into even-sized pieces as specified in the ingredients. Measure all spices and liquids into separate small bowls for easy access (mise en place).`;
     }
     
     // Fix preheat step
     if (step.toLowerCase().includes('preheat your oven or stovetop as needed')) {
       modified = true;
+      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
       
       if (recipe.name.toLowerCase().includes('bake') || 
-          recipe.description.toLowerCase().includes('bake') ||
+          recipe.description?.toLowerCase().includes('bake') ||
           recipe.name.toLowerCase().includes('roast') || 
-          recipe.description.toLowerCase().includes('roast')) {
-        return "Preheat oven to 375°F (190°C) and position rack in the center.";
+          recipe.description?.toLowerCase().includes('roast')) {
+        return `${stepNumber}Preheat the oven to 375°F (190°C) and position the rack in the center. Line a baking sheet with parchment paper or aluminum foil for easy cleanup.`;
       }
       
-      return "Heat a large skillet or pan over medium heat for 1-2 minutes until hot.";
+      return `${stepNumber}Heat a large skillet over medium-high heat for 2 minutes until hot. Add 1 tablespoon of oil and swirl to coat the entire cooking surface.`;
     }
     
     // Fix combine step
     if (step.toLowerCase().includes('combine the ingredients according to the main')) {
       modified = true;
+      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
       
       if (recipe.name.toLowerCase().includes('salad') || 
-          recipe.description.toLowerCase().includes('salad')) {
-        return "In a large mixing bowl, combine all prepared vegetables and other ingredients, tossing gently to distribute evenly.";
+          recipe.description?.toLowerCase().includes('salad')) {
+        return `${stepNumber}In a large mixing bowl, combine all prepared vegetables. Add 2 tablespoons of olive oil, 1 tablespoon of vinegar, 1/2 teaspoon salt, and 1/4 teaspoon black pepper. Toss gently using tongs or two large spoons until all ingredients are evenly coated with dressing.`;
       }
       
       if (recipe.name.toLowerCase().includes('soup') || 
-          recipe.description.toLowerCase().includes('soup')) {
-        return "Add all prepared vegetables to the pot with 1 tablespoon oil and sauté for 5 minutes until softened. Add remaining ingredients and stir to combine.";
+          recipe.description?.toLowerCase().includes('soup')) {
+        return `${stepNumber}Heat 2 tablespoons of oil in a large pot over medium heat. Add onions and garlic, and sauté for 3-4 minutes until softened and fragrant. Add carrots and celery (if using) and cook for another 2-3 minutes. Pour in broth and bring to a simmer.`;
       }
       
-      return "Heat 2 tablespoons oil in the pan, then add aromatics (garlic, onions) and sauté for 2-3 minutes until fragrant. Add the main ingredients in order of cooking time (longer-cooking items first).";
+      return `${stepNumber}Heat 2 tablespoons oil in the pan. Add diced onions and minced garlic, and sauté for 2-3 minutes until translucent and fragrant. Add longer-cooking vegetables (carrots, potatoes) first and cook for 4-5 minutes, then add quicker-cooking items (bell peppers, zucchini) and cook for 2-3 minutes more.`;
     }
     
     // Fix stir-fry or standard procedures step
@@ -1244,44 +1266,69 @@ export function improveRecipeInstructions(recipe: any): any {
         (step.toLowerCase().includes('cook') && step.toLowerCase().includes('for this type of dish'))) {
       
       modified = true;
+      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
       
       if (recipe.name.toLowerCase().includes('stir fry') || 
-          recipe.description.toLowerCase().includes('stir-fry') || 
-          recipe.description.toLowerCase().includes('stir fry')) {
-        return "Heat a wok or large skillet over high heat for 1 minute. Add 1 tablespoon oil and swirl to coat the pan. Add protein and stir-fry for 4-5 minutes until golden and cooked through (internal temperature 165°F for chicken/poultry). Remove protein to a plate. Add vegetables to the same pan, cooking for 3-4 minutes until crisp-tender. Return protein to the pan, add sauce, and stir for 1 minute until everything is well-coated and heated through.";
+          recipe.description?.toLowerCase().includes('stir-fry') || 
+          recipe.description?.toLowerCase().includes('stir fry')) {
+        return `${stepNumber}Heat a wok or large skillet over high heat for 1 minute until very hot. Add 1 tablespoon oil and swirl to coat the pan. Add protein (chicken/beef/tofu) in a single layer and stir-fry for 4-5 minutes until golden brown and cooked through (165°F for chicken). Remove protein to a clean plate. Add another 1/2 tablespoon oil to the same pan and add vegetables, starting with the firmest ones (carrots, broccoli) and stir-fry for 2 minutes, then add softer vegetables (bell peppers, snow peas) for 1-2 minutes more until crisp-tender. Return protein to the pan, pour sauce over everything, and stir-fry for 1 minute until everything is well-coated and heated through.`;
       }
       
       if (recipe.name.toLowerCase().includes('soup') || 
-          recipe.description.toLowerCase().includes('soup')) {
-        return "Bring mixture to a boil over medium-high heat. Once boiling, reduce heat to medium-low, cover the pot, and simmer for 20-25 minutes, stirring occasionally, until all vegetables are tender and flavors have melded. Season with additional salt and pepper to taste.";
+          recipe.description?.toLowerCase().includes('soup')) {
+        return `${stepNumber}Bring the soup mixture to a boil over medium-high heat. Once rapidly boiling, reduce heat to medium-low, cover the pot with a lid, and simmer for 20-25 minutes, stirring occasionally every 5 minutes. Check that vegetables are tender by piercing with a fork. Season with additional salt and pepper to taste (start with 1/4 teaspoon of each).`;
       }
       
       if (recipe.name.toLowerCase().includes('pasta') || 
-          recipe.description.toLowerCase().includes('pasta')) {
-        return "Bring a large pot of water to a boil over high heat. Add 1 tablespoon salt to the water, then add pasta and cook according to package instructions until al dente (usually 8-10 minutes). In a separate pan, heat 2 tablespoons oil over medium heat and cook the sauce ingredients for 5-7 minutes. Drain pasta, reserving 1/4 cup pasta water, then add pasta to the sauce, tossing to combine. If sauce is too thick, add reserved pasta water a tablespoon at a time.";
+          recipe.description?.toLowerCase().includes('pasta')) {
+        return `${stepNumber}Bring a large pot of water (4 quarts) to a rolling boil over high heat. Add 1 tablespoon salt to the water, then add pasta and cook according to package instructions until al dente (usually 8-10 minutes, but taste test 1-2 minutes before the suggested time). Meanwhile, in a large skillet, heat 2 tablespoons oil over medium heat and add garlic and onions, cooking for 2 minutes until fragrant. Add other sauce ingredients and simmer for 5-7 minutes. Drain pasta in a colander, reserving 1/4 cup pasta water, then add pasta directly to the sauce. Toss for 1-2 minutes to coat evenly. If sauce is too thick, add reserved pasta water 1 tablespoon at a time until desired consistency is reached.`;
       }
       
       if (recipe.name.toLowerCase().includes('instant pot') || 
-          recipe.description.toLowerCase().includes('instant pot')) {
-        return "Secure the Instant Pot lid and ensure the pressure valve is set to 'Sealing'. Select 'Pressure Cook' or 'Manual' setting and set for 20 minutes at high pressure. Once cooking completes, allow for 10 minutes of natural pressure release, then carefully turn the valve to 'Venting' to release remaining pressure. When the float valve drops, carefully open the lid away from your face.";
+          recipe.description?.toLowerCase().includes('instant pot')) {
+        return `${stepNumber}Secure the Instant Pot lid and ensure the pressure valve is set to 'Sealing' position. Select 'Pressure Cook' or 'Manual' setting and set timer for 20 minutes at high pressure. Once cooking completes and timer beeps, allow for 10 minutes of natural pressure release (don't touch anything). After 10 minutes, carefully turn the valve to 'Venting' position using a wooden spoon or oven mitt to release remaining pressure. When the float valve drops completely, carefully open the lid away from your face and body.`;
       }
       
       if (recipe.name.toLowerCase().includes('slow cooker') || 
-          recipe.description.toLowerCase().includes('slow cooker') ||
+          recipe.description?.toLowerCase().includes('slow cooker') ||
           recipe.name.toLowerCase().includes('crockpot') || 
-          recipe.description.toLowerCase().includes('crockpot')) {
-        return "Cover the slow cooker with its lid and cook on LOW for 6-8 hours or on HIGH for 3-4 hours, until the meat is tender and easily pulls apart with a fork. Avoid opening the lid during cooking as this releases heat and extends cooking time.";
+          recipe.description?.toLowerCase().includes('crockpot')) {
+        return `${stepNumber}Cover the slow cooker with its lid and set to LOW for 7-8 hours or HIGH for 3-4 hours. The meat is done when it reaches 205°F internal temperature or easily pulls apart with a fork. Avoid opening the lid during cooking as each peek adds 15-20 minutes to cooking time. If adding vegetables, place them on top of the meat during the last 1-2 hours of cooking.`;
       }
       
       // General replacement for other dishes
-      return "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat). Add any remaining ingredients and mix until evenly incorporated.";
+      return `${stepNumber}Cook the mixture over medium-high heat for 6-8 minutes, stirring every 1-2 minutes with a wooden spoon to prevent sticking. Continue cooking until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat) - check with an instant-read thermometer. Add any reserved ingredients (fresh herbs, cheese, pre-cooked items) in the last minute of cooking and mix until evenly incorporated.`;
     }
     
     // Fix serve step
     if (step.toLowerCase().includes('serve hot and enjoy') || 
-        step.toLowerCase().includes('enjoy with your family')) {
+        step.toLowerCase().includes('enjoy with your family') ||
+        step.toLowerCase().includes('serve and enjoy')) {
       modified = true;
-      return "Transfer to serving plates or bowls while still hot. Garnish with fresh herbs if available, and serve immediately with any recommended sides or accompaniments.";
+      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
+      return `${stepNumber}Transfer the finished dish to serving plates or bowls while still hot. Garnish with 1 tablespoon of fresh chopped herbs (parsley, cilantro, or basil), a sprinkle of grated cheese, or a drizzle of olive oil as appropriate. Serve immediately alongside suggested side dishes (rice, bread, or salad).`;
+    }
+    
+    // If step doesn't have any of the specific bad phrases but still seems generic
+    // and doesn't start with an action verb, try to enhance it
+    if (!step.match(/^(\d+\.|Step \d+:)?\s*[A-Z][a-z]+/) && !containsBannedPhrases) {
+      modified = true;
+      const stepNumber = hasNumberedSteps ? "" : `${index + 1}. `;
+      // Create a more specific step with action verb
+      const actionVerbs = ["Mix", "Stir", "Cook", "Heat", "Add", "Combine", "Prepare", "Chop"];
+      const randomVerb = actionVerbs[Math.floor(Math.random() * actionVerbs.length)];
+      return `${stepNumber}${randomVerb} the ingredients thoroughly, ensuring even distribution and proper cooking. Monitor temperature and timing carefully for best results.`;
+    }
+    
+    // If step already has numbering but we're adding it, remove the existing numbering to avoid duplication
+    if (!hasNumberedSteps && /^(\d+\.|Step \d+:)/.test(step.trim())) {
+      step = step.replace(/^(\d+\.|Step \d+:)\s*/, '');
+      return `${index + 1}. ${step}`;
+    }
+    
+    // If no changes needed and we're adding numbering
+    if (!hasNumberedSteps) {
+      return `${index + 1}. ${step}`;
     }
     
     return step;
@@ -1318,6 +1365,47 @@ function checkForGenericTemplate(instructions: string[]): boolean {
 }
 
 /**
+ * Check if the instructions lack proper action verbs at the beginning of steps
+ */
+function checkForMissingActionVerbs(instructions: string[]): boolean {
+  if (!Array.isArray(instructions) || instructions.length < 3) {
+    return false;
+  }
+  
+  // Define common cooking action verbs
+  const actionVerbs = [
+    'add', 'arrange', 'bake', 'beat', 'blend', 'boil', 'braise', 'broil', 'brown', 
+    'brush', 'carve', 'chop', 'coat', 'combine', 'cool', 'core', 'cover', 'cream', 
+    'cube', 'cut', 'dice', 'dissolve', 'divide', 'drain', 'drizzle', 'drop', 'dry', 
+    'fillet', 'flatten', 'flip', 'fold', 'fry', 'garnish', 'grate', 'grease', 'grill', 
+    'grind', 'heat', 'julienne', 'knead', 'layer', 'marinate', 'mash', 'measure', 
+    'melt', 'microwave', 'mince', 'mix', 'pat', 'peel', 'place', 'poach', 'pour', 
+    'preheat', 'prepare', 'puree', 'reduce', 'refrigerate', 'remove', 'reserve', 
+    'rest', 'roast', 'roll', 'rub', 'saute', 'scatter', 'scoop', 'score', 'season', 
+    'serve', 'set', 'simmer', 'skim', 'slice', 'spread', 'sprinkle', 'steam', 'steep', 
+    'stir', 'strain', 'stuff', 'toss', 'transfer', 'trim', 'whip', 'whisk', 'wrap'
+  ];
+  
+  // Check if each step begins with an action verb
+  // Allowing for potential numbering at the beginning
+  const stepsWithoutActionVerbs = instructions.filter(step => {
+    if (typeof step !== 'string') return false;
+    
+    // Remove numbering if present
+    const stepText = step.replace(/^(\d+\.|Step \d+:)\s*/, '').trim();
+    
+    // Extract first word
+    const firstWord = stepText.split(' ')[0].toLowerCase();
+    
+    // Check if first word is an action verb
+    return !actionVerbs.includes(firstWord);
+  });
+  
+  // If more than half the steps lack action verbs, flag it as problematic
+  return stepsWithoutActionVerbs.length >= Math.ceil(instructions.length / 2);
+}
+
+/**
  * Generate detailed instructions based on the recipe type and ingredients
  */
 function generateDetailedInstructions(recipe: any): string[] {
@@ -1351,14 +1439,14 @@ function generateDetailedInstructions(recipe: any): string[] {
   // Generate appropriate instructions based on meal type
   if (isStirFry) {
     return [
-      "Prepare all vegetables by washing thoroughly and cutting into uniform bite-sized pieces. For protein, slice into thin strips against the grain for tenderness.",
-      "In a small bowl, whisk together sauce ingredients: soy sauce, cornstarch, broth, and any seasonings until well combined with no lumps.",
-      "Heat a wok or large skillet over high heat until very hot, about 2 minutes. Add 1 tablespoon oil and swirl to coat the pan.",
-      "Add protein to the hot pan in a single layer without overcrowding (cook in batches if needed). Cook for 3-4 minutes until browned but not fully cooked. Remove to a clean plate.",
-      "Add another 1 tablespoon oil to the pan if needed. Add aromatics (garlic, ginger) and stir for 30 seconds until fragrant.",
-      "Add harder vegetables (carrots, broccoli stems) and stir-fry for 2 minutes. Add softer vegetables and continue stir-frying for 2-3 more minutes until crisp-tender.",
-      "Return protein to the pan. Pour the sauce over everything and stir constantly for 1-2 minutes until sauce thickens and all ingredients are well-coated.",
-      "Garnish with sliced green onions or sesame seeds. Serve immediately over hot rice or noodles."
+      "1. Prep: Wash and pat dry all vegetables. Dice onions into 1/4-inch pieces, mince 2 cloves of garlic, and slice other vegetables into uniform 1-inch pieces. For protein, slice against the grain into 1/4-inch strips for quicker, more even cooking.",
+      "2. Make Sauce: In a small bowl, whisk together 3 tablespoons soy sauce, 1 tablespoon cornstarch, 1/2 cup chicken broth, 1 tablespoon honey, and 1 teaspoon sesame oil until completely smooth with no lumps.",
+      "3. Heat: Place a wok or 12-inch skillet over high heat for exactly 2 minutes until very hot. Add 1 tablespoon vegetable oil and swirl to coat the entire cooking surface.",
+      "4. Cook Protein: Add protein to the hot pan in a single layer without overcrowding (work in two batches if needed). Cook for 3-4 minutes, turning occasionally, until browned but not fully cooked through. Transfer to a clean plate using tongs.",
+      "5. Sauté Aromatics: Add another 1/2 tablespoon oil to the same pan. Add minced garlic and 1 tablespoon grated ginger, stirring constantly for exactly 30 seconds until fragrant but not browned.",
+      "6. Cook Vegetables: Add harder vegetables first (carrots, broccoli stems) and stir-fry for 2 minutes. Add medium-firm vegetables (bell peppers, snap peas) for 1 minute, then add leafy greens last for 30 seconds, stirring constantly.",
+      "7. Combine: Return protein to the pan with any accumulated juices. Pour the sauce over everything and stir constantly for 1-2 minutes until sauce thickens and coats all ingredients evenly. The sauce should reach a nappe consistency that coats the back of a spoon.",
+      "8. Serve: Remove from heat and garnish with 2 thinly sliced green onions and 1 tablespoon toasted sesame seeds. Serve immediately over steamed rice or noodles while still hot."
     ];
   } else if (isPasta) {
     return [
