@@ -1373,23 +1373,54 @@ export function improveRecipeInstructions(recipe: any): any {
  * Check if the instructions match the common generic template pattern
  */
 function checkForGenericTemplate(instructions: string[]): boolean {
-  if (!Array.isArray(instructions) || instructions.length !== 5) {
+  if (!Array.isArray(instructions)) {
     return false;
   }
   
-  const prepStepPattern = /prepare all ingredients|wash, chop, and measure/i;
-  const preheatStepPattern = /preheat your oven or stovetop as needed/i;
-  const combineStepPattern = /combine the ingredients according to the main/i;
-  const cookStepPattern = /cook following standard procedures|for this type of dish|until all components are thoroughly cooked/i;
-  const serveStepPattern = /serve hot and enjoy|enjoy with your family/i;
+  // Generic instruction patterns
+  const prepStepPattern = /prepare all ingredients|wash, chop, and measure|according to the ingredients list/i;
+  const preheatStepPattern = /preheat your oven or stovetop as needed|as needed for this recipe/i;
+  const combineStepPattern = /combine the ingredients according to|add ingredients in order/i;
+  const cookStepPattern = /cook following standard procedures|for this type of dish|until all components are thoroughly cooked|cook until done/i;
+  const serveStepPattern = /serve hot and enjoy|enjoy with your family|serve and enjoy/i;
   
-  return (
-    prepStepPattern.test(instructions[0]) &&
-    preheatStepPattern.test(instructions[1]) &&
-    combineStepPattern.test(instructions[2]) &&
-    cookStepPattern.test(instructions[3]) &&
-    serveStepPattern.test(instructions[4])
-  );
+  // If instructions is exactly 5 steps matching the template pattern, that's definitely generic
+  if (instructions.length === 5) {
+    const exactTemplateMatch = (
+      prepStepPattern.test(instructions[0]) &&
+      preheatStepPattern.test(instructions[1]) &&
+      combineStepPattern.test(instructions[2]) &&
+      cookStepPattern.test(instructions[3]) &&
+      serveStepPattern.test(instructions[4])
+    );
+    
+    if (exactTemplateMatch) {
+      return true;
+    }
+  }
+  
+  // Check for generic patterns in any order if we have a small number of steps
+  if (instructions.length <= 6) {
+    let genericPatternCount = 0;
+    
+    for (const step of instructions) {
+      if (typeof step !== 'string') continue;
+      const stepLower = step.toLowerCase();
+      
+      if (prepStepPattern.test(stepLower) || 
+          preheatStepPattern.test(stepLower) || 
+          combineStepPattern.test(stepLower) || 
+          cookStepPattern.test(stepLower) || 
+          serveStepPattern.test(stepLower)) {
+        genericPatternCount++;
+      }
+    }
+    
+    // If at least half of the steps match generic patterns, consider it a template
+    return genericPatternCount >= Math.ceil(instructions.length / 2);
+  }
+  
+  return false;
 }
 
 /**
@@ -1400,18 +1431,20 @@ function checkForMissingActionVerbs(instructions: string[]): boolean {
     return false;
   }
   
-  // Define common cooking action verbs
+  // Define common cooking action verbs - expanded list with more strong cooking verbs
   const actionVerbs = [
-    'add', 'arrange', 'bake', 'beat', 'blend', 'boil', 'braise', 'broil', 'brown', 
-    'brush', 'carve', 'chop', 'coat', 'combine', 'cool', 'core', 'cover', 'cream', 
-    'cube', 'cut', 'dice', 'dissolve', 'divide', 'drain', 'drizzle', 'drop', 'dry', 
-    'fillet', 'flatten', 'flip', 'fold', 'fry', 'garnish', 'grate', 'grease', 'grill', 
-    'grind', 'heat', 'julienne', 'knead', 'layer', 'marinate', 'mash', 'measure', 
-    'melt', 'microwave', 'mince', 'mix', 'pat', 'peel', 'place', 'poach', 'pour', 
-    'preheat', 'prepare', 'puree', 'reduce', 'refrigerate', 'remove', 'reserve', 
-    'rest', 'roast', 'roll', 'rub', 'saute', 'scatter', 'scoop', 'score', 'season', 
-    'serve', 'set', 'simmer', 'skim', 'slice', 'spread', 'sprinkle', 'steam', 'steep', 
-    'stir', 'strain', 'stuff', 'toss', 'transfer', 'trim', 'whip', 'whisk', 'wrap'
+    'add', 'adjust', 'arrange', 'assemble', 'bake', 'beat', 'blend', 'boil', 'braise', 'break', 'broil', 'brown', 
+    'brush', 'caramelize', 'carve', 'char', 'check', 'chop', 'clean', 'coat', 'combine', 'cool', 'core', 'cover', 'crackle', 'cream',
+    'crimp', 'crumble', 'crush', 'cube', 'cut', 'decorate', 'deglaze', 'dice', 'dip', 'dissolve', 'divide', 'dot', 'drain', 'dress',
+    'drizzle', 'drop', 'dry', 'dust', 'emulsify', 'ferment', 'fillet', 'filter', 'flambe', 'flatten', 'flip', 'fold', 'form', 'fry', 
+    'garnish', 'glaze', 'grate', 'grease', 'grill', 'grind', 'heat', 'infuse', 'inject', 'insert', 'julienne', 'knead', 'ladle', 'layer', 
+    'let', 'line', 'macerate', 'marinate', 'mash', 'massage', 'measure', 'melt', 'microwave', 'mince', 'mix', 'mold', 'monitor', 
+    'nestle', 'pat', 'peel', 'pickle', 'pierce', 'pipe', 'pit', 'place', 'poach', 'pour', 'press', 'prick',
+    'preheat', 'prepare', 'process', 'puree', 'quarter', 'reduce', 'refrigerate', 'reheat', 'remove', 'render', 'reserve', 
+    'rest', 'rinse', 'roast', 'roll', 'rub', 'salt', 'sauté', 'scatter', 'scoop', 'score', 'scrape', 'sear', 'season', 
+    'separate', 'serve', 'set', 'sift', 'simmer', 'skim', 'slice', 'slide', 'smash', 'soak', 'spatchcock', 'spoon', 'spread', 'sprinkle', 
+    'squeeze', 'steam', 'steep', 'stir', 'strain', 'stretch', 'stuff', 'taste', 'tear', 'temper', 'test', 'thicken', 'thin', 'toast',
+    'toss', 'transfer', 'trim', 'turn', 'use', 'wait', 'warm', 'wash', 'weigh', 'whip', 'whisk', 'wrap', 'zest'
   ];
   
   // Check if each step begins with an action verb
@@ -1420,17 +1453,34 @@ function checkForMissingActionVerbs(instructions: string[]): boolean {
     if (typeof step !== 'string') return false;
     
     // Remove numbering if present
-    const stepText = step.replace(/^(\d+\.|Step \d+:)\s*/, '').trim();
+    const stepText = step.replace(/^(\d+\.|Step \d+:|#\d+)\s*/, '').trim();
     
-    // Extract first word
-    const firstWord = stepText.split(' ')[0].toLowerCase();
+    // Check for common banned generic phrases
+    const bannedPhraseStarts = [
+      'prepare all', 'wash, chop', 'preheat your', 'combine the', 'cook following', 
+      'serve hot', 'enjoy with', 'according to', 'as needed'
+    ];
+    
+    // If step starts with a banned phrase, count it as missing a proper action verb
+    for (const phrase of bannedPhraseStarts) {
+      if (stepText.toLowerCase().startsWith(phrase)) {
+        return true;
+      }
+    }
+    
+    // Extract first word, ignoring leading non-alphabetic characters
+    const firstWordMatch = stepText.match(/^[^a-zA-Z]*([a-zA-Z]+)/);
+    const firstWord = firstWordMatch ? firstWordMatch[1].toLowerCase() : '';
     
     // Check if first word is an action verb
     return !actionVerbs.includes(firstWord);
   });
   
-  // If more than half the steps lack action verbs, flag it as problematic
-  return stepsWithoutActionVerbs.length >= Math.ceil(instructions.length / 2);
+  // Mark as needing improvement if:
+  // 1. More than 1/3 of steps don't start with action verbs, or
+  // 2. Instructions have less than 7 steps and any step is missing an action verb
+  return (stepsWithoutActionVerbs.length >= Math.ceil(instructions.length / 3)) || 
+         (instructions.length < 7 && stepsWithoutActionVerbs.length > 0);
 }
 
 /**
@@ -1478,78 +1528,81 @@ function generateDetailedInstructions(recipe: any): string[] {
     ];
   } else if (isPasta) {
     return [
-      "Bring a large pot of water to a rolling boil. Add 1 tablespoon salt to the water.",
-      "Meanwhile, prepare the sauce ingredients. Heat a large skillet over medium heat and add 2 tablespoons oil or butter.",
-      "Add aromatics (garlic, onions) to the skillet and sauté for 2-3 minutes until fragrant and softened but not browned.",
-      "Add the main ingredients for the sauce according to cooking time (meat first if using, then vegetables). Cook for 5-7 minutes, stirring occasionally.",
-      "Add the pasta to the boiling water and cook according to package instructions until al dente, typically 8-10 minutes. Reserve 1/2 cup pasta cooking water before draining.",
-      "Drain the pasta in a colander, shaking off excess water but do not rinse unless making a cold pasta salad.",
-      "Add the drained pasta directly to the sauce in the skillet. Toss to combine, adding small amounts of reserved pasta water as needed to create a silky texture.",
-      "Finish with any fresh herbs, cheese, or other final ingredients. Serve immediately on warmed plates."
+      "1. Boil Water: Fill a large 6-quart pot with 4 quarts of water. Bring to a rolling boil over high heat. Add 1 tablespoon salt to the water – it should taste as salty as seawater.",
+      "2. Prep Ingredients: While water is heating, finely dice 1 medium onion and mince 3 cloves of garlic. Measure all sauce ingredients and set aside in separate bowls.",
+      "3. Start Sauce: Heat a large 12-inch skillet over medium heat. Add 2 tablespoons olive oil or butter. When oil is hot but not smoking, add diced onions and sauté for 3 minutes until translucent.",
+      "4. Build Flavor: Add minced garlic to the skillet and cook for 30 seconds until fragrant. If using ground meat, add it now and cook for 5-7 minutes, breaking it apart with a wooden spoon until browned and no pink remains.",
+      "5. Cook Pasta: Add 12 ounces of pasta to the boiling water and stir immediately to prevent sticking. Set a timer according to package instructions for al dente texture (usually 8-10 minutes). Stir occasionally while cooking.",
+      "6. Finish Sauce: While pasta cooks, add remaining sauce ingredients to the skillet. For tomato sauce, add 2 cups marinara and simmer for 5 minutes. For cream sauce, add 1 cup heavy cream and reduce by one-third, about 4 minutes.",
+      "7. Reserve Pasta Water: Just before draining, scoop out 1/2 cup of starchy pasta water with a measuring cup. Then drain pasta in a colander but do not rinse it.",
+      "8. Combine: Add drained pasta directly to the sauce in the skillet. Toss continuously with tongs for 1-2 minutes until pasta is completely coated. If sauce is too thick, add reserved pasta water 1 tablespoon at a time.",
+      "9. Garnish: Remove from heat and add any finishing ingredients like 1/4 cup fresh herbs, 1/2 cup grated cheese, or 1/4 cup toasted pine nuts. Toss once more and serve immediately on warmed plates."
     ];
   } else if (isSoup) {
     return [
-      "Prepare all vegetables by washing, peeling if necessary, and chopping into bite-sized pieces (about 1/2 inch).",
-      "Heat a large pot or Dutch oven over medium heat. Add 2 tablespoons oil or butter.",
-      "Add aromatic vegetables (onions, carrots, celery) to the pot and sauté for 5 minutes until softened but not browned.",
-      "Add garlic and any dried herbs or spices, cooking for 30 seconds until fragrant.",
-      "If using meat, add it now and cook until browned, about 5-7 minutes. If using pre-cooked meat, add it later.",
-      "Add remaining vegetables and stir to combine. Pour in broth or stock, ensuring all ingredients are covered by liquid.",
-      "Bring to a boil over medium-high heat, then reduce heat to medium-low. Cover and simmer for 25-30 minutes, stirring occasionally, until all vegetables are tender.",
-      "Adjust seasoning with salt and pepper to taste. If desired, puree some or all of the soup using an immersion blender.",
-      "Serve hot, garnished with fresh herbs, a dollop of cream, or crusty bread on the side."
+      "1. Prep Vegetables: Wash and peel all vegetables. Dice 1 medium onion, 2 medium carrots, and 2 celery stalks into 1/4-inch pieces (creating a mirepoix). Cut remaining vegetables into uniform 1/2-inch bite-sized pieces for even cooking.",
+      "2. Heat Base: Place a large 6-quart pot or Dutch oven over medium heat. Add 2 tablespoons olive oil or butter and heat until shimmering but not smoking, about 1 minute.",
+      "3. Sauté Aromatics: Add diced onions, carrots, and celery to the hot oil. Sauté for exactly 5 minutes, stirring occasionally with a wooden spoon, until vegetables are softened but not browned.",
+      "4. Add Aromatics: Add 3 minced garlic cloves and 1 tablespoon dried herbs (or 2 tablespoons fresh herbs). Cook for exactly 30 seconds, stirring constantly to prevent burning.",
+      "5. Brown Protein: If using raw meat (like 1 pound ground beef or 1 pound diced chicken), add it now. Cook until no pink remains, about 5-7 minutes, breaking apart with a wooden spoon. For pre-cooked meat, reserve until step 7.",
+      "6. Add Remaining Vegetables: Add all remaining diced vegetables to the pot and stir to coat with oil and herbs. Cook for 2 minutes, stirring occasionally.",
+      "7. Add Liquid: Pour in 6-8 cups broth or stock and add 1 bay leaf. If using pre-cooked meat or canned beans, add them now. Bring to a full rolling boil over medium-high heat, about 5 minutes.",
+      "8. Simmer: Once boiling, reduce heat to maintain a gentle simmer (small bubbles around the edges). Cover with lid slightly ajar and simmer for 25 minutes, stirring every 7-8 minutes, until all vegetables are tender when pierced with a fork.",
+      "9. Season: Remove bay leaf. Taste and adjust seasoning with salt and pepper (start with 1/2 teaspoon salt, 1/4 teaspoon pepper). For creamy soups, stir in 1/2 cup cream or milk. For blended soups, use an immersion blender until desired consistency is reached.",
+      "10. Serve: Ladle hot soup into warmed bowls. Garnish each serving with 1 tablespoon fresh chopped herbs (parsley, dill, or cilantro) and serve immediately with warm bread on the side."
     ];
   } else if (isSlowCooker) {
     return [
-      "Prepare all ingredients as specified: chop vegetables, trim meat, and measure out spices and liquids.",
-      "If using meat, heat 1 tablespoon oil in a large skillet over medium-high heat. Season meat with salt and pepper, then brown on all sides, about 3-4 minutes per side. This step is optional but adds flavor.",
-      "Transfer meat to the slow cooker. Add vegetables, starting with onions and root vegetables on the bottom (closer to the heat source).",
-      "Add any dried herbs, spices, and aromatics. Pour in liquids (broth, sauce ingredients) until ingredients are about 2/3 covered.",
-      "Cover the slow cooker with its lid and ensure it fits properly with no gaps for steam to escape.",
-      "Set the slow cooker to LOW for 6-8 hours or HIGH for 3-4 hours, depending on your time constraints. Avoid opening the lid during cooking as this releases heat and extends cooking time.",
-      "In the last 30 minutes of cooking, check seasoning and adjust if needed. If recipe calls for quick-cooking ingredients (pasta, delicate vegetables), add them now.",
-      "Once cooking is complete, the meat should be very tender and easily shred with a fork. Vegetables should be soft but still maintain their shape.",
-      "Serve directly from the slow cooker or transfer to a serving dish. Garnish as directed in the recipe."
+      "1. Prepare Ingredients: Dice 1 large onion into 1/2-inch pieces. Cut root vegetables (2 carrots, 2 potatoes) into 1-inch chunks. Trim any excess fat from 2-3 pounds of meat and cut into 1.5-inch pieces if using large cuts. Mince 3 cloves of garlic.",
+      "2. Sear Meat (Optional): Heat a large skillet over medium-high heat. Add 1 tablespoon oil and heat until shimmering. Season meat with 1 teaspoon salt and 1/2 teaspoon black pepper. Brown meat in batches (don't overcrowd) for 3-4 minutes per side until golden brown. This step is optional but adds significant flavor.",
+      "3. Layer Ingredients: Add 1 cup diced onions and any root vegetables to the bottom of the slow cooker (closest to the heat source). Place browned meat on top of vegetables.",
+      "4. Add Flavor Base: Sprinkle 3 minced garlic cloves, 1 tablespoon dried herbs (thyme, rosemary, oregano), 1 teaspoon salt, and 1/2 teaspoon black pepper evenly over the meat and vegetables.",
+      "5. Add Liquid: Pour in 1-2 cups of liquid (broth, wine, sauce) until ingredients are about 2/3 covered – not completely submerged. For tomato-based dishes, add 1 tablespoon tomato paste for depth of flavor.",
+      "6. Set Temperature: Cover the slow cooker with its lid, ensuring a proper seal with no gaps for steam to escape. Set to LOW for 7-8 hours (best for tough cuts like chuck or pork shoulder) or HIGH for 3-4 hours depending on your time constraints.",
+      "7. Maintain Closed Environment: Avoid opening the lid during cooking as each peek adds 15-20 minutes to cooking time due to heat loss. If you must check, do so quickly.",
+      "8. Add Quick-Cooking Items: During final 30 minutes of cooking, stir in any delicate vegetables (1 cup frozen peas, 2 cups fresh spinach), pasta, or pre-cooked items. If sauce needs thickening, stir in a slurry of 2 tablespoons cornstarch mixed with 3 tablespoons cold water.",
+      "9. Check Doneness: Meat is properly cooked when it reaches 205°F for tough cuts like chuck or pork shoulder (should easily shred with two forks) or 165°F for poultry (use an instant-read thermometer). Vegetables should be tender when pierced with a fork but still hold their shape.",
+      "10. Serve: Remove from heat and let stand 10 minutes before serving. Skim off any excess fat from the surface. Transfer to a serving platter, garnish with 2 tablespoons fresh chopped herbs, and serve with appropriate sides."
     ];
   } else if (isInstantPot) {
     return [
-      "Prepare all ingredients as specified in the recipe: chop vegetables, trim meat, and measure out spices and liquids.",
-      "Select 'Sauté' function on the Instant Pot and allow it to heat up for 1-2 minutes. Add 1-2 tablespoons oil.",
-      "If using meat, add it to the hot pot and brown on all sides, about 3-4 minutes per side, working in batches if necessary to avoid overcrowding.",
-      "Add aromatics (onions, garlic) and sauté for 2 minutes until fragrant. Add any dried spices and toast for 30 seconds.",
-      "Add remaining ingredients according to recipe, making sure to deglaze the pot (scrape up any browned bits) with a small amount of liquid to prevent a burn warning.",
-      "Close the Instant Pot lid and set the pressure valve to 'Sealing' position. Select 'Pressure Cook' or 'Manual' and set for the appropriate time (15-20 minutes for most meat dishes, 5-8 minutes for vegetable dishes).",
-      "When cooking cycle completes, allow for natural pressure release for 10 minutes (don't touch the pot), then carefully turn the valve to 'Venting' to release remaining pressure.",
-      "Once the float valve drops, carefully open the lid away from your face. Stir contents and adjust seasoning if needed.",
-      "If the sauce needs thickening, select 'Sauté' function again and simmer uncovered for 5-10 minutes, or make a cornstarch slurry (1 tablespoon cornstarch mixed with 2 tablespoons cold water) and stir it in.",
-      "Serve directly from the Instant Pot or transfer to a serving dish, garnishing as desired."
+      "1. Prep Ingredients: Trim 2 pounds of meat (if using) into 1.5-inch chunks, removing excess fat. Dice 1 onion into 1/2-inch pieces. Mince 3 cloves of garlic. Chop vegetables into uniform 1-inch pieces. Measure all seasonings and liquids.",
+      "2. Sauté Base: Press the 'Sauté' button on the Instant Pot and set to 'Normal' heat. Allow to heat for exactly 2 minutes until the display reads 'Hot'. Add 2 tablespoons of oil and heat until shimmering.",
+      "3. Brown Protein: Pat meat dry with paper towels and season with 1 teaspoon salt and 1/2 teaspoon black pepper. Add meat to the hot pot in a single layer (work in batches if needed) and sear for 3-4 minutes per side until golden brown. Remove and set aside on a plate.",
+      "4. Build Flavor Base: Add diced onions to the pot and sauté for 2 minutes until translucent, scraping up any browned bits from the bottom of the pot. Add minced garlic and sauté for 30 seconds until fragrant. Add 1 tablespoon dried herbs or spices and stir for 15 seconds to bloom their flavors.",
+      "5. Deglaze: Pour in 1/4 cup of liquid (broth, wine, or water) and scrape the bottom of the pot thoroughly with a wooden spoon for 1 minute to remove all stuck-on bits. This critical step prevents the 'Burn' notice during pressure cooking.",
+      "6. Add Remaining Ingredients: Return browned meat to the pot along with any accumulated juices. Add chopped vegetables and remaining ingredients according to the recipe. Pour in remaining liquid (total liquid should be at least 1 cup). Do not fill pot more than 2/3 full.",
+      "7. Seal and Set: Press 'Cancel' to stop the Sauté function. Close the lid securely and turn the pressure release valve to 'Sealing' position. Press 'Pressure Cook' or 'Manual' and set to HIGH pressure. For tough cuts of meat, set for 25 minutes; for chicken pieces, 12 minutes; for vegetable dishes, 5 minutes.",
+      "8. Release Pressure: When cooking cycle completes, allow for natural pressure release (NPR) for exactly 10 minutes (set a timer). After 10 minutes, carefully turn the valve to 'Venting' using a long spoon or oven mitt to perform a quick release of remaining pressure. Wait for the float valve to drop completely.",
+      "9. Check and Adjust: Carefully open the lid away from your face. Check that meat reaches 165°F for poultry or 145°F for beef/pork using an instant-read thermometer. If sauce needs thickening, press 'Sauté' and simmer for 5 minutes, or stir in a slurry of 1 tablespoon cornstarch mixed with 2 tablespoons cold water.",
+      "10. Finish and Serve: Press 'Cancel' to turn off the heat. Adjust seasonings with additional salt and pepper if needed (start with 1/4 teaspoon increments). Let stand for 5 minutes, then serve directly from the Instant Pot or transfer to a serving dish. Garnish with 2 tablespoons fresh herbs if desired."
     ];
   } else if (isBaked || isRoasted) {
     const temp = isBaked ? "375°F (190°C)" : "425°F (220°C)";
     return [
-      `Preheat oven to ${temp} and position rack in the center.`,
-      "Prepare a baking sheet or dish by lining with parchment paper or foil, or lightly greasing with oil.",
-      "Prepare all ingredients: wash and cut vegetables into uniform pieces, and season protein if using.",
-      "In a large bowl, toss ingredients with oil and seasonings until evenly coated.",
-      "Arrange in a single layer on the prepared baking sheet, ensuring pieces aren't touching or overlapping for even cooking.",
-      `Place in preheated oven and bake for ${isBaked ? "25-30" : "20-25"} minutes, or until golden brown and cooked through.`,
-      "Check halfway through cooking time and rotate pan for even browning. If using vegetables of different types, check if any are cooking faster and remove as needed.",
-      `For protein, ensure it reaches the proper internal temperature (165°F for chicken, 145°F for fish, 160°F for ground meat).`,
-      "Remove from oven and let rest for 5 minutes before serving to allow juices to redistribute.",
-      "Garnish with fresh herbs or a squeeze of lemon juice if desired, and serve warm."
+      `1. Preheat: Set your oven to ${temp} and position the rack in the center. Allow oven to fully preheat for at least 15 minutes to ensure accurate temperature.`,
+      "2. Prepare Baking Surface: Line a rimmed 18x13-inch baking sheet with parchment paper or aluminum foil for easy cleanup. If using a baking dish, lightly coat with 1 tablespoon of olive oil or cooking spray.",
+      "3. Prepare Ingredients: Rinse and pat dry all vegetables with paper towels. For root vegetables (carrots, potatoes), peel and cut into uniform 1-inch chunks. For protein, pat dry with paper towels to ensure proper browning.",
+      "4. Season: In a large mixing bowl, combine 2 tablespoons olive oil, 1 teaspoon salt, 1/2 teaspoon black pepper, and 1 tablespoon of dried herbs (rosemary, thyme, or Italian seasoning). Add vegetables and/or protein and toss until evenly coated.",
+      "5. Arrange: Transfer seasoned ingredients to the prepared baking sheet in a single layer with at least 1/2 inch between pieces to allow for proper air circulation. Overcrowding will cause steaming instead of roasting.",
+      `6. Bake: Place in the preheated oven and bake for ${isBaked ? "25-30" : "20-25"} minutes. ${isRoasted ? "For roasted vegetables, they should be caramelized and tender when pierced with a fork." : "For baked dishes, the top should be golden brown and a thermometer inserted in the center should read 165°F."}`,
+      "7. Check Progress: At the halfway point, rotate the pan 180 degrees for even browning and use a spatula to carefully flip larger pieces. If some ingredients are browning too quickly, cover those areas loosely with foil.",
+      "8. Check Doneness: For proteins, verify doneness with an instant-read thermometer: 165°F for chicken, 145°F for fish, 160°F for ground meat, and 145-160°F for whole cuts of beef/pork (depending on desired doneness).",
+      "9. Rest: Remove from oven and let rest for 5-10 minutes before serving. This allows juices to redistribute in proteins and prevents burning your mouth on vegetables.",
+      "10. Garnish and Serve: Just before serving, sprinkle with 2 tablespoons freshly chopped herbs (parsley, cilantro, or basil) or a squeeze of fresh lemon juice to brighten flavors. Transfer to a warmed serving platter and serve immediately."
     ];
   } else if (isGrilled) {
     return [
-      "Preheat grill to medium-high heat (about 400-450°F) for 10-15 minutes. Clean grates thoroughly with a wire brush.",
-      "Prepare all ingredients: wash and cut vegetables into uniform pieces that won't fall through grill grates.",
-      "Pat protein dry with paper towels and season generously with salt, pepper, and desired seasonings on all sides.",
-      "Lightly oil the grill grates using tongs and an oil-soaked paper towel to prevent sticking.",
-      "Place protein on the hot grill. For chicken, cook 6-7 minutes per side; for beef, 4-5 minutes per side for medium; for fish, 3-4 minutes per side.",
-      "Add vegetables to the grill, arranged perpendicular to grates so they don't fall through. Cook until lightly charred and tender, turning occasionally.",
-      "Check protein with an instant-read thermometer for doneness: 165°F for chicken, 145°F for fish, 145-160°F for beef depending on desired doneness.",
-      "Remove protein from grill and let rest on a clean plate, loosely tented with foil, for 5-10 minutes to allow juices to redistribute.",
-      "Continue grilling vegetables until they reach desired tenderness, about 8-12 minutes total depending on size and type.",
-      "Serve protein sliced against the grain with grilled vegetables on the side. Garnish with fresh herbs or a squeeze of lemon if desired."
+      "1. Preheat Grill: Set gas grill to medium-high heat (approximately 400-450°F) and allow to preheat for a full 15 minutes with lid closed. For charcoal grill, light coals and let burn until covered with white ash (approximately 25-30 minutes).",
+      "2. Clean Grates: Once hot, scrub grates thoroughly with a wire brush to remove any residue. Fold a paper towel into a small pad, grip with long-handled tongs, dip in vegetable oil, and wipe grates to create a non-stick surface.",
+      "3. Prepare Protein: Pat 1.5-2 pounds of protein (chicken, steak, fish) completely dry with paper towels to promote browning. Season with 1 teaspoon kosher salt, 1/2 teaspoon black pepper, and 1 tablespoon of your preferred spice rub, coating all sides evenly.",
+      "4. Prepare Vegetables: Wash and cut 4 cups of vegetables into pieces at least 1-inch thick to prevent falling through grates. For smaller items like cherry tomatoes or mushrooms, thread onto metal skewers, leaving 1/4-inch space between pieces. Brush with 2 tablespoons olive oil and season with 1/2 teaspoon each of salt and pepper.",
+      "5. Create Cooking Zones: For gas grills, set one side to high heat and the other to medium-low, creating direct and indirect heat zones. For charcoal, pile coals on one side of the grill, leaving the other side empty for indirect cooking.",
+      "6. Grill Protein: Place protein on the hot zone. For boneless chicken breasts, grill 6 minutes per side; for 1-inch thick steaks, 4-5 minutes per side for medium; for 1-inch thick fish fillets, 3-4 minutes per side. Use a spatula, not a fork, to flip to avoid piercing and losing juices.",
+      "7. Grill Vegetables: Place larger, denser vegetables (corn, bell peppers, zucchini) on the hot zone, and more delicate items on the cooler zone. Arrange perpendicular to grates and turn every 3-4 minutes until char marks develop and vegetables are tender when pierced with a fork.",
+      "8. Check Doneness: Use an instant-read thermometer inserted into the thickest part to verify doneness: 165°F for chicken, 145°F for fish, 125°F for rare beef, 135°F for medium-rare, 145°F for medium, 155°F for medium-well. If meat is browning too quickly but not reaching proper temperature, move to indirect heat to finish cooking.",
+      "9. Rest Protein: Transfer grilled protein to a clean cutting board and tent loosely with aluminum foil for 5-10 minutes (5 for fish, 10 for larger cuts of meat). This critical step allows juices to redistribute throughout the meat rather than spilling out when cut.",
+      "10. Slice and Serve: For steaks and larger cuts, slice against the grain into 1/4 to 1/2-inch thick pieces. Arrange protein and vegetables on a warmed platter. Finish with 1 tablespoon fresh chopped herbs and a squeeze of fresh lemon juice (about 1 tablespoon) over everything just before serving."
     ];
   } else if (isSalad) {
     return [
