@@ -551,8 +551,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
 // Generate a grocery list based on a meal plan
 export async function generateGroceryList(mealPlan: any): Promise<any[]> {
   try {
-    // For demo purposes with no API key, return a canned grocery list
-    if (!process.env.OPENAI_API_KEY) {
+    // For demo purposes with no valid API key, return a canned grocery list
+    if (!hasValidApiKey()) {
+      console.log('[GROCERY] Using fallback data due to missing or invalid API key');
       return generateDummyGroceryList();
     }
     
@@ -685,7 +686,8 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
  * Modify a meal based on user requirements
  */
 export async function modifyMeal(meal: any, modificationRequest: string, retryCount: number = 0): Promise<any> {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!hasValidApiKey()) {
+    console.log('[MEAL MODIFICATION] No valid OpenAI API key available');
     throw new Error("OpenAI API key is required for this operation");
   }
   
@@ -885,7 +887,8 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
  * Generate a completely new replacement meal based on the criteria of the original
  */
 export async function replaceMeal(meal: any, retryCount: number = 0): Promise<any> {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!hasValidApiKey()) {
+    console.log('[MEAL REPLACEMENT] No valid OpenAI API key available');
     throw new Error("OpenAI API key is required for this operation");
   }
 
