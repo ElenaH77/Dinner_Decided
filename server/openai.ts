@@ -1092,25 +1092,107 @@ function improveRecipeInstructions(recipe: any): any {
   const improvedRecipe = JSON.parse(JSON.stringify(recipe));
   let modified = false;
   
-  // Check for and fix "standard procedures" instruction
+  // Check if we have the exact template pattern
+  const hasGenericTemplate = checkForGenericTemplate(improvedRecipe.instructions);
+  
+  if (hasGenericTemplate) {
+    console.log(`[RECIPE IMPROVE] Detected generic 5-step template in recipe: ${recipe.name}`);
+    modified = true;
+    
+    // Replace the entire instructions with a more specific set based on the recipe type and ingredients
+    improvedRecipe.instructions = generateDetailedInstructions(improvedRecipe);
+    
+    console.log(`[RECIPE IMPROVE] Replaced generic template with ${improvedRecipe.instructions.length} detailed steps`);
+    return improvedRecipe;
+  }
+  
+  // Otherwise check individual steps and fix "standard procedures" instructions
   improvedRecipe.instructions = improvedRecipe.instructions.map((step: string) => {
     if (typeof step !== 'string') return step;
     
-    // Fix stir-fry generic cooking steps
+    // Fix prep step
+    if (step.toLowerCase().includes('according to the ingredients list') || 
+        step.toLowerCase().includes('wash, chop, and measure')) {
+      modified = true;
+      return "Wash, peel, and chop all vegetables as specified in the ingredients list. Measure all ingredients and arrange them in small bowls for easy access during cooking (mise en place).";
+    }
+    
+    // Fix preheat step
+    if (step.toLowerCase().includes('preheat your oven or stovetop as needed')) {
+      modified = true;
+      
+      if (recipe.name.toLowerCase().includes('bake') || 
+          recipe.description.toLowerCase().includes('bake') ||
+          recipe.name.toLowerCase().includes('roast') || 
+          recipe.description.toLowerCase().includes('roast')) {
+        return "Preheat oven to 375°F (190°C) and position rack in the center.";
+      }
+      
+      return "Heat a large skillet or pan over medium heat for 1-2 minutes until hot.";
+    }
+    
+    // Fix combine step
+    if (step.toLowerCase().includes('combine the ingredients according to the main')) {
+      modified = true;
+      
+      if (recipe.name.toLowerCase().includes('salad') || 
+          recipe.description.toLowerCase().includes('salad')) {
+        return "In a large mixing bowl, combine all prepared vegetables and other ingredients, tossing gently to distribute evenly.";
+      }
+      
+      if (recipe.name.toLowerCase().includes('soup') || 
+          recipe.description.toLowerCase().includes('soup')) {
+        return "Add all prepared vegetables to the pot with 1 tablespoon oil and sauté for 5 minutes until softened. Add remaining ingredients and stir to combine.";
+      }
+      
+      return "Heat 2 tablespoons oil in the pan, then add aromatics (garlic, onions) and sauté for 2-3 minutes until fragrant. Add the main ingredients in order of cooking time (longer-cooking items first).";
+    }
+    
+    // Fix stir-fry or standard procedures step
     if (step.toLowerCase().includes('standard procedure') || 
         step.toLowerCase().includes('standard procedures') ||
+        step.toLowerCase().includes('cook following') ||
         (step.toLowerCase().includes('cook') && step.toLowerCase().includes('for this type of dish'))) {
+      
+      modified = true;
       
       if (recipe.name.toLowerCase().includes('stir fry') || 
           recipe.description.toLowerCase().includes('stir-fry') || 
           recipe.description.toLowerCase().includes('stir fry')) {
-        modified = true;
-        return "Heat a wok or large skillet over high heat for 1 minute. Add 1 tablespoon oil and swirl to coat the pan. Add chicken and stir-fry for 4-5 minutes until golden brown and cooked through (internal temperature 165°F). Transfer to a plate.";
+        return "Heat a wok or large skillet over high heat for 1 minute. Add 1 tablespoon oil and swirl to coat the pan. Add protein and stir-fry for 4-5 minutes until golden and cooked through (internal temperature 165°F for chicken/poultry). Remove protein to a plate. Add vegetables to the same pan, cooking for 3-4 minutes until crisp-tender. Return protein to the pan, add sauce, and stir for 1 minute until everything is well-coated and heated through.";
+      }
+      
+      if (recipe.name.toLowerCase().includes('soup') || 
+          recipe.description.toLowerCase().includes('soup')) {
+        return "Bring mixture to a boil over medium-high heat. Once boiling, reduce heat to medium-low, cover the pot, and simmer for 20-25 minutes, stirring occasionally, until all vegetables are tender and flavors have melded. Season with additional salt and pepper to taste.";
+      }
+      
+      if (recipe.name.toLowerCase().includes('pasta') || 
+          recipe.description.toLowerCase().includes('pasta')) {
+        return "Bring a large pot of water to a boil over high heat. Add 1 tablespoon salt to the water, then add pasta and cook according to package instructions until al dente (usually 8-10 minutes). In a separate pan, heat 2 tablespoons oil over medium heat and cook the sauce ingredients for 5-7 minutes. Drain pasta, reserving 1/4 cup pasta water, then add pasta to the sauce, tossing to combine. If sauce is too thick, add reserved pasta water a tablespoon at a time.";
+      }
+      
+      if (recipe.name.toLowerCase().includes('instant pot') || 
+          recipe.description.toLowerCase().includes('instant pot')) {
+        return "Secure the Instant Pot lid and ensure the pressure valve is set to 'Sealing'. Select 'Pressure Cook' or 'Manual' setting and set for 20 minutes at high pressure. Once cooking completes, allow for 10 minutes of natural pressure release, then carefully turn the valve to 'Venting' to release remaining pressure. When the float valve drops, carefully open the lid away from your face.";
+      }
+      
+      if (recipe.name.toLowerCase().includes('slow cooker') || 
+          recipe.description.toLowerCase().includes('slow cooker') ||
+          recipe.name.toLowerCase().includes('crockpot') || 
+          recipe.description.toLowerCase().includes('crockpot')) {
+        return "Cover the slow cooker with its lid and cook on LOW for 6-8 hours or on HIGH for 3-4 hours, until the meat is tender and easily pulls apart with a fork. Avoid opening the lid during cooking as this releases heat and extends cooking time.";
       }
       
       // General replacement for other dishes
+      return "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat). Add any remaining ingredients and mix until evenly incorporated.";
+    }
+    
+    // Fix serve step
+    if (step.toLowerCase().includes('serve hot and enjoy') || 
+        step.toLowerCase().includes('enjoy with your family')) {
       modified = true;
-      return "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat).";
+      return "Transfer to serving plates or bowls while still hot. Garnish with fresh herbs if available, and serve immediately with any recommended sides or accompaniments.";
     }
     
     return step;
@@ -1121,6 +1203,232 @@ function improveRecipeInstructions(recipe: any): any {
   }
   
   return improvedRecipe;
+}
+
+/**
+ * Check if the instructions match the common generic template pattern
+ */
+function checkForGenericTemplate(instructions: string[]): boolean {
+  if (!Array.isArray(instructions) || instructions.length !== 5) {
+    return false;
+  }
+  
+  const prepStepPattern = /prepare all ingredients|wash, chop, and measure/i;
+  const preheatStepPattern = /preheat your oven or stovetop as needed/i;
+  const combineStepPattern = /combine the ingredients according to the main/i;
+  const cookStepPattern = /cook following standard procedures|for this type of dish|until all components are thoroughly cooked/i;
+  const serveStepPattern = /serve hot and enjoy|enjoy with your family/i;
+  
+  return (
+    prepStepPattern.test(instructions[0]) &&
+    preheatStepPattern.test(instructions[1]) &&
+    combineStepPattern.test(instructions[2]) &&
+    cookStepPattern.test(instructions[3]) &&
+    serveStepPattern.test(instructions[4])
+  );
+}
+
+/**
+ * Generate detailed instructions based on the recipe type and ingredients
+ */
+function generateDetailedInstructions(recipe: any): string[] {
+  const recipeName = recipe.name?.toLowerCase() || '';
+  const description = recipe.description?.toLowerCase() || '';
+  const ingredients = recipe.ingredients || recipe.mainIngredients || [];
+  
+  // Determine recipe type
+  const isStirFry = recipeName.includes('stir fry') || description.includes('stir fry') || description.includes('stir-fry');
+  const isPasta = recipeName.includes('pasta') || description.includes('pasta');
+  const isSoup = recipeName.includes('soup') || description.includes('soup');
+  const isSalad = recipeName.includes('salad') || description.includes('salad');
+  const isRoasted = recipeName.includes('roast') || description.includes('roast');
+  const isBaked = recipeName.includes('bake') || description.includes('bake');
+  const isGrilled = recipeName.includes('grill') || description.includes('grill');
+  const isInstantPot = recipeName.includes('instant pot') || description.includes('instant pot');
+  const isSlowCooker = recipeName.includes('slow cooker') || description.includes('slow cooker') || 
+                       recipeName.includes('crockpot') || description.includes('crockpot');
+  
+  // Check for protein types
+  const hasChicken = ingredients.some((ing: string) => 
+    typeof ing === 'string' && ing.toLowerCase().includes('chicken'));
+  const hasBeef = ingredients.some((ing: string) => 
+    typeof ing === 'string' && (ing.toLowerCase().includes('beef') || ing.toLowerCase().includes('steak')));
+  const hasPork = ingredients.some((ing: string) => 
+    typeof ing === 'string' && ing.toLowerCase().includes('pork'));
+  const hasSeafood = ingredients.some((ing: string) => 
+    typeof ing === 'string' && (ing.toLowerCase().includes('fish') || ing.toLowerCase().includes('shrimp') || 
+                                ing.toLowerCase().includes('salmon') || ing.toLowerCase().includes('tuna')));
+  
+  // Generate appropriate instructions based on meal type
+  if (isStirFry) {
+    return [
+      "Prepare all vegetables by washing thoroughly and cutting into uniform bite-sized pieces. For protein, slice into thin strips against the grain for tenderness.",
+      "In a small bowl, whisk together sauce ingredients: soy sauce, cornstarch, broth, and any seasonings until well combined with no lumps.",
+      "Heat a wok or large skillet over high heat until very hot, about 2 minutes. Add 1 tablespoon oil and swirl to coat the pan.",
+      "Add protein to the hot pan in a single layer without overcrowding (cook in batches if needed). Cook for 3-4 minutes until browned but not fully cooked. Remove to a clean plate.",
+      "Add another 1 tablespoon oil to the pan if needed. Add aromatics (garlic, ginger) and stir for 30 seconds until fragrant.",
+      "Add harder vegetables (carrots, broccoli stems) and stir-fry for 2 minutes. Add softer vegetables and continue stir-frying for 2-3 more minutes until crisp-tender.",
+      "Return protein to the pan. Pour the sauce over everything and stir constantly for 1-2 minutes until sauce thickens and all ingredients are well-coated.",
+      "Garnish with sliced green onions or sesame seeds. Serve immediately over hot rice or noodles."
+    ];
+  } else if (isPasta) {
+    return [
+      "Bring a large pot of water to a rolling boil. Add 1 tablespoon salt to the water.",
+      "Meanwhile, prepare the sauce ingredients. Heat a large skillet over medium heat and add 2 tablespoons oil or butter.",
+      "Add aromatics (garlic, onions) to the skillet and sauté for 2-3 minutes until fragrant and softened but not browned.",
+      "Add the main ingredients for the sauce according to cooking time (meat first if using, then vegetables). Cook for 5-7 minutes, stirring occasionally.",
+      "Add the pasta to the boiling water and cook according to package instructions until al dente, typically 8-10 minutes. Reserve 1/2 cup pasta cooking water before draining.",
+      "Drain the pasta in a colander, shaking off excess water but do not rinse unless making a cold pasta salad.",
+      "Add the drained pasta directly to the sauce in the skillet. Toss to combine, adding small amounts of reserved pasta water as needed to create a silky texture.",
+      "Finish with any fresh herbs, cheese, or other final ingredients. Serve immediately on warmed plates."
+    ];
+  } else if (isSoup) {
+    return [
+      "Prepare all vegetables by washing, peeling if necessary, and chopping into bite-sized pieces (about 1/2 inch).",
+      "Heat a large pot or Dutch oven over medium heat. Add 2 tablespoons oil or butter.",
+      "Add aromatic vegetables (onions, carrots, celery) to the pot and sauté for 5 minutes until softened but not browned.",
+      "Add garlic and any dried herbs or spices, cooking for 30 seconds until fragrant.",
+      "If using meat, add it now and cook until browned, about 5-7 minutes. If using pre-cooked meat, add it later.",
+      "Add remaining vegetables and stir to combine. Pour in broth or stock, ensuring all ingredients are covered by liquid.",
+      "Bring to a boil over medium-high heat, then reduce heat to medium-low. Cover and simmer for 25-30 minutes, stirring occasionally, until all vegetables are tender.",
+      "Adjust seasoning with salt and pepper to taste. If desired, puree some or all of the soup using an immersion blender.",
+      "Serve hot, garnished with fresh herbs, a dollop of cream, or crusty bread on the side."
+    ];
+  } else if (isSlowCooker) {
+    return [
+      "Prepare all ingredients as specified: chop vegetables, trim meat, and measure out spices and liquids.",
+      "If using meat, heat 1 tablespoon oil in a large skillet over medium-high heat. Season meat with salt and pepper, then brown on all sides, about 3-4 minutes per side. This step is optional but adds flavor.",
+      "Transfer meat to the slow cooker. Add vegetables, starting with onions and root vegetables on the bottom (closer to the heat source).",
+      "Add any dried herbs, spices, and aromatics. Pour in liquids (broth, sauce ingredients) until ingredients are about 2/3 covered.",
+      "Cover the slow cooker with its lid and ensure it fits properly with no gaps for steam to escape.",
+      "Set the slow cooker to LOW for 6-8 hours or HIGH for 3-4 hours, depending on your time constraints. Avoid opening the lid during cooking as this releases heat and extends cooking time.",
+      "In the last 30 minutes of cooking, check seasoning and adjust if needed. If recipe calls for quick-cooking ingredients (pasta, delicate vegetables), add them now.",
+      "Once cooking is complete, the meat should be very tender and easily shred with a fork. Vegetables should be soft but still maintain their shape.",
+      "Serve directly from the slow cooker or transfer to a serving dish. Garnish as directed in the recipe."
+    ];
+  } else if (isInstantPot) {
+    return [
+      "Prepare all ingredients as specified in the recipe: chop vegetables, trim meat, and measure out spices and liquids.",
+      "Select 'Sauté' function on the Instant Pot and allow it to heat up for 1-2 minutes. Add 1-2 tablespoons oil.",
+      "If using meat, add it to the hot pot and brown on all sides, about 3-4 minutes per side, working in batches if necessary to avoid overcrowding.",
+      "Add aromatics (onions, garlic) and sauté for 2 minutes until fragrant. Add any dried spices and toast for 30 seconds.",
+      "Add remaining ingredients according to recipe, making sure to deglaze the pot (scrape up any browned bits) with a small amount of liquid to prevent a burn warning.",
+      "Close the Instant Pot lid and set the pressure valve to 'Sealing' position. Select 'Pressure Cook' or 'Manual' and set for the appropriate time (15-20 minutes for most meat dishes, 5-8 minutes for vegetable dishes).",
+      "When cooking cycle completes, allow for natural pressure release for 10 minutes (don't touch the pot), then carefully turn the valve to 'Venting' to release remaining pressure.",
+      "Once the float valve drops, carefully open the lid away from your face. Stir contents and adjust seasoning if needed.",
+      "If the sauce needs thickening, select 'Sauté' function again and simmer uncovered for 5-10 minutes, or make a cornstarch slurry (1 tablespoon cornstarch mixed with 2 tablespoons cold water) and stir it in.",
+      "Serve directly from the Instant Pot or transfer to a serving dish, garnishing as desired."
+    ];
+  } else if (isBaked || isRoasted) {
+    const temp = isBaked ? "375°F (190°C)" : "425°F (220°C)";
+    return [
+      `Preheat oven to ${temp} and position rack in the center.`,
+      "Prepare a baking sheet or dish by lining with parchment paper or foil, or lightly greasing with oil.",
+      "Prepare all ingredients: wash and cut vegetables into uniform pieces, and season protein if using.",
+      "In a large bowl, toss ingredients with oil and seasonings until evenly coated.",
+      "Arrange in a single layer on the prepared baking sheet, ensuring pieces aren't touching or overlapping for even cooking.",
+      `Place in preheated oven and bake for ${isBaked ? "25-30" : "20-25"} minutes, or until golden brown and cooked through.`,
+      "Check halfway through cooking time and rotate pan for even browning. If using vegetables of different types, check if any are cooking faster and remove as needed.",
+      `For protein, ensure it reaches the proper internal temperature (165°F for chicken, 145°F for fish, 160°F for ground meat).`,
+      "Remove from oven and let rest for 5 minutes before serving to allow juices to redistribute.",
+      "Garnish with fresh herbs or a squeeze of lemon juice if desired, and serve warm."
+    ];
+  } else if (isGrilled) {
+    return [
+      "Preheat grill to medium-high heat (about 400-450°F) for 10-15 minutes. Clean grates thoroughly with a wire brush.",
+      "Prepare all ingredients: wash and cut vegetables into uniform pieces that won't fall through grill grates.",
+      "Pat protein dry with paper towels and season generously with salt, pepper, and desired seasonings on all sides.",
+      "Lightly oil the grill grates using tongs and an oil-soaked paper towel to prevent sticking.",
+      "Place protein on the hot grill. For chicken, cook 6-7 minutes per side; for beef, 4-5 minutes per side for medium; for fish, 3-4 minutes per side.",
+      "Add vegetables to the grill, arranged perpendicular to grates so they don't fall through. Cook until lightly charred and tender, turning occasionally.",
+      "Check protein with an instant-read thermometer for doneness: 165°F for chicken, 145°F for fish, 145-160°F for beef depending on desired doneness.",
+      "Remove protein from grill and let rest on a clean plate, loosely tented with foil, for 5-10 minutes to allow juices to redistribute.",
+      "Continue grilling vegetables until they reach desired tenderness, about 8-12 minutes total depending on size and type.",
+      "Serve protein sliced against the grain with grilled vegetables on the side. Garnish with fresh herbs or a squeeze of lemon if desired."
+    ];
+  } else if (isSalad) {
+    return [
+      "Wash all produce thoroughly under cold running water. Pat dry with clean kitchen towels or paper towels.",
+      "Prepare the dressing in a small bowl: whisk together oil, acid (vinegar or citrus juice), seasonings, and emulsifiers (if using) until well combined.",
+      "Chop, slice, or tear greens into bite-sized pieces and place in a large salad bowl.",
+      "Prepare remaining ingredients: dice vegetables, slice fruits, chop herbs, and prepare any protein components according to recipe specifications.",
+      "If toasting nuts or seeds, place in a dry skillet over medium heat for 3-5 minutes, shaking occasionally, until fragrant and lightly browned.",
+      "Layer ingredients in the salad bowl with greens at the bottom, followed by vegetables, protein, and delicate items like fruits or cheese on top.",
+      "Just before serving, drizzle about half the dressing over the salad and toss gently with salad tongs to coat evenly.",
+      "Taste and add more dressing as needed. Season with additional salt and freshly ground pepper if necessary.",
+      "Garnish with fresh herbs, reserved cheese, or toasted nuts/seeds. Serve immediately for maximum freshness and texture."
+    ];
+  } else {
+    // Generic detailed instructions for other types of recipes
+    const cookingMethod = getDefaultCookingMethod(recipe);
+    return generateGenericInstructions(recipe, cookingMethod);
+  }
+}
+
+/**
+ * Determine the default cooking method based on recipe information
+ */
+function getDefaultCookingMethod(recipe: any): string {
+  const recipeName = recipe.name?.toLowerCase() || '';
+  const description = recipe.description?.toLowerCase() || '';
+  const ingredients = recipe.ingredients || recipe.mainIngredients || [];
+  
+  if (recipeName.includes('bake') || description.includes('bake') || 
+      recipeName.includes('roast') || description.includes('roast')) {
+    return 'bake';
+  } else if (recipeName.includes('grill') || description.includes('grill')) {
+    return 'grill';
+  } else if (recipeName.includes('slow cooker') || description.includes('slow cooker') ||
+             recipeName.includes('crockpot') || description.includes('crockpot')) {
+    return 'slowcook';
+  } else if (recipeName.includes('instant pot') || description.includes('instant pot')) {
+    return 'instantpot';
+  } else if (recipeName.includes('stir fry') || description.includes('stir fry') || 
+             description.includes('stir-fry')) {
+    return 'stirfry';
+  } else if (recipeName.includes('soup') || description.includes('soup')) {
+    return 'soup';
+  } else if (recipeName.includes('salad') || description.includes('salad')) {
+    return 'salad';
+  } else if (recipeName.includes('pasta') || description.includes('pasta')) {
+    return 'pasta';
+  } else {
+    // Default to stovetop cooking
+    return 'stovetop';
+  }
+}
+
+/**
+ * Generate generic detailed instructions for recipes that don't match specific categories
+ */
+function generateGenericInstructions(recipe: any, cookingMethod: string): string[] {
+  const instructions: string[] = [];
+  
+  // Initial prep step
+  instructions.push("Wash, peel, and chop all produce as indicated in the ingredients list. Measure all spices, liquids, and other ingredients. Arrange everything in small bowls for easy access during cooking.");
+  
+  // Cooking specific instructions
+  if (cookingMethod === 'stovetop') {
+    instructions.push("Heat a large skillet or pan over medium heat. Add 1-2 tablespoons oil and heat until shimmering but not smoking.");
+    instructions.push("Add aromatic ingredients (onions, garlic, etc.) to the hot pan and sauté for 2-3 minutes until fragrant and softened.");
+    instructions.push("Add protein (if using) and cook until browned on all sides and nearly cooked through, about 5-7 minutes depending on the type and size.");
+    instructions.push("Add vegetables in order of cooking time (longer-cooking items first). Season with salt and pepper. Cook for 5-7 minutes, stirring occasionally.");
+    instructions.push("Add any liquids or sauces, bring to a gentle simmer, and cook for 3-5 minutes until slightly reduced and flavors are melded together.");
+    instructions.push("Adjust seasoning with additional salt and pepper if needed. If sauce needs thickening, create a slurry with 1 teaspoon cornstarch and 1 tablespoon cold water, then stir into the dish.");
+  } else {
+    // Default instructions if we can't determine a specific cooking method
+    instructions.push("Prepare the main cooking vessel (pot, pan, etc.) by heating over medium heat. Add 1-2 tablespoons oil if needed.");
+    instructions.push("Begin cooking ingredients in order of longest cooking time to shortest. Season each layer as it's added to build flavor.");
+    instructions.push("Monitor cooking progress by checking tenderness of vegetables and internal temperature of proteins (165°F for chicken, 145°F for fish, 160°F for ground meat).");
+    instructions.push("Adjust heat as needed throughout cooking process. Lower heat if ingredients are browning too quickly, increase if not enough browning is occurring.");
+    instructions.push("Add any finishing ingredients like fresh herbs or quick-cooking items in the last few minutes of cooking.");
+  }
+  
+  // Final steps
+  instructions.push("Remove from heat when cooking is complete. Let stand for 2-3 minutes to allow flavors to settle and distribute.");
+  instructions.push("Transfer to serving plates or bowls. Garnish with fresh herbs, a sprinkle of cheese, or a drizzle of olive oil if appropriate for the dish.");
+  
+  return instructions;
 }
 
 /**
