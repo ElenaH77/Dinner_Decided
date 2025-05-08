@@ -317,8 +317,15 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           - categories (string[]): An array of meal categories (e.g., "quick", "batch cooking")
           - prepTime (number): Total preparation time in minutes
           - servings (number): Number of servings the meal makes
-          - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the directions
-          - instructions (string[]): Step-by-step cooking instructions (8-10 detailed steps) with specific cooking times, temperatures and methods for every stage of cooking
+          - ingredients (string[]): Complete list of ALL ingredients with specific quantities - MUST include every single ingredient that appears in the instructions
+          - instructions (string[]): Step-by-step cooking instructions meeting these MANDATORY requirements:
+              * EXACTLY 8-10 detailed, numbered steps (e.g., "1. Preheat the oven...")
+              * Each step MUST begin with a strong action verb (e.g., Dice, Sauté, Whisk, Simmer)
+              * Include SPECIFIC ingredient names AND EXACT measurements in EACH step
+              * Include EXACT cooking times and temperatures (e.g., "sauté for 5 minutes", "bake at 375°F for 20 minutes")
+              * AVOID all vague phrases like "cook thoroughly", "until done", "combine everything", "standard procedures"
+              * Instructions MUST be written with the assumption the cook has NO prior knowledge
+              * Each step should focus on ONE specific cooking action/technique
           
           If the meal is assigned to a specific day, include:
           - day (string): The day of the week
@@ -722,9 +729,17 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           
           MODIFICATION APPROACH:
           - Maintain the general structure of the meal but accommodate the user's modification requests
-          - Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions
+          - Create beautiful, detailed recipes with clear, step-by-step instructions
           - Keep the same meal category and day assignment as the original
           - Preserve approximately the same prep time (±5 minutes)
+          
+          INSTRUCTION REQUIREMENTS - MANDATORY:
+          - Include EXACTLY 8-10 detailed, numbered steps (e.g., "1. Preheat the oven...")
+          - Each step MUST begin with a strong action verb (e.g., Dice, Sauté, Whisk, Simmer)
+          - Include SPECIFIC ingredient names AND EXACT measurements in EACH step
+          - Include EXACT cooking times and temperatures (e.g., "sauté for 5 minutes", "bake at 375°F for 20 minutes")
+          - AVOID all vague phrases like "cook thoroughly", "until done", "combine everything"
+          - Instructions MUST be written for a beginner with NO prior cooking knowledge
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
@@ -950,7 +965,15 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
           - Generate a completely new meal in the same category as the original
           - Use a similar cooking method but with different ingredients
           - Maintain approximately the same prep time (±5 minutes)
-          - Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions
+          - Create beautiful, detailed recipes with clear, step-by-step instructions
+          
+          INSTRUCTION REQUIREMENTS - MANDATORY:
+          - Include EXACTLY 8-10 detailed, numbered steps (e.g., "1. Preheat the oven...")
+          - Each step MUST begin with a strong action verb (e.g., Dice, Sauté, Whisk, Simmer)
+          - Include SPECIFIC ingredient names AND EXACT measurements in EACH step
+          - Include EXACT cooking times and temperatures (e.g., "sauté for 5 minutes", "bake at 375°F for 20 minutes")
+          - AVOID all vague phrases like "cook thoroughly", "until done", "combine everything"
+          - Instructions MUST be written for a beginner with NO prior cooking knowledge
           
           Family profile:
           ${household ? `- Family size: ${household.members.length} people
@@ -1177,12 +1200,17 @@ export function improveRecipeInstructions(recipe: any): any {
   // Check if the instructions lack numbered steps or have too few steps
   const hasNumberedSteps = improvedRecipe.instructions.some((step: string) => 
     typeof step === 'string' && /^(\d+\.|Step \d+:)/.test(step.trim()));
-  const hasTooFewSteps = improvedRecipe.instructions.length < 5;
+  const hasTooFewSteps = improvedRecipe.instructions.length < 7; // Increased from 5 to 7
+  
+  // Check for good format with numbering at the beginning of each step
+  const allStepsNumbered = improvedRecipe.instructions.every((step: string) =>
+    typeof step === 'string' && /^(\d+\.|Step \d+:)/.test(step.trim()));
   
   // If multiple banned phrases found or lacks numbered steps with too few steps, consider it a generic template
   if (bannedPhraseCount >= 2 || 
-      (improvedRecipe.instructions.length <= 5 && bannedPhraseCount >= 1) ||
-      (!hasNumberedSteps && hasTooFewSteps)) {
+      (improvedRecipe.instructions.length <= 6 && bannedPhraseCount >= 1) || // More strict: any banned phrase in short instructions is bad
+      (!hasNumberedSteps && hasTooFewSteps) ||
+      (improvedRecipe.instructions.length < 8)) { // Too few steps, needs replacement regardless
     console.log(`[RECIPE IMPROVE] Detected ${bannedPhraseCount} generic steps in recipe: ${recipe.name}`);
     console.log(`[RECIPE IMPROVE] Original instructions: ${JSON.stringify(improvedRecipe.instructions)}`);
     containsBannedPhrases = true;
@@ -1194,8 +1222,8 @@ export function improveRecipeInstructions(recipe: any): any {
   // Additional check for actionable steps
   const lacksActionVerbs = checkForMissingActionVerbs(improvedRecipe.instructions);
   
-  // If it's a generic template or contains several banned phrases, completely replace instructions
-  if (hasGenericTemplate || containsBannedPhrases || lacksActionVerbs) {
+  // If it's a generic template or contains several banned phrases or lacks proper formatting, completely replace instructions
+  if (hasGenericTemplate || containsBannedPhrases || lacksActionVerbs || !allStepsNumbered || hasTooFewSteps) {
     console.log(`[RECIPE IMPROVE] Replacing generic instructions in recipe: ${recipe.name}`);
     modified = true;
     
