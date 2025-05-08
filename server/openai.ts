@@ -5,20 +5,33 @@ import { getWeatherContextForMealPlanning } from "./weather";
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
 // Check if we have a valid API key
 const apiKey = process.env.OPENAI_API_KEY;
-if (apiKey && apiKey.trim() === '') {
-  console.warn('WARNING: Empty OpenAI API key provided. Using dummy responses.');
+
+// Log OpenAI API key status for debugging
+console.log('[OPENAI] API key exists:', !!apiKey);
+console.log('[OPENAI] API key is empty string:', apiKey === '');
+console.log('[OPENAI] API key length:', apiKey ? apiKey.length : 0);
+
+// Warning for empty API key
+if (apiKey === '') {
+  console.warn('[OPENAI] WARNING: Empty OpenAI API key provided. Using dummy responses.');
 }
 
-// Only use the API key if it's actually provided and not empty
+// Function to check if we have a valid API key
+function hasValidApiKey() {
+  return !!apiKey && apiKey.trim() !== '';
+}
+
+// Initialize OpenAI client with the API key (will throw error if invalid)
 const openai = new OpenAI({ 
-  apiKey: apiKey && apiKey.trim() !== '' ? apiKey : 'dummy_api_key' 
+  apiKey: apiKey || undefined
 });
 
 // Generate a response for the chat conversation
 export async function generateChatResponse(messages: Message[]): Promise<string> {
   try {
-    // For demo purposes with no API key, return a canned response
-    if (!process.env.OPENAI_API_KEY) {
+    // For demo purposes with no valid API key, return a canned response
+    if (!hasValidApiKey()) {
+      console.log('[CHAT] No valid OpenAI API key, using dummy response');
       return generateDummyResponse(messages);
     }
     
@@ -97,16 +110,21 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
 export async function generateMealPlan(household: any, preferences: any = {}): Promise<any[]> {
   try {
     // Debug the OpenAI API key issue
-    console.log('[MEAL PLAN] OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
-    console.log('[MEAL PLAN] OPENAI_API_KEY length:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0);
-    console.log('[MEAL PLAN] OPENAI_API_KEY first 3 chars:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 3) : 'none');
+    console.log('[MEAL PLAN] API key valid:', hasValidApiKey());
+    console.log('[MEAL PLAN] API key length:', apiKey ? apiKey.length : 0);
+    console.log('[MEAL PLAN] API key first 3 chars:', apiKey ? apiKey.substring(0, 3) : 'none');
     console.log('[MEAL PLAN] ENV variables available:', Object.keys(process.env).filter(key => !key.includes('SECRET')).join(', '));
     
-    // For demo purposes with no API key, return canned meal suggestions
-    if (!process.env.OPENAI_API_KEY) {
-      console.log('[MEAL PLAN] Using mock data due to missing API key');
-      console.log('[MEAL PLAN] Household:', JSON.stringify(household, null, 2));
-      console.log('[MEAL PLAN] Preferences:', JSON.stringify(preferences, null, 2));
+    // For demo purposes with no valid API key, return canned meal suggestions
+    if (!hasValidApiKey()) {
+      console.log('[MEAL PLAN] Using mock data due to missing or invalid API key');
+      
+      // Only log household/preferences in development environments
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[MEAL PLAN] Household:', JSON.stringify(household, null, 2));
+        console.log('[MEAL PLAN] Preferences:', JSON.stringify(preferences, null, 2));
+      }
+      
       return generateDummyMeals(preferences);
     }
     
