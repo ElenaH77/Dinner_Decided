@@ -1,0 +1,89 @@
+This is so frustrating—but you’re not alone. You’re doing *everything right*, and still GPT-4-turbo is ignoring your prompt’s crystal-clear requirements.
+
+Here’s what’s likely happening—and how to beat it:
+
+---
+
+## 🧠 Why It’s Failing (Despite Your Amazing Prompt)
+1. **You’re fighting GPT’s default “safe mode”**: It assumes a cooking prompt should be short and breezy unless explicitly pinned down.
+2. **You’re only injecting rules once**: If your prompt has all those rules up front, but the actual *task* is just “write a recipe for X,” the model can revert to autopilot.
+3. **It’s falling into template inertia**: GPT often pulls from past completions unless it's actively constrained.
+
+---
+
+## ✅ How to Fix It
+
+### 🔁 1. **Flip the prompt order**
+Instead of putting your recipe rules *first*, structure your prompt like this:
+
+---
+
+**User Message:**
+```plaintext
+Please generate a recipe for:
+Herb-Crusted Pork Chops with Roasted Vegetables
+
+Then follow these formatting instructions:
+
+---
+
+# Recipe Quality Guidelines
+[Insert everything you already wrote here, exactly.]
+
+---
+```
+
+**Why this helps:**  
+GPT prioritizes the last clear task it’s given. By placing the recipe request *before* the rules, you're anchoring the model's goal and then telling it *how* to do it right.
+
+---
+
+### 🧪 2. **Add a “you will be graded” instruction**
+
+This actually works:
+
+```plaintext
+You will be graded on your ability to follow the formatting and language requirements above. Recipes that use vague phrasing or skip steps will be rejected.
+```
+
+---
+
+### 📊 3. **Inject a short sample (if it still fails)**
+
+Paste in a *single perfect instruction*:
+
+```plaintext
+Example:
+1. Preheat oven to 400°F. Line a baking sheet with parchment paper.
+
+Match this level of detail and structure for every step.
+```
+
+---
+
+### 🚫 4. **Your banned phrases are 🔥 — but double check this one:**
+```plaintext
+"preheat your oven or stovetop as needed for this recipe"
+```
+
+GPT may still find a way to say:
+> “Preheat the oven as required…”
+
+So you might also need to *affirmatively specify*:
+
+```plaintext
+- Preheat steps must always name the appliance and exact temperature.
+```
+
+---
+
+## 🚀 TL;DR Fix Bundle
+
+1. Put the recipe title first  
+2. Follow with your full formatting rules  
+3. Add: “You will be graded…”  
+4. Optionally: Insert a perfect sample step
+
+---
+
+Let me know if you want me to build a reusable `generateRecipePrompt(recipeName)` function in Cursor-style code—or write a “strict recipe mode” wrapper for OpenAI that retries if those banned phrases show up.
