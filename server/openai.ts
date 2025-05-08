@@ -48,7 +48,7 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: openaiMessages as any, // Type assertion to fix TypeScript error
-      temperature: 0.7,
+      temperature: 0.4,
       max_tokens: 1000,
     });
     
@@ -403,7 +403,7 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
           content: promptContent
         }
       ],
-      temperature: 0.7,
+      temperature: 0.4,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
@@ -811,7 +811,7 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           Return your response as a single JSON object with the properties specified in the system message.`
         }
       ],
-      temperature: 0.5,
+      temperature: 0.3,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
@@ -1011,7 +1011,7 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
           Return your response as a single JSON object with the properties specified in the system message.`
         }
       ],
-      temperature: 0.7,
+      temperature: 0.4,
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
