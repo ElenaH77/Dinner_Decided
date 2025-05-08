@@ -1140,18 +1140,58 @@ function improveRecipeInstructions(recipe: any): any {
   // Deep clone to avoid modifying the original
   const improvedRecipe = JSON.parse(JSON.stringify(recipe));
   let modified = false;
+
+  // List of banned generic phrases
+  const bannedPhrases = [
+    'prepare all ingredients according to the ingredients list',
+    'wash, chop, and measure everything',
+    'preheat your oven or stovetop as needed',
+    'combine the ingredients according to the main ingredients list',
+    'cook following standard procedures',
+    'cook until all components are thoroughly cooked',
+    'serve hot and enjoy with your family'
+  ];
+  
+  // Check if instructions contain any banned phrases
+  let containsBannedPhrases = false;
+  
+  // Count instances of banned phrases
+  let bannedPhraseCount = 0;
+  for (const step of improvedRecipe.instructions) {
+    if (typeof step !== 'string') continue;
+    
+    const stepLower = step.toLowerCase();
+    for (const phrase of bannedPhrases) {
+      if (stepLower.includes(phrase)) {
+        bannedPhraseCount++;
+        break;
+      }
+    }
+  }
+  
+  // If 3 or more steps contain banned phrases, consider it a generic template
+  if (bannedPhraseCount >= 3 || 
+      improvedRecipe.instructions.length <= 5 && bannedPhraseCount >= 2) {
+    console.log(`[RECIPE IMPROVE] Detected ${bannedPhraseCount} generic steps in recipe: ${recipe.name}`);
+    console.log(`[RECIPE IMPROVE] Original instructions: ${JSON.stringify(improvedRecipe.instructions)}`);
+    containsBannedPhrases = true;
+  }
   
   // Check if we have the exact template pattern
   const hasGenericTemplate = checkForGenericTemplate(improvedRecipe.instructions);
   
-  if (hasGenericTemplate) {
-    console.log(`[RECIPE IMPROVE] Detected generic 5-step template in recipe: ${recipe.name}`);
+  // If it's a generic template or contains several banned phrases, completely replace instructions
+  if (hasGenericTemplate || containsBannedPhrases) {
+    console.log(`[RECIPE IMPROVE] Replacing generic instructions in recipe: ${recipe.name}`);
     modified = true;
     
     // Replace the entire instructions with a more specific set based on the recipe type and ingredients
     improvedRecipe.instructions = generateDetailedInstructions(improvedRecipe);
     
-    console.log(`[RECIPE IMPROVE] Replaced generic template with ${improvedRecipe.instructions.length} detailed steps`);
+    // Add a note for debugging purposes
+    improvedRecipe._instructionsImproved = true;
+    
+    console.log(`[RECIPE IMPROVE] Replaced generic instructions with ${improvedRecipe.instructions.length} detailed steps`);
     return improvedRecipe;
   }
   
