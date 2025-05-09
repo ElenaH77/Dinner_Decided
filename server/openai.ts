@@ -18,14 +18,21 @@ if (apiKey === '') {
 
 // Function to check if we have a valid API key
 function hasValidApiKey() {
-  // Log key details for debugging
-  console.log('[OPENAI VALIDATION] API key exists:', !!apiKey);
-  console.log('[OPENAI VALIDATION] API key is empty string:', apiKey === '');
-  console.log('[OPENAI VALIDATION] API key starts with sk-:', apiKey?.startsWith('sk-'));
-  console.log('[OPENAI VALIDATION] API key length:', apiKey ? apiKey.length : 0);
+  // Only log detailed validation in development environment
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[OPENAI VALIDATION] API key exists:', !!apiKey);
+    console.log('[OPENAI VALIDATION] API key is empty string:', apiKey === '');
+    console.log('[OPENAI VALIDATION] API key starts with sk-:', apiKey?.startsWith('sk-'));
+    console.log('[OPENAI VALIDATION] API key length:', apiKey ? apiKey.length : 0);
+  }
   
   // Check if key exists, is not empty, and starts with the correct prefix
-  return !!apiKey && apiKey.trim() !== '' && apiKey.startsWith('sk-');
+  const hasValidFormat = !!apiKey && apiKey.trim() !== '' && apiKey.startsWith('sk-');
+  
+  // Add additional validation for minimum length of a typical OpenAI key
+  const hasValidLength = !!apiKey && apiKey.length >= 30;
+  
+  return hasValidFormat && hasValidLength;
 }
 
 // Initialize OpenAI client with the API key (will throw error if invalid)
@@ -565,7 +572,8 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
     }
   } catch (outerError) {
     console.error("Unexpected error in generateMealPlan:", outerError);
-    return generateDummyMeals(preferences);
+    // Don't fall back to dummy meals here either
+    throw new Error(`Unexpected error occurred during meal plan generation: ${outerError instanceof Error ? outerError.message : 'Unknown error'}`);
   }
 }
 
@@ -698,8 +706,9 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
       }
     }
     
-    console.log('[GROCERY] Using fallback data due to OpenAI API error');
-    return generateDummyGroceryList();
+    // Don't fallback to dummy grocery list, throw a detailed error
+    console.error('[GROCERY] OpenAI API error occurred, not falling back to dummy data');
+    throw new Error('Error connecting to OpenAI API to generate grocery list. Please check your connection and try again.');
   }
 }
 
