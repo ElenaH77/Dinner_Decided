@@ -559,9 +559,9 @@ export async function generateMealPlan(household: any, preferences: any = {}): P
         }
       }
       
-      // For other errors, use backup data
-      console.log('[MEAL PLAN] Using fallback data due to OpenAI API error');
-      return generateDummyMeals(preferences);
+      // For other errors, throw a detailed error instead of using dummy data
+      console.error('[MEAL PLAN] OpenAI API error occurred, not falling back to dummy data');
+      throw new Error('Error connecting to OpenAI API to generate meal plan. Please check your connection and try again.');
     }
   } catch (outerError) {
     console.error("Unexpected error in generateMealPlan:", outerError);
