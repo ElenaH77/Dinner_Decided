@@ -18,13 +18,34 @@ if (apiKey === '') {
 
 // Function to check if we have a valid API key
 function hasValidApiKey() {
-  return !!apiKey && apiKey.trim() !== '';
+  // Log key details for debugging
+  console.log('[OPENAI VALIDATION] API key exists:', !!apiKey);
+  console.log('[OPENAI VALIDATION] API key is empty string:', apiKey === '');
+  console.log('[OPENAI VALIDATION] API key starts with sk-:', apiKey?.startsWith('sk-'));
+  console.log('[OPENAI VALIDATION] API key length:', apiKey ? apiKey.length : 0);
+  
+  // Check if key exists, is not empty, and starts with the correct prefix
+  return !!apiKey && apiKey.trim() !== '' && apiKey.startsWith('sk-');
 }
 
 // Initialize OpenAI client with the API key (will throw error if invalid)
+console.log('[OPENAI INIT] Initializing OpenAI client with key:', apiKey ? `${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 4)}` : 'undefined');
+
 const openai = new OpenAI({ 
-  apiKey: apiKey || undefined
+  apiKey: apiKey || undefined 
 });
+
+// Test if the client can be used by making a small request
+(async () => {
+  try {
+    console.log('[OPENAI INIT] Testing API key with a simple models request');
+    const models = await openai.models.list();
+    console.log('[OPENAI INIT] API key is valid! Available models count:', models.data.length);
+  } catch (error) {
+    console.error('[OPENAI INIT] Error testing API key:', error.message);
+    console.error('[OPENAI INIT] API key is not valid or has issues');
+  }
+})();
 
 // Generate a response for the chat conversation
 export async function generateChatResponse(messages: Message[]): Promise<string> {
