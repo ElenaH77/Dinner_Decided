@@ -279,7 +279,7 @@ export default function GroceryList() {
     if (!groceryList?.sections) return "";
     
     // Filter out checked items and generate plain text
-    let plainText = "MY GROCERY LIST\n\n";
+    let plainText = "";
     
     // Get all unchecked items from all sections
     const allUncheckedItems = [];
