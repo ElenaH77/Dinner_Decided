@@ -150,9 +150,10 @@ export default function GroceryList() {
     try {
       setOrganizingItems(true);
       
-      // Call API to organize items into departments (we'll add this endpoint later)
+      // Call API to organize items into departments
       const response = await apiRequest("POST", "/api/grocery-list/organize", {
-        excludeCheckedItems: true // Don't include checked items in organization
+        excludeCheckedItems: true, // Don't include checked items in organization
+        checkedItems: checkedItems // Send the checked items data to server
       });
       
       if (response.ok) {
@@ -164,10 +165,17 @@ export default function GroceryList() {
           description: "Your grocery list has been organized into departments."
         });
       } else {
-        const errorData = await response.json();
+        let errorMessage = "Failed to organize the grocery list";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        
         toast({
           title: "Error",
-          description: errorData.message || "Failed to organize the grocery list",
+          description: errorMessage,
           variant: "destructive"
         });
       }
@@ -175,7 +183,7 @@ export default function GroceryList() {
       console.error("Error organizing grocery list:", error);
       toast({
         title: "Error",
-        description: "Failed to organize the grocery list",
+        description: "Failed to organize the grocery list. Please try again.",
         variant: "destructive"
       });
     } finally {

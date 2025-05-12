@@ -1062,20 +1062,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[GROCERY] Collected ${allItems.length} items for organization`);
       
-      // Use OpenAI to classify items into departments if we have OpenAI configured
-      let organizedItems;
-      if (hasValidApiKey()) {
-        try {
-          console.log('[GROCERY] Using OpenAI to organize items into departments');
-          organizedItems = await organizeGroceryItems(allItems);
-        } catch (error) {
-          console.error('[GROCERY] Error using OpenAI for organization, falling back to simple categorization:', error);
-          organizedItems = organizeGroceryItemsSimple(allItems);
-        }
-      } else {
-        console.log('[GROCERY] No valid OpenAI API key, using simple categorization');
-        organizedItems = organizeGroceryItemsSimple(allItems);
-      }
+      // Simple categorization function (directly defined here)
+      const organizeItems = (items) => {
+        // Define some simple department matchers
+        const departments = {
+          "Produce": ["fruit", "vegetable", "tomato", "onion", "garlic", "potato", "apple", "banana", "lettuce", "carrot", "cucumber", "lemon", "lime"],
+          "Dairy": ["milk", "cheese", "yogurt", "butter", "cream", "egg"],
+          "Meat & Seafood": ["beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp"],
+          "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla"],
+          "Frozen": ["frozen", "ice", "pizza"],
+          "Canned Goods": ["can", "canned", "soup", "beans"],
+          "Dry Goods": ["pasta", "rice", "cereal", "flour", "sugar", "oil"],
+          "Condiments": ["sauce", "ketchup", "mustard", "mayonnaise", "dressing", "vinegar", "oil", "spice", "herb"],
+          "Beverages": ["drink", "water", "juice", "soda", "tea", "coffee"]
+        };
+        
+        const result = {};
+        
+        // Initialize departments with empty arrays
+        Object.keys(departments).forEach(dept => {
+          result[dept] = [];
+        });
+        result["Other"] = [];
+        
+        // Assign items to departments
+        items.forEach(item => {
+          const itemName = item.name.toLowerCase();
+          let assigned = false;
+          
+          for (const [dept, keywords] of Object.entries(departments)) {
+            if (keywords.some(keyword => itemName.includes(keyword))) {
+              result[dept].push(item);
+              assigned = true;
+              break;
+            }
+          }
+          
+          if (!assigned) {
+            result["Other"].push(item);
+          }
+        });
+        
+        // Remove empty departments
+        Object.keys(result).forEach(dept => {
+          if (result[dept].length === 0) {
+            delete result[dept];
+          }
+        });
+        
+        return result;
+      };
+      
+      // Organize the items using the simple function
+      const organizedItems = organizeItems(allItems);
       
       // Create new sections based on organized items
       const newSections = Object.entries(organizedItems).map(([department, items]) => ({
