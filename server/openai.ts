@@ -1665,3 +1665,163 @@ function generateDummyGroceryList(): any[] {
     }
   ];
 }
+/**
+ * Use OpenAI to organize grocery items into departments
+ */
+export async function organizeGroceryItems(items: any[]): Promise<Record<string, any[]>> {
+  if (items.length === 0) {
+    return { "Other": [] };
+  }
+  
+  // Format the items as a simple array of names for the prompt
+  const itemNames = items.map(item => item.name).join("\n");
+  
+  const systemPrompt = `You are a helpful grocery organization assistant. Your task is to organize grocery items into departments like "Produce", "Dairy", "Meat", "Bakery", "Frozen", "Canned Goods", "Dry Goods", etc. Return your answer in a clean JSON format with department names as keys and arrays of objects as values. Each object should include the original item's name. Common departments include:
+
+- Produce
+- Dairy
+- Meat & Seafood
+- Bakery
+- Frozen Foods
+- Canned Goods
+- Dry Goods
+- Condiments
+- Snacks
+- Beverages
+- Household
+- Other (use this for items that don't clearly fit elsewhere)`;
+
+  const userPrompt = `Please organize these grocery items into appropriate departments:
+
+${itemNames}
+
+Return your organization as JSON in this format:
+{
+  "Department1": [
+    {"name": "item1"},
+    {"name": "item2"}
+  ],
+  "Department2": [
+    {"name": "item3"}
+  ]
+}`;
+
+  try {
+    // Call OpenAI API to generate the organized items
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    if (!response.choices[0].message.content) {
+      console.error("[GROCERY ORGANIZE] No content in OpenAI response");
+      return organizeGroceryItemsSimple(items);
+    }
+
+    try {
+      const organizedItems = JSON.parse(response.choices[0].message.content);
+      
+      // Map each item back to the original item objects (with IDs, etc.)
+      const result: Record<string, any[]> = {};
+      
+      // Initialize with empty arrays for each department
+      Object.keys(organizedItems).forEach(dept => {
+        result[dept] = [];
+      });
+      
+      // Fill in the data
+      Object.entries(organizedItems).forEach(([department, deptItems]) => {
+        if (Array.isArray(deptItems)) {
+          deptItems.forEach((deptItem: any) => {
+            const originalItem = items.find(item => item.name === deptItem.name);
+            if (originalItem) {
+              if (!result[department]) {
+                result[department] = [];
+              }
+              result[department].push(originalItem);
+            }
+          });
+        }
+      });
+      
+      // Check if we missed any items, add them to "Other"
+      const processedItemNames = new Set();
+      Object.values(result).forEach(deptItems => {
+        deptItems.forEach(item => processedItemNames.add(item.name));
+      });
+      
+      const missedItems = items.filter(item => !processedItemNames.has(item.name));
+      if (missedItems.length > 0) {
+        if (!result["Other"]) {
+          result["Other"] = [];
+        }
+        result["Other"].push(...missedItems);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("[GROCERY ORGANIZE] Error parsing OpenAI response:", error);
+      return organizeGroceryItemsSimple(items);
+    }
+  } catch (error) {
+    console.error("[GROCERY ORGANIZE] Error calling OpenAI:", error);
+    return organizeGroceryItemsSimple(items);
+  }
+}
+
+/**
+ * Simple fallback function to organize grocery items by basic keywords
+ */
+export function organizeGroceryItemsSimple(items: any[]): Record<string, any[]> {
+  // Define some simple department matchers
+  const departments: Record<string, string[]> = {
+    "Produce": ["fruit", "vegetable", "tomato", "onion", "garlic", "potato", "apple", "banana", "lettuce", "carrot", "cucumber", "lemon", "lime"],
+    "Dairy": ["milk", "cheese", "yogurt", "butter", "cream", "egg"],
+    "Meat & Seafood": ["beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp"],
+    "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla"],
+    "Frozen": ["frozen", "ice", "pizza"],
+    "Canned Goods": ["can", "canned", "soup", "beans"],
+    "Dry Goods": ["pasta", "rice", "cereal", "flour", "sugar", "oil"],
+    "Condiments": ["sauce", "ketchup", "mustard", "mayonnaise", "dressing", "vinegar", "oil", "spice", "herb"],
+    "Beverages": ["drink", "water", "juice", "soda", "tea", "coffee"]
+  };
+  
+  const result: Record<string, any[]> = {};
+  
+  // Initialize the departments with empty arrays
+  Object.keys(departments).forEach(dept => {
+    result[dept] = [];
+  });
+  result["Other"] = [];
+  
+  // Assign items to departments based on keyword matching
+  items.forEach(item => {
+    const itemName = item.name.toLowerCase();
+    let assigned = false;
+    
+    for (const [dept, keywords] of Object.entries(departments)) {
+      if (keywords.some(keyword => itemName.includes(keyword))) {
+        result[dept].push(item);
+        assigned = true;
+        break;
+      }
+    }
+    
+    if (!assigned) {
+      result["Other"].push(item);
+    }
+  });
+  
+  // Remove empty departments
+  Object.keys(result).forEach(dept => {
+    if (result[dept].length === 0) {
+      delete result[dept];
+    }
+  });
+  
+  return result;
+}

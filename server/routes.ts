@@ -1026,6 +1026,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Organize grocery list by department
+  app.post("/api/grocery-list/organize", async (req, res) => {
+    try {
+      const excludeCheckedItems = req.body.excludeCheckedItems === true;
+      console.log('[GROCERY] Organizing grocery list', excludeCheckedItems ? '(excluding checked items)' : '');
+      
+      // Get current grocery list
+      const currentList = await storage.getCurrentGroceryList();
+      
+      if (!currentList) {
+        console.log('[GROCERY] No current grocery list found');
+        return res.status(404).json({ message: "No current grocery list found" });
+      }
+      
+      if (!currentList.sections || currentList.sections.length === 0) {
+        console.log('[GROCERY] Grocery list has no sections to organize');
+        return res.status(400).json({ message: "Grocery list has no items to organize" });
+      }
+      
+      // Collect all items from all sections
+      let allItems = [];
+      const checkedItemIds = req.body.checkedItems || {}; // Get checked items if provided
+      
+      currentList.sections.forEach(section => {
+        section.items.forEach(item => {
+          // If we're excluding checked items and this item is checked, skip it
+          if (excludeCheckedItems && checkedItemIds[item.id]) {
+            return;
+          }
+          
+          allItems.push(item);
+        });
+      });
+      
+      console.log(`[GROCERY] Collected ${allItems.length} items for organization`);
+      
+      // Use OpenAI to classify items into departments if we have OpenAI configured
+      let organizedItems;
+      if (hasValidApiKey()) {
+        try {
+          console.log('[GROCERY] Using OpenAI to organize items into departments');
+          organizedItems = await organizeGroceryItems(allItems);
+        } catch (error) {
+          console.error('[GROCERY] Error using OpenAI for organization, falling back to simple categorization:', error);
+          organizedItems = organizeGroceryItemsSimple(allItems);
+        }
+      } else {
+        console.log('[GROCERY] No valid OpenAI API key, using simple categorization');
+        organizedItems = organizeGroceryItemsSimple(allItems);
+      }
+      
+      // Create new sections based on organized items
+      const newSections = Object.entries(organizedItems).map(([department, items]) => ({
+        name: department,
+        items: items
+      })).filter(section => section.items.length > 0);
+      
+      // Add back any checked items to an "Other" section if we're excluding them
+      if (excludeCheckedItems) {
+        const checkedItems = [];
+        currentList.sections.forEach(section => {
+          section.items.forEach(item => {
+            if (checkedItemIds[item.id]) {
+              checkedItems.push(item);
+            }
+          });
+        });
+        
+        if (checkedItems.length > 0) {
+          // Find if we already have an "Other" section
+          let otherSection = newSections.find(s => s.name === "Other");
+          
+          if (otherSection) {
+            // Add checked items to existing Other section
+            otherSection.items = [...otherSection.items, ...checkedItems];
+          } else {
+            // Create a new Other section for checked items
+            newSections.push({
+              name: "Other",
+              items: checkedItems
+            });
+          }
+        }
+      }
+      
+      // Update the grocery list with new organized sections
+      const updatedList = await storage.updateGroceryList(currentList.id, {
+        ...currentList,
+        sections: newSections
+      });
+      
+      console.log(`[GROCERY] Successfully organized grocery list into ${newSections.length} departments`);
+      res.json(updatedList);
+    } catch (error) {
+      console.error("Error organizing grocery list:", error);
+      res.status(500).json({ message: "Failed to organize grocery list" });
+    }
+  });
+  
   // Clear grocery list
   app.post("/api/grocery-list/clear", async (req, res) => {
     try {
