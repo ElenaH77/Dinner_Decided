@@ -379,12 +379,12 @@ export default function GroceryList() {
             <ShoppingBag className="h-12 w-12 text-[#21706D] mb-4" />
             <h3 className="text-lg font-medium mb-2">No grocery list available</h3>
             <p className="text-sm text-[#8A8A8A] mb-4">
-              Create a meal plan first to generate your shopping list.
+              Go to your meal plan to generate your shopping list.
             </p>
-            <Link href="/">
+            <Link href="/this-week">
               <Button className="bg-[#21706D] hover:bg-[#195957]">
                 <Plus className="mr-2 h-4 w-4" />
-                Create Meal Plan
+                View Meal Plan
               </Button>
             </Link>
           </CardContent>
