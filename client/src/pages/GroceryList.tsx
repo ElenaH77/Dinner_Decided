@@ -24,6 +24,9 @@ export default function GroceryList() {
   
   const { data: groceryList, isLoading } = useQuery({
     queryKey: ['/api/grocery-list/current'],
+    refetchOnWindowFocus: true, // Refresh when window regains focus
+    refetchOnMount: true, // Always refetch when component mounts
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 
   const handleCheckItem = (itemId: string) => {
@@ -165,7 +168,10 @@ export default function GroceryList() {
     }
   };
 
+  console.log('Grocery list data:', groceryList);
+  // Check if sections exist and properly initialize
   const sections = groceryList?.sections || [];
+  console.log('Grocery list sections:', sections);
   const allChecked = sections.every(section => 
     section.items.every(item => checkedItems[item.id])
   );
