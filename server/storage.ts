@@ -937,39 +937,76 @@ export class DatabaseStorage implements IStorage {
   }
 
   async ensureMealInGroceryList(groceryListId: number, meal: any): Promise<GroceryList> {
+    console.log('[GROCERY DB] Starting ensureMealInGroceryList for:', meal.name);
+    
     const groceryList = await this.getGroceryList(groceryListId);
     if (!groceryList) {
+      console.log('[GROCERY DB] Error: Grocery list not found with ID:', groceryListId);
       throw new Error(`Grocery list with ID ${groceryListId} not found`);
     }
+    
+    console.log('[GROCERY DB] Found grocery list:', groceryList.id);
+    console.log('[GROCERY DB] Current section count:', groceryList.sections ? groceryList.sections.length : 0);
 
     // Get the meal's ingredients and add them to the grocery list if not already there
     if (!meal.ingredients || !meal.ingredients.length) {
-      return groceryList;
+      console.log('[GROCERY DB] Warning: Meal has no ingredients', meal.id, meal.name);
+      console.log('[GROCERY DB] Checking for mainIngredients as fallback');
+      
+      // Try mainIngredients as fallback
+      if (meal.mainIngredients && meal.mainIngredients.length > 0) {
+        console.log('[GROCERY DB] Using mainIngredients as fallback (count):', meal.mainIngredients.length);
+        meal.ingredients = meal.mainIngredients;
+      } else {
+        console.log('[GROCERY DB] No ingredients or mainIngredients found - cannot add to grocery list');
+        return groceryList;
+      }
     }
+    
+    console.log('[GROCERY DB] Processing', meal.ingredients.length, 'ingredients');
 
-    const updatedSections = [...groceryList.sections];
+    // Initialize sections if they don't exist
+    const updatedSections = groceryList.sections ? [...groceryList.sections] : [];
+    console.log('[GROCERY DB] Starting with', updatedSections.length, 'sections');
 
     // Process each ingredient and add it to the appropriate section
     for (const ingredient of meal.ingredients) {
       // Simple logic to determine the section; in a real app this would be more sophisticated
-      const sectionName = ingredient.toLowerCase().includes('meat') ? 'Meat & Seafood' :
-                         ingredient.toLowerCase().includes('vegetable') ? 'Produce' :
-                         ingredient.toLowerCase().includes('bread') ? 'Bakery' :
+      const ingredientText = String(ingredient).toLowerCase();
+      const sectionName = ingredientText.includes('meat') || ingredientText.includes('chicken') || 
+                         ingredientText.includes('beef') || ingredientText.includes('pork') || 
+                         ingredientText.includes('fish') ? 'Meat & Seafood' :
+                         ingredientText.includes('vegetable') || ingredientText.includes('tomato') || 
+                         ingredientText.includes('lettuce') || ingredientText.includes('carrot') || 
+                         ingredientText.includes('onion') ? 'Produce' :
+                         ingredientText.includes('bread') || ingredientText.includes('roll') || 
+                         ingredientText.includes('bun') ? 'Bakery' :
+                         ingredientText.includes('milk') || ingredientText.includes('cheese') || 
+                         ingredientText.includes('yogurt') ? 'Dairy' :
+                         ingredientText.includes('pasta') || ingredientText.includes('rice') || 
+                         ingredientText.includes('flour') || ingredientText.includes('sugar') || 
+                         ingredientText.includes('oil') ? 'Pantry' :
                          'Other';
+      
+      console.log('[GROCERY DB] Categorizing ingredient:', ingredient, '→', sectionName);
       
       // Find the section or create it
       let section = updatedSections.find(s => s.name === sectionName);
       if (!section) {
+        console.log('[GROCERY DB] Creating new section:', sectionName);
         section = { name: sectionName, items: [] };
         updatedSections.push(section);
       }
 
       // Add the ingredient if not already present
       const itemExists = section.items.some(item => 
-        item.name.toLowerCase() === ingredient.toLowerCase() && item.mealId === meal.id
+        item.name.toLowerCase() === String(ingredient).toLowerCase() && item.mealId === meal.id
       );
 
-      if (!itemExists) {
+      if (itemExists) {
+        console.log('[GROCERY DB] Ingredient already exists in list:', ingredient);
+      } else {
+        console.log('[GROCERY DB] Adding new ingredient to grocery list:', ingredient);
         section.items.push({
           id: uuidv4(),
           name: ingredient,
@@ -977,6 +1014,9 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
+    
+    console.log('[GROCERY DB] Finished processing ingredients, updating grocery list');
+    console.log('[GROCERY DB] Final section count:', updatedSections.length);
 
     // Update the grocery list with the new sections
     return this.updateGroceryList(groceryListId, { sections: updatedSections });

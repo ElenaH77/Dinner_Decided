@@ -957,31 +957,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Allow both approaches: sending mealId or the complete meal object
       const { mealId, meal: mealData } = req.body;
+      console.log('[GROCERY] Add meal request - mealId:', mealId);
+      console.log('[GROCERY] Add meal request - has meal data:', !!mealData);
+      
+      if (mealData) {
+        console.log('[GROCERY] Meal name:', mealData.name);
+        console.log('[GROCERY] Meal has ingredients:', Array.isArray(mealData.ingredients), 
+                   mealData.ingredients ? mealData.ingredients.length : 0);
+      }
+      
       const currentPlan = await storage.getCurrentMealPlan();
       const currentList = await storage.getCurrentGroceryList();
       
       if (!currentList) {
+        console.log('[GROCERY] No active grocery list found');
         return res.status(404).json({ message: "No active grocery list found" });
       }
+      
+      console.log('[GROCERY] Current list ID:', currentList.id);
 
       let meal;
       
       if (mealData) {
         // Use the provided meal data directly
         meal = mealData;
+        console.log('[GROCERY] Using provided meal data directly');
       } else if (mealId && currentPlan) {
         // Find the meal by ID in the current plan
         meal = currentPlan.meals.find(m => m.id === mealId);
+        console.log('[GROCERY] Found meal by ID in current plan:', !!meal);
         
         if (!meal) {
+          console.log('[GROCERY] Meal not found in current plan with ID:', mealId);
           return res.status(404).json({ message: "Meal not found in current plan" });
         }
       } else {
+        console.log('[GROCERY] Missing required data - mealId or meal data');
         return res.status(400).json({ message: "Either mealId or meal data is required" });
+      }
+      
+      // Log the meal's key properties
+      console.log('[GROCERY] Processing meal for grocery list:');
+      console.log('[GROCERY] - ID:', meal.id);
+      console.log('[GROCERY] - Name:', meal.name);
+      console.log('[GROCERY] - Has ingredients:', Array.isArray(meal.ingredients), 
+                 meal.ingredients ? meal.ingredients.length : 0);
+      
+      if (!meal.ingredients || !Array.isArray(meal.ingredients) || meal.ingredients.length === 0) {
+        console.log('[GROCERY] WARNING: Meal has no ingredients, checking for mainIngredients');
+        
+        // Check if the meal has mainIngredients instead
+        if (meal.mainIngredients && Array.isArray(meal.mainIngredients) && meal.mainIngredients.length > 0) {
+          console.log('[GROCERY] Using mainIngredients instead:', meal.mainIngredients.length, 'items');
+          meal.ingredients = meal.mainIngredients;
+        } else {
+          console.log('[GROCERY] No ingredients found in meal');
+        }
       }
       
       // Get current grocery list and ensure the meal's ingredients are included
       const groceryList = await storage.ensureMealInGroceryList(currentList.id, meal);
+      console.log('[GROCERY] Successfully added meal to grocery list');
       
       res.json(groceryList);
     } catch (error) {
