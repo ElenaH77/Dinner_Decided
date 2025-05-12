@@ -811,6 +811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/grocery-list/regenerate", async (req, res) => {
     try {
+      // First, get the current meal plan and log details for debugging
       const currentPlan = await storage.getCurrentMealPlan();
       const household = await storage.getHousehold();
       
@@ -818,8 +819,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No active meal plan found" });
       }
       
+      // Log details about the current plan for debugging
+      console.log(`[GROCERY REGEN] Regenerating grocery list for meal plan ID: ${currentPlan.id}`);
+      console.log(`[GROCERY REGEN] Meal plan has ${currentPlan.meals?.length || 0} meals`);
+      
+      // Log meal names and IDs for tracking
+      if (Array.isArray(currentPlan.meals)) {
+        currentPlan.meals.forEach(meal => {
+          console.log(`[GROCERY REGEN] - ${meal.name} (${meal.id}) with ${meal.ingredients?.length || 0} ingredients`);
+        });
+      }
+      
       // Generate fresh grocery list
       const groceryList = await generateAndSaveGroceryList(currentPlan.id, household.id);
+      
+      console.log(`[GROCERY REGEN] Successfully generated grocery list with ${groceryList.sections?.length || 0} sections`);
       
       res.json(groceryList);
     } catch (error) {

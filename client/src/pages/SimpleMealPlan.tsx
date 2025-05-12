@@ -845,31 +845,45 @@ export default function SimpleMealPlan() {
     try {
       console.log('[REPLACE] Starting meal replacement for:', meal.id);
       
-      // Get the current meal plan ID from localStorage or fallback to a safe value
-      const mealPlanId = localStorage.getItem('current_meal_plan_id');
+      // First try to get meal plan ID from the query data (most reliable source)
+      const effectiveMealPlanId = mealPlan?.id;
+      console.log('[REPLACE DEBUG] Direct meal plan ID from query data:', effectiveMealPlanId);
+      
+      // Fallback to localStorage if needed
+      let mealPlanId = effectiveMealPlanId;
       if (!mealPlanId) {
-        console.warn('[REPLACE] No meal plan ID found in localStorage - this may affect grocery list updates');
+        mealPlanId = localStorage.getItem('current_meal_plan_id');
+        console.log('[REPLACE DEBUG] Fallback meal plan ID from localStorage:', mealPlanId);
+        
+        if (!mealPlanId) {
+          console.warn('[REPLACE] No meal plan ID found - this may affect grocery list updates');
+        } else {
+          mealPlanId = parseInt(mealPlanId);
+        }
       }
       
       // Import the replaceMeal function specifically
       const { replaceMeal } = await import('@/lib/meal-ai');
+      const { saveMealPlan } = await import('@/lib/storage-service');
       
       // Use the current meals array for context to ensure consistency
-      console.log(`[REPLACE] Replacing meal with ${meals.length} meals as context`);
+      console.log(`[REPLACE] Replacing meal with ${meals.length} meals as context and plan ID:`, mealPlanId);
       
       // Call the replaceMeal function with the current meal and context
       const replacedMeal = await replaceMeal(
         meal, 
-        mealPlanId ? parseInt(mealPlanId) : undefined,
+        mealPlanId,
         meals
       );
       
       console.log('[REPLACE] Successfully received replacement meal:', replacedMeal.name);
       
-      // Update the UI immediately
+      // Create an updated array of meals to use both in UI and for the full plan update
+      let updatedMeals: any[] = [];
+      
       setMeals(prev => {
         // Create a deep copy to avoid reference issues
-        const updatedMeals = prev.map(m => {
+        updatedMeals = prev.map(m => {
           if (m.id === meal.id) {
             // Replace with the modified meal while ensuring ID consistency
             const result = JSON.parse(JSON.stringify(replacedMeal));
@@ -881,6 +895,23 @@ export default function SimpleMealPlan() {
         
         return updatedMeals;
       });
+      
+      // Also update the full plan in the database to ensure consistency
+      if (mealPlan && mealPlanId) {
+        console.log('[REPLACE] Saving updated meal plan with replaced meal');
+        
+        // Create a full plan update
+        const updatedPlan = {
+          ...mealPlan,
+          meals: updatedMeals,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        // Save via the storage service to ensure all systems are updated
+        await saveMealPlan(updatedPlan);
+        
+        console.log('[REPLACE] Successfully saved updated meal plan with ID:', mealPlanId);
+      }
       
       toast({
         title: "Meal replaced",
