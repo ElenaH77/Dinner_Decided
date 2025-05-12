@@ -150,35 +150,118 @@ export default function GroceryList() {
     try {
       setOrganizingItems(true);
       
-      // Call API to organize items into departments
-      const response = await apiRequest("POST", "/api/grocery-list/organize", {
-        excludeCheckedItems: true, // Don't include checked items in organization
-        checkedItems: checkedItems // Send the checked items data to server
-      });
-      
-      if (response.ok) {
-        const organizedList = await response.json();
-        queryClient.setQueryData(['/api/grocery-list/current'], organizedList);
-        
+      // Get current list
+      if (!groceryList?.sections || groceryList.sections.length === 0) {
         toast({
-          title: "List organized",
-          description: "Your grocery list has been organized into departments."
-        });
-      } else {
-        let errorMessage = "Failed to organize the grocery list";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error("Error parsing error response:", e);
-        }
-        
-        toast({
-          title: "Error",
-          description: errorMessage,
+          title: "No items to organize",
+          description: "Your grocery list doesn't have any items to organize.",
           variant: "destructive"
         });
+        setOrganizingItems(false);
+        return;
       }
+      
+      // First do client-side organization as a backup
+      let organizedItems = {};
+      const departments = {
+        "Produce": ["fruit", "vegetable", "tomato", "onion", "garlic", "potato", "apple", "banana", "lettuce", "carrot", "cucumber", "lemon", "lime"],
+        "Dairy": ["milk", "cheese", "yogurt", "butter", "cream", "egg"],
+        "Meat & Seafood": ["beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp"],
+        "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla"],
+        "Frozen": ["frozen", "ice", "pizza"],
+        "Canned Goods": ["can", "canned", "soup", "beans"],
+        "Dry Goods": ["pasta", "rice", "cereal", "flour", "sugar", "oil"],
+        "Condiments": ["sauce", "ketchup", "mustard", "mayonnaise", "dressing", "vinegar", "oil", "spice", "herb"],
+        "Beverages": ["drink", "water", "juice", "soda", "tea", "coffee"]
+      };
+      
+      // Initialize departments with empty arrays
+      Object.keys(departments).forEach(dept => {
+        organizedItems[dept] = [];
+      });
+      organizedItems["Other"] = [];
+      
+      // Collect all unchecked items from all sections
+      const allItems = [];
+      groceryList.sections.forEach(section => {
+        section.items.forEach(item => {
+          // If item is checked, skip it
+          if (checkedItems[item.id]) {
+            return;
+          }
+          allItems.push(item);
+        });
+      });
+      
+      // Assign items to departments
+      allItems.forEach(item => {
+        const itemName = item.name.toLowerCase();
+        let assigned = false;
+        
+        for (const [dept, keywords] of Object.entries(departments)) {
+          if (keywords.some(keyword => itemName.includes(keyword))) {
+            organizedItems[dept].push(item);
+            assigned = true;
+            break;
+          }
+        }
+        
+        if (!assigned) {
+          organizedItems["Other"].push(item);
+        }
+      });
+      
+      // Remove empty departments
+      Object.keys(organizedItems).forEach(dept => {
+        if (organizedItems[dept].length === 0) {
+          delete organizedItems[dept];
+        }
+      });
+      
+      // Create new sections
+      const newSections = Object.entries(organizedItems).map(([department, items]) => ({
+        name: department,
+        items: items
+      }));
+      
+      // Add checked items section if there are any
+      const checkedItemsList = [];
+      groceryList.sections.forEach(section => {
+        section.items.forEach(item => {
+          if (checkedItems[item.id]) {
+            checkedItemsList.push(item);
+          }
+        });
+      });
+      
+      if (checkedItemsList.length > 0) {
+        newSections.push({
+          name: "Completed Items",
+          items: checkedItemsList
+        });
+      }
+      
+      // Create updated grocery list
+      const updatedGroceryList = {
+        ...groceryList,
+        sections: newSections
+      };
+      
+      // Update the state
+      queryClient.setQueryData(['/api/grocery-list/current'], updatedGroceryList);
+      
+      // Also send to server (don't rely on success though since we already updated UI)
+      try {
+        await apiRequest("PATCH", `/api/grocery-list/${groceryList.id}`, updatedGroceryList);
+      } catch (err) {
+        console.error("Warning: Failed to update server with organized list:", err);
+        // We don't show an error toast since the UI is already updated
+      }
+      
+      toast({
+        title: "List organized",
+        description: "Your grocery list has been organized into departments."
+      });
     } catch (error) {
       console.error("Error organizing grocery list:", error);
       toast({
@@ -198,16 +281,16 @@ export default function GroceryList() {
     // Filter out checked items and generate plain text
     let plainText = "MY GROCERY LIST\n\n";
     
+    // Get all unchecked items from all sections
+    const allUncheckedItems = [];
     groceryList.sections.forEach(section => {
       const uncheckedItems = section.items.filter(item => !checkedItems[item.id]);
-      
-      if (uncheckedItems.length > 0) {
-        plainText += `${section.name}:\n`;
-        uncheckedItems.forEach(item => {
-          plainText += `• ${item.name}\n`;
-        });
-        plainText += "\n";
-      }
+      allUncheckedItems.push(...uncheckedItems);
+    });
+    
+    // Just list all items without categories or bullets
+    allUncheckedItems.forEach(item => {
+      plainText += `${item.name}\n`;
     });
     
     return plainText;
