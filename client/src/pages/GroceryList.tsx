@@ -20,7 +20,7 @@ export default function GroceryList() {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [clearListOpen, setClearListOpen] = useState(false);
-  const [newItem, setNewItem] = useState({ name: '', quantity: '', section: 'Produce' });
+  const [newItem, setNewItem] = useState({ name: '', quantity: '', section: 'Other' });
   
   const { data: groceryList, isLoading } = useQuery({
     queryKey: ['/api/grocery-list/current'],
@@ -104,7 +104,7 @@ export default function GroceryList() {
         queryClient.setQueryData(['/api/grocery-list/current'], serverUpdatedList);
         
         // Reset the form
-        setNewItem({ name: '', quantity: '', section: 'Produce' });
+        setNewItem({ name: '', quantity: '', section: 'Other' });
         setAddItemOpen(false);
         
         toast({
@@ -227,6 +227,7 @@ export default function GroceryList() {
                       <SelectValue placeholder="Select a section" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Other">Other</SelectItem>
                       <SelectItem value="Produce">Produce</SelectItem>
                       <SelectItem value="Dairy">Dairy</SelectItem>
                       <SelectItem value="Meat">Meat</SelectItem>
@@ -235,7 +236,6 @@ export default function GroceryList() {
                       <SelectItem value="Frozen">Frozen</SelectItem>
                       <SelectItem value="Snacks">Snacks</SelectItem>
                       <SelectItem value="Beverages">Beverages</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
