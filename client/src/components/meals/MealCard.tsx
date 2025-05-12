@@ -219,16 +219,33 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
 
   const handleAddToGroceryList = async () => {
     try {
-      await apiRequest("POST", "/api/grocery-list/add-meal", { mealId: meal.id });
-      queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
+      // Send both the mealId and the complete meal data
+      const response = await apiRequest("POST", "/api/grocery-list/add-meal", { 
+        mealId: meal.id,
+        meal: meal // Include the complete meal data
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add to grocery list");
+      }
+      
+      // Invalidate the grocery list cache to ensure we get fresh data
+      await queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
+      
+      console.log("Successfully added meal to grocery list:", meal.name);
+      
       toast({
         title: "Added to grocery list",
         description: "Ingredients have been added to your grocery list"
       });
     } catch (error) {
+      console.error("Error adding to grocery list:", error);
       toast({
         title: "Error",
-        description: "Failed to add to grocery list",
+        description: typeof error === 'string' ? error : 
+                   error instanceof Error ? error.message : 
+                   "Failed to add to grocery list",
         variant: "destructive"
       });
     }
