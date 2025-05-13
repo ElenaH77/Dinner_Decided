@@ -27,6 +27,7 @@ export interface IStorage {
   // Message methods
   getMessages(): Promise<Message[]>;
   saveMessage(message: Message): Promise<Message>;
+  clearMessages(): Promise<void>;
   
   // MealPlan methods
   getMealPlan(id: number): Promise<MealPlan | undefined>;
@@ -338,6 +339,12 @@ export class MemStorage implements IStorage {
   async saveMessage(message: Message): Promise<Message> {
     this.messages.push(message);
     return message;
+  }
+
+  async clearMessages(): Promise<void> {
+    this.messages = [];
+    // Save the empty messages array to the persistent store
+    this.saveToPersistentStore();
   }
 
   // MealPlan methods
