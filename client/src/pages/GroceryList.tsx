@@ -660,13 +660,14 @@ export default function GroceryList() {
             <Button onClick={() => setAddItemOpen(true)} className="bg-[#21706D] hover:bg-[#185956]">
               <Plus className="h-4 w-4 mr-1" /> Add Item
             </Button>
-            <Button 
-              onClick={handleRegenerateList} 
-              variant="outline" 
-              className="border-[#21706D] text-[#21706D]"
-            >
-              <RefreshCw className="h-4 w-4 mr-1" /> Generate from Meal Plan
-            </Button>
+            <Link to="/this-week">
+              <Button 
+                variant="outline" 
+                className="border-[#21706D] text-[#21706D] w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" /> View Meal Plan
+              </Button>
+            </Link>
           </div>
         </div>
       )}
