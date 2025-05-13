@@ -164,14 +164,15 @@ export default function GroceryList() {
       // First do client-side organization as a backup
       let organizedItems = {};
       const departments = {
-        "Produce": ["fruit", "vegetable", "tomato", "onion", "garlic", "potato", "apple", "banana", "lettuce", "carrot", "cucumber", "lemon", "lime"],
+        "Produce": ["fruit", "vegetable", "tomato", "onion", "garlic", "potato", "apple", "banana", "lettuce", "carrot", "cucumber", "lemon", "lime", "parsley", "cilantro", "basil", "cabbage", "fresh herb"],
         "Dairy": ["milk", "cheese", "yogurt", "butter", "cream", "egg"],
-        "Meat & Seafood": ["beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp"],
-        "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla"],
-        "Frozen": ["frozen", "ice", "pizza"],
-        "Canned Goods": ["can", "canned", "soup", "beans"],
-        "Dry Goods": ["pasta", "rice", "cereal", "flour", "sugar", "oil"],
-        "Condiments": ["sauce", "ketchup", "mustard", "mayonnaise", "dressing", "vinegar", "oil", "spice", "herb"],
+        "Meat & Seafood": ["beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp", "tilapia", "fillet"],
+        "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla", "panko", "breadcrumb"],
+        "Frozen": ["frozen", "ice", "pizza", "peas"],
+        "Canned Goods": ["can", "canned", "soup", "beans", "broth", "stock"],
+        "Dry Goods": ["pasta", "rice", "cereal", "flour", "sugar", "oil", "olive oil", "grain", "cornmeal"],
+        "Condiments": ["sauce", "ketchup", "mustard", "mayonnaise", "dressing", "vinegar", "soy sauce", "hot sauce"],
+        "Spices & Herbs": ["salt", "pepper", "spice", "thyme", "oregano", "cumin", "paprika", "seasoning", "dried", "powder", "chili", "cayenne", "garlic powder", "onion powder"],
         "Beverages": ["drink", "water", "juice", "soda", "tea", "coffee"]
       };
       
