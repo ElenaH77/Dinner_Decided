@@ -677,6 +677,12 @@ export class DatabaseStorage implements IStorage {
     const [savedMessage] = await db.insert(messages).values(processedMessage).returning();
     return savedMessage;
   }
+  
+  async clearMessages(): Promise<void> {
+    // Delete all messages from the database
+    await db.delete(messages);
+    console.log('[DATABASE] Cleared all chat messages');
+  }
 
   async getMealPlan(id: number): Promise<MealPlan | undefined> {
     const [mealPlan] = await db

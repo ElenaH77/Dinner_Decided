@@ -1,17 +1,29 @@
 import { useRef, useEffect, FormEvent, useState, KeyboardEvent } from "react";
-import { Info, Settings, Layers, Paperclip } from "lucide-react";
+import { Info, Settings, Layers, Paperclip, RefreshCw } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import { useChatState } from "@/hooks/useChatState";
 import { useQuery } from "@tanstack/react-query";
 import MealCard from "../meals/MealCard";
 import GroceryListPreview from "../grocery/GroceryListPreview";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isResetting, setIsResetting] = useState(false);
   
-  const { messages, addMessage, handleUserMessage, isGenerating } = useChatState();
+  const { messages, addMessage, handleUserMessage, resetChatConversation, isGenerating } = useChatState();
   
   const { data: mealPlan } = useQuery({
     queryKey: ['/api/meal-plan/current'],
@@ -56,6 +68,18 @@ export default function ChatInterface() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+  
+  // Handle chat reset with confirmation
+  const handleResetChat = async () => {
+    setIsResetting(true);
+    try {
+      await resetChatConversation();
+    } catch (error) {
+      console.error("Error resetting chat:", error);
+    } finally {
+      setIsResetting(false);
     }
   };
 
