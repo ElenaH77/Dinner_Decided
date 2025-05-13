@@ -967,6 +967,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/grocery-list/add-item", async (req, res) => {
+    try {
+      const { name, quantity, section } = req.body;
+      
+      // Validate input
+      if (!name) {
+        return res.status(400).json({ message: "Item name is required" });
+      }
+      
+      console.log(`[GROCERY] Adding manual item: ${name}, quantity: ${quantity || 'none'}, section: ${section || 'Other'}`);
+      
+      // Get current grocery list
+      const currentList = await storage.getCurrentGroceryList();
+      
+      if (!currentList) {
+        console.log('[GROCERY] No active grocery list found');
+        return res.status(404).json({ message: "No active grocery list found" });
+      }
+      
+      // Create new item with unique ID
+      const newItem = {
+        id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        quantity: quantity || undefined,
+        mealId: undefined // Manual items don't have a meal association
+      };
+      
+      // Find or create the target section
+      const targetSectionName = section || 'Other';
+      let updatedSections = [...(currentList.sections || [])];
+      
+      // Look for the section
+      let targetSectionIndex = updatedSections.findIndex(s => s.name === targetSectionName);
+      
+      if (targetSectionIndex >= 0) {
+        // Section exists, add item to it
+        updatedSections[targetSectionIndex] = {
+          ...updatedSections[targetSectionIndex],
+          items: [...updatedSections[targetSectionIndex].items, newItem]
+        };
+      } else {
+        // Section doesn't exist, create it
+        updatedSections.push({
+          name: targetSectionName,
+          items: [newItem]
+        });
+      }
+      
+      // Update the grocery list
+      const updatedList = await storage.updateGroceryList(currentList.id, {
+        ...currentList,
+        sections: updatedSections
+      });
+      
+      console.log(`[GROCERY] Successfully added item "${name}" to section "${targetSectionName}"`);
+      
+      res.json(updatedList);
+    } catch (error) {
+      console.error("Error adding item to grocery list:", error);
+      res.status(500).json({ message: "Failed to add item to grocery list" });
+    }
+  });
+
   app.post("/api/grocery-list/add-meal", async (req, res) => {
     try {
       // Allow both approaches: sending mealId or the complete meal object

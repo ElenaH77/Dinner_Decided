@@ -391,11 +391,14 @@ export default function GroceryList() {
                     <SelectContent className="bg-white">
                       <SelectItem value="Produce">Produce</SelectItem>
                       <SelectItem value="Dairy">Dairy</SelectItem>
-                      <SelectItem value="Meat">Meat</SelectItem>
+                      <SelectItem value="Meat & Seafood">Meat & Seafood</SelectItem>
                       <SelectItem value="Bakery">Bakery</SelectItem>
                       <SelectItem value="Frozen">Frozen</SelectItem>
                       <SelectItem value="Canned Goods">Canned Goods</SelectItem>
                       <SelectItem value="Dry Goods">Dry Goods</SelectItem>
+                      <SelectItem value="Condiments">Condiments</SelectItem>
+                      <SelectItem value="Spices & Herbs">Spices & Herbs</SelectItem>
+                      <SelectItem value="Beverages">Beverages</SelectItem>
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
