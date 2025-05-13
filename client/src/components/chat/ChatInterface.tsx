@@ -90,6 +90,35 @@ export default function ChatInterface() {
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-lg">Meal Planning Assistant</h2>
           <div className="flex space-x-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button 
+                  className="p-2 text-[#8A8A8A] hover:text-[#21706D] rounded-full" 
+                  aria-label="Reset chat" 
+                  disabled={isResetting || messages.length <= 1}
+                >
+                  <RefreshCw className={`h-5 w-5 ${isResetting ? 'animate-spin' : ''}`} />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Chat</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will clear your conversation history with DinnerBot. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleResetChat}
+                    disabled={isResetting}
+                    className="bg-[#F25C05] hover:bg-[#D14D01]"
+                  >
+                    {isResetting ? 'Resetting...' : 'Reset Chat'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <button className="p-2 text-[#8A8A8A] hover:text-[#21706D] rounded-full" aria-label="Info">
               <Info className="h-5 w-5" />
             </button>
