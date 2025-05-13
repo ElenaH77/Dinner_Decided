@@ -12,6 +12,16 @@ export async function sendMessage(messages: Message[]): Promise<Message> {
   }
 }
 
+export async function resetChat(): Promise<void> {
+  try {
+    await apiRequest("POST", "/api/chat/reset");
+    return;
+  } catch (error) {
+    console.error("Error resetting chat:", error);
+    throw error;
+  }
+}
+
 export async function generateMealPlan(household: any, preferences: any): Promise<any> {
   try {
     const response = await apiRequest("POST", "/api/meal-plan/generate", { household, preferences });

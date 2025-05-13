@@ -20,6 +20,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get messages" });
     }
   });
+  
+  // Reset chat endpoint
+  app.post("/api/chat/reset", async (req, res) => {
+    try {
+      // Clear all messages
+      await storage.clearMessages();
+      
+      // Get household for associating the welcome message
+      const household = await storage.getHousehold();
+      if (!household) {
+        return res.status(404).json({ message: "No household found" });
+      }
+      
+      // Return success
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error in /api/chat/reset:", error);
+      res.status(500).json({ message: "Failed to reset chat" });
+    }
+  });
 
   app.post("/api/chat", async (req, res) => {
     try {

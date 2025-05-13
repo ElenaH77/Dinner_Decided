@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Message } from "@/types";
-import { sendMessage } from "@/lib/openai";
+import { sendMessage, resetChat } from "@/lib/openai";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
+import { WELCOME_MESSAGE } from "@/lib/constants";
 
 export function useChatState() {
   const queryClient = useQueryClient();
@@ -38,6 +39,36 @@ export function useChatState() {
     }
   });
   
+  // Mutation for resetting chat
+  const resetMutation = useMutation({
+    mutationFn: resetChat,
+    onSuccess: () => {
+      // Clear out existing messages
+      queryClient.setQueryData(['/api/chat/messages'], []);
+      
+      // Add the welcome message back
+      addMessage({
+        id: `welcome-${Date.now()}`,
+        role: "assistant",
+        content: WELCOME_MESSAGE,
+        timestamp: new Date().toISOString(),
+      });
+      
+      toast({
+        title: "Chat Reset",
+        description: "DinnerBot is ready for a fresh conversation!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to reset chat. Please try again.",
+        variant: "destructive",
+      });
+      console.error(error);
+    }
+  });
+  
   // Add a message to the chat
   const addMessage = useCallback((message: Message) => {
     const allMessages = [...messages, message];
@@ -66,10 +97,20 @@ export function useChatState() {
     }
   }, [messages, addMessage, messageMutation]);
   
+  // Reset the chat conversation
+  const resetChatConversation = useCallback(async () => {
+    try {
+      await resetMutation.mutateAsync();
+    } catch (error) {
+      console.error("Error resetting chat:", error);
+    }
+  }, [resetMutation]);
+  
   return {
     messages,
     addMessage,
     handleUserMessage,
+    resetChatConversation,
     isGenerating,
     loading,
   };
