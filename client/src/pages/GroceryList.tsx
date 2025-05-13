@@ -69,11 +69,19 @@ export default function GroceryList() {
         return;
       }
       
-      // Call API to add the item
-      const response = await apiRequest("POST", "/api/grocery-list/add-item", {
-        name: newItem.name,
-        quantity: newItem.quantity,
-        section: newItem.section
+      console.log("Adding item:", newItem);
+      
+      // Call API to add the item using fetch directly for debugging
+      const response = await fetch('/api/grocery-list/add-item', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newItem.name,
+          quantity: newItem.quantity,
+          section: newItem.section
+        })
       });
       
       if (response.ok) {
@@ -91,11 +99,23 @@ export default function GroceryList() {
           title: "Item added",
           description: `"${newItem.name}" has been added to your grocery list.`
         });
+        
+        // Manually trigger a refetch to ensure we have the latest data
+        queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
       } else {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        let errorMessage = "Failed to add item to the grocery list";
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        
         toast({
           title: "Error",
-          description: errorData.message || "Failed to add item to the grocery list",
+          description: errorMessage,
           variant: "destructive"
         });
       }
