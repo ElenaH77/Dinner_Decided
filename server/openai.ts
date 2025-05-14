@@ -39,7 +39,9 @@ function hasValidApiKey() {
 console.log('[OPENAI INIT] Initializing OpenAI client with key:', apiKey ? `${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 4)}` : 'undefined');
 
 const openai = new OpenAI({ 
-  apiKey: apiKey || undefined 
+  apiKey: apiKey || undefined,
+  timeout: 60000, // Add a longer timeout (60 seconds) to avoid timing out on long requests
+  maxRetries: 3 // Add automatic retries for failed requests
 });
 
 // Test if the client can be used by making a small request
@@ -176,13 +178,14 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
 }
 
 // Generate a meal plan based on household profile and preferences
-export async function generateMealPlan(household: any, preferences: any = {}): Promise<any[]> {
+export async function generateMealPlan(household: any, preferences: any = {}, retryCount = 0): Promise<any[]> {
   try {
     // Debug the OpenAI API key issue
     console.log('[MEAL PLAN] API key valid:', hasValidApiKey());
     console.log('[MEAL PLAN] API key length:', apiKey ? apiKey.length : 0);
     console.log('[MEAL PLAN] API key first 3 chars:', apiKey ? apiKey.substring(0, 3) : 'none');
     console.log('[MEAL PLAN] ENV variables available:', Object.keys(process.env).filter(key => !key.includes('SECRET')).join(', '));
+    console.log('[MEAL PLAN] Retry count:', retryCount);
     
     // For demo purposes with no valid API key, return canned meal suggestions
     if (!hasValidApiKey()) {
