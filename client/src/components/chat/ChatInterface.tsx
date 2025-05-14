@@ -195,7 +195,7 @@ export default function ChatInterface() {
             </button>
           </div>
           <div className="flex justify-between mt-2 text-xs text-[#8A8A8A] px-2">
-            <span>Try: "Swap the beef stew for a seafood option"</span>
+            <span>Try: "What can I make with chicken and pasta?"</span>
             <span>Shift+Enter for new line</span>
           </div>
         </form>

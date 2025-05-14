@@ -23,21 +23,29 @@ export default function ChatMessage({ message, mealPlan, groceryList }: ChatMess
     const processedContent = message.content;
     setContent(processedContent);
     
-    // Check if message should render meal plan
-    setShouldRenderMealPlan(
+    // Check if we're in the DinnerBot chat by looking at the URL
+    const isDinnerBotChat = window.location.pathname === "/" || window.location.pathname === "/dinnerbot";
+    
+    // Check if message should render meal plan (but not in DinnerBot chat)
+    const shouldShowMealPlan = 
+      !isDinnerBotChat &&
       message.role === 'assistant' && 
       (processedContent.includes("meal plan") || processedContent.includes("dinner plan")) &&
       mealPlan && 
-      mealPlan.meals?.length > 0
-    );
+      mealPlan.meals?.length > 0;
+      
+    setShouldRenderMealPlan(shouldShowMealPlan);
     
-    // Check if message should render grocery list
-    setShouldRenderGroceryList(
+    // Check if message should render grocery list (but not in DinnerBot chat)
+    const shouldShowGroceryList = 
+      !isDinnerBotChat &&
       message.role === 'assistant' && 
       processedContent.includes("grocery list") && 
       groceryList && 
-      groceryList.sections?.length > 0
-    );
+      groceryList.sections && 
+      groceryList.sections.length > 0;
+      
+    setShouldRenderGroceryList(shouldShowGroceryList);
     
   }, [message.content, mealPlan, groceryList, message.role]);
 
