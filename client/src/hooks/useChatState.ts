@@ -89,7 +89,8 @@ export function useChatState() {
     
     // Use the message mutation to send to backend
     try {
-      await messageMutation.mutateAsync([...messages, userMessage]);
+      const currentMessages = Array.isArray(messages) ? [...messages, userMessage] : [userMessage];
+      await messageMutation.mutateAsync(currentMessages);
     } catch (error) {
       console.error("Error in handleUserMessage:", error);
     }
