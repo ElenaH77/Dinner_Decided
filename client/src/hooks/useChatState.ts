@@ -42,17 +42,15 @@ export function useChatState() {
   // Mutation for resetting chat
   const resetMutation = useMutation({
     mutationFn: resetChat,
-    onSuccess: () => {
-      // Clear out existing messages
-      queryClient.setQueryData(['/api/chat/messages'], []);
-      
-      // Add the welcome message back
-      addMessage({
-        id: `welcome-${Date.now()}`,
-        role: "assistant",
-        content: WELCOME_MESSAGE,
-        timestamp: new Date().toISOString(),
-      });
+    onSuccess: (response) => {
+      // The server now returns the welcome message, so we should use that directly
+      if (response && response.welcomeMessage) {
+        // Set the welcome message as the only message
+        queryClient.setQueryData(['/api/chat/messages'], [response.welcomeMessage]);
+      } else {
+        // Fallback to empty messages list if no welcome message is returned
+        queryClient.setQueryData(['/api/chat/messages'], []);
+      }
       
       toast({
         title: "Chat Reset",
@@ -71,7 +69,7 @@ export function useChatState() {
   
   // Add a message to the chat
   const addMessage = useCallback((message: Message) => {
-    const allMessages = [...messages, message];
+    const allMessages = Array.isArray(messages) ? [...messages, message] : [message];
     queryClient.setQueryData(['/api/chat/messages'], allMessages);
     return message;
   }, [messages, queryClient]);

@@ -33,8 +33,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No household found" });
       }
       
-      // Return success
-      res.json({ success: true });
+      // Create a new welcome message in the database
+      const welcomeMessage = {
+        id: `welcome-${Date.now()}`, // Ensure unique ID with timestamp
+        role: "assistant",
+        content: "Hi there! I'm your meal planning assistant. How can I help you today?",
+        timestamp: new Date(),
+        householdId: household.id
+      };
+      
+      // Save the welcome message to the database
+      const savedMessage = await storage.saveMessage(welcomeMessage);
+      
+      // Return success with the welcome message
+      res.json({ 
+        success: true,
+        welcomeMessage: savedMessage
+      });
     } catch (error) {
       console.error("Error in /api/chat/reset:", error);
       res.status(500).json({ message: "Failed to reset chat" });

@@ -12,10 +12,11 @@ export async function sendMessage(messages: Message[]): Promise<Message> {
   }
 }
 
-export async function resetChat(): Promise<void> {
+export async function resetChat(): Promise<any> {
   try {
-    await apiRequest("POST", "/api/chat/reset");
-    return;
+    const response = await apiRequest("POST", "/api/chat/reset");
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error("Error resetting chat:", error);
     throw error;
