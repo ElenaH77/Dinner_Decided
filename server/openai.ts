@@ -289,16 +289,18 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
           * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
           * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
         
-        8. Step-by-step cooking instructions (minimum 8-10 detailed steps)
+        8. Step-by-step cooking instructions (minimum 10-12 detailed steps)
           * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
           * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
-          * Include exact time and temperature for any oven, slow cooker, or instant pot steps
-          * Mention each ingredient specifically when it's used with exact quantities
-          * Break complex processes into multiple detailed steps
-          * Include specific guidance on how to tell when things are properly cooked
+          * Include exact time and temperature for any oven, slow cooker, or instant pot steps (e.g., "bake at 375°F for 25 minutes" not just "bake until done")
+          * Mention each ingredient specifically when it's used with exact quantities (e.g., "Add 2 tablespoons of olive oil" not just "Add oil")
+          * Break complex processes into multiple detailed steps (at least 10 steps for every recipe)
+          * Include sensory cues and specific guidance on how to tell when things are properly cooked (e.g., "until golden brown and crispy, about 5-6 minutes" not just "until browned")
+          * Explain what the food should look like at critical stages (e.g., "the mixture should be thick enough to coat the back of a spoon")
           * NO generic steps like "cook according to standard procedure" - every step must be explicit
-          * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
-          * For mixed dishes, include how to assemble and serve
+          * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", "sauté", "broil", etc. whenever they appear
+          * For mixed dishes, include specific instructions on how to assemble and serve (e.g., layering, plating suggestions)
+          * Format each instruction as a complete sentence with clear action verbs at the beginning
         
         9. For "Split Prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
         
