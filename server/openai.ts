@@ -289,18 +289,19 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
           * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
           * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
         
-        8. Step-by-step cooking instructions (minimum 10-12 detailed steps)
-          * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
-          * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
-          * Include exact time and temperature for any oven, slow cooker, or instant pot steps (e.g., "bake at 375°F for 25 minutes" not just "bake until done")
-          * Mention each ingredient specifically when it's used with exact quantities (e.g., "Add 2 tablespoons of olive oil" not just "Add oil")
-          * Break complex processes into multiple detailed steps (at least 10 steps for every recipe)
-          * Include sensory cues and specific guidance on how to tell when things are properly cooked (e.g., "until golden brown and crispy, about 5-6 minutes" not just "until browned")
-          * Explain what the food should look like at critical stages (e.g., "the mixture should be thick enough to coat the back of a spoon")
-          * NO generic steps like "cook according to standard procedure" - every step must be explicit
-          * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", "sauté", "broil", etc. whenever they appear
-          * For mixed dishes, include specific instructions on how to assemble and serve (e.g., layering, plating suggestions)
-          * Format each instruction as a complete sentence with clear action verbs at the beginning
+        8. Step-by-step cooking instructions (EXACTLY 10-15 detailed steps with no shortcuts)
+          * CRITICAL: Each recipe MUST include AT LEAST 10 detailed instruction steps - no exceptions
+          * EVERY instruction must begin with a strong, specific action verb (e.g., "Heat", "Stir", "Whisk")
+          * Include EXACT cooking times, temperatures, and methods for EVERY step with specific numbers (e.g., "Sauté over medium-high heat for exactly 4-5 minutes" not "Sauté until done")
+          * Include EXACT time and temperature for any oven, slow cooker, or instant pot steps (e.g., "Bake at 375°F for 25-30 minutes" not "Bake until done")
+          * For EVERY ingredient, specify EXACT quantities when used (e.g., "Add 2 tablespoons of olive oil" not "Add oil")
+          * EXPLICITLY state minimum internal cooking temperatures (165°F for chicken/poultry, 145°F for fish, 160°F for ground meat)
+          * ALWAYS provide multiple sensory cues for doneness (e.g., "until golden brown, crispy on edges, and internal temperature reaches 165°F, about 5-6 minutes")
+          * CLEARLY describe what the food should look like at EACH critical stage with visual and textural details (e.g., "the sauce should be glossy and thick enough to coat the back of a spoon")
+          * NEVER use generic steps like "cook according to standard procedure" - EVERY step must be explicit and detailed
+          * EVERY specialized cooking technique (fold, deglaze, sauté, broil, etc.) MUST include a parenthetical explanation (e.g., "Deglaze the pan (pour liquid into hot pan to loosen browned bits)")
+          * For mixed dishes, include SPECIFIC assembly instructions with exact measurements and layering (e.g., "Spread exactly 1 cup of sauce on bottom of dish, layer with 6 lasagna noodles slightly overlapping")
+          * Format each instruction as a detailed, specific sentence of at least 15 words with measurements, cooking methods, times, and sensory cues
         
         9. For "Split Prep" category meals, provide clear instructions for what to prepare ahead of time vs. what to do on the day of cooking
         
@@ -1194,33 +1195,171 @@ function improveRecipeInstructions(recipe: any): any {
   // Deep clone to avoid modifying the original
   const improvedRecipe = JSON.parse(JSON.stringify(recipe));
   let modified = false;
+  let modificationsApplied = [];
   
   // Check for and fix "standard procedures" instruction
-  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string) => {
+  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string, index: number) => {
     if (typeof step !== 'string') return step;
+    let updatedStep = step;
+    let stepModified = false;
     
-    // Fix stir-fry generic cooking steps
-    if (step.toLowerCase().includes('standard procedure') || 
-        step.toLowerCase().includes('standard procedures') ||
-        (step.toLowerCase().includes('cook') && step.toLowerCase().includes('for this type of dish'))) {
-      
-      if (recipe.name.toLowerCase().includes('stir fry') || 
-          recipe.description.toLowerCase().includes('stir-fry') || 
-          recipe.description.toLowerCase().includes('stir fry')) {
-        modified = true;
-        return "Heat a wok or large skillet over high heat for 1 minute. Add 1 tablespoon oil and swirl to coat the pan. Add chicken and stir-fry for 4-5 minutes until golden brown and cooked through (internal temperature 165°F). Transfer to a plate.";
+    // Fix generic cooking phrases
+    const genericPhrases = [
+      { pattern: /standard procedure(s)?/i, detected: false },
+      { pattern: /cook until done/i, detected: false },
+      { pattern: /cook as usual/i, detected: false },
+      { pattern: /cook according to/i, detected: false },
+      { pattern: /for this type of dish/i, detected: false },
+      { pattern: /until cooked through/i, detected: false },
+      { pattern: /until ready/i, detected: false },
+      { pattern: /to taste/i, detected: false }
+    ];
+    
+    // Check if any generic phrases are in this step
+    genericPhrases.forEach(phrase => {
+      if (updatedStep.match(phrase.pattern)) {
+        phrase.detected = true;
+      }
+    });
+    
+    // If we found generic phrases, replace them with specific instructions
+    if (genericPhrases.some(phrase => phrase.detected)) {
+      // Different replacements based on dish type
+      if (recipe.name?.toLowerCase().includes('stir fry') || 
+          recipe.description?.toLowerCase().includes('stir-fry') || 
+          recipe.description?.toLowerCase().includes('stir fry')) {
+        // Stir fry replacement
+        updatedStep = "Heat a wok or large skillet over high heat for 1 minute until you can feel the heat radiating when you hold your hand 6 inches above the surface. Add 1 tablespoon oil and swirl to coat the pan evenly. Add the protein and stir-fry for 4-5 minutes until golden brown and cooked through (internal temperature 165°F for chicken, 145°F for seafood). You'll know it's done when the meat is no longer pink in the center and has a slight char on the edges.";
+        stepModified = true;
+      } else if (recipe.name?.toLowerCase().includes('chicken') || 
+                recipe.ingredients?.some((ing: string) => typeof ing === 'string' && ing.toLowerCase().includes('chicken'))) {
+        // Chicken dish replacement
+        updatedStep = "Cook the chicken over medium-high heat for 6-8 minutes, turning occasionally, until the chicken is completely cooked through and reaches an internal temperature of 165°F when tested with a meat thermometer. The chicken should be golden brown on the outside with no pink remaining in the center, and the juices should run clear when pierced with a fork.";
+        stepModified = true;
+      } else if (recipe.name?.toLowerCase().includes('pasta') || 
+                recipe.ingredients?.some((ing: string) => typeof ing === 'string' && ing.toLowerCase().includes('pasta'))) {
+        // Pasta dish replacement
+        updatedStep = "Cook the pasta in the boiling water for exactly the time indicated on the package (typically 8-10 minutes for dried pasta), stirring occasionally to prevent sticking. Test a piece 1 minute before the suggested cooking time - it should be 'al dente' (tender but still firm when bitten, not mushy). Reserve 1/2 cup of pasta water before draining thoroughly in a colander.";
+        stepModified = true;
+      } else if (recipe.name?.toLowerCase().includes('beef') || 
+                recipe.ingredients?.some((ing: string) => typeof ing === 'string' && ing.toLowerCase().includes('beef'))) {
+        // Beef dish replacement
+        updatedStep = "Cook the beef over medium-high heat for 4-5 minutes per side for medium-rare (internal temperature of 135°F) or 5-6 minutes per side for medium (internal temperature of 145°F). The beef should develop a dark brown crust on the outside while remaining juicy inside. Let the meat rest for 5 minutes before slicing to allow juices to redistribute.";
+        stepModified = true;
+      } else {
+        // General replacement for other dishes
+        updatedStep = "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken/poultry, 145°F for fish, 160°F for ground meat). The food should be golden brown on the outside and no longer raw or pink on the inside. You'll know it's done when it's firm to the touch and the juices run clear.";
+        stepModified = true;
       }
       
-      // General replacement for other dishes
-      modified = true;
-      return "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken, 145°F for fish, or 160°F for ground meat).";
+      if (stepModified) {
+        modificationsApplied.push(`Fixed generic cooking phrase in step ${index + 1}`);
+      }
     }
     
-    return step;
+    // Add missing timing information if needed
+    if (!stepModified && 
+        (updatedStep.toLowerCase().includes('cook') || 
+         updatedStep.toLowerCase().includes('bake') || 
+         updatedStep.toLowerCase().includes('roast') || 
+         updatedStep.toLowerCase().includes('simmer') || 
+         updatedStep.toLowerCase().includes('boil')) && 
+        !/(for\s+)?\d+[\-–]?\d*\s*(min|minute|sec|second|hour)/i.test(updatedStep)) {
+      
+      // Add generic timing based on cooking method
+      if (updatedStep.toLowerCase().includes('boil')) {
+        updatedStep += " Continue boiling for 8-10 minutes until fully cooked.";
+        modificationsApplied.push(`Added missing timing information to step ${index + 1} (boil)`);
+        stepModified = true;
+      } else if (updatedStep.toLowerCase().includes('simmer')) {
+        updatedStep += " Allow to simmer for 15-20 minutes until the flavors meld together and the liquid reduces slightly.";
+        modificationsApplied.push(`Added missing timing information to step ${index + 1} (simmer)`);
+        stepModified = true;
+      } else if (updatedStep.toLowerCase().includes('bake') || updatedStep.toLowerCase().includes('roast')) {
+        updatedStep += " Bake for 25-30 minutes until golden brown on top and completely cooked through.";
+        modificationsApplied.push(`Added missing timing information to step ${index + 1} (bake/roast)`);
+        stepModified = true;
+      } else if (updatedStep.toLowerCase().includes('cook')) {
+        updatedStep += " Cook for 5-7 minutes until fully cooked through and golden brown.";
+        modificationsApplied.push(`Added missing timing information to step ${index + 1} (general cooking)`);
+        stepModified = true;
+      }
+    }
+    
+    // Add cooking technique explanations if needed
+    const techniques = [
+      { term: 'fold', explanation: '(gently incorporate by using a spatula to cut down through the mixture and turn it over onto itself)' },
+      { term: 'deglaze', explanation: '(pour liquid into the hot pan to dissolve the browned food residue from the bottom)' },
+      { term: 'sauté', explanation: '(cook quickly in a small amount of oil over high heat while stirring or tossing)' },
+      { term: 'blanch', explanation: '(briefly immerse in boiling water then transfer to ice water to stop the cooking process)' },
+      { term: 'braise', explanation: '(cook slowly in a small amount of liquid in a covered pot)' },
+      { term: 'score', explanation: '(make shallow cuts on the surface in a diamond or crosshatch pattern)' }
+    ];
+    
+    techniques.forEach(technique => {
+      if (updatedStep.toLowerCase().includes(technique.term) && 
+          !updatedStep.toLowerCase().includes(technique.explanation.toLowerCase()) &&
+          !updatedStep.match(/\([^)]{10,}\)/)) {
+        
+        // Find the term and add the explanation after it
+        const regex = new RegExp(`(${technique.term})`, 'i');
+        updatedStep = updatedStep.replace(regex, `$1 ${technique.explanation}`);
+        modificationsApplied.push(`Added explanation for "${technique.term}" in step ${index + 1}`);
+        stepModified = true;
+      }
+    });
+    
+    // If any modifications were made to this step, mark the recipe as modified
+    if (stepModified) {
+      modified = true;
+    }
+    
+    return updatedStep;
   });
   
+  // If we have fewer than 10 instructions, try to break up longer steps
+  if (improvedRecipe.instructions.length < 10) {
+    const expandableSteps = improvedRecipe.instructions
+      .map((step: string, index: number) => ({ step, index, length: step.length }))
+      .filter((item: any) => item.length > 100)  // Only consider long steps
+      .sort((a: any, b: any) => b.length - a.length);  // Sort by length descending
+    
+    if (expandableSteps.length > 0) {
+      // Try to expand the longest step by looking for multiple sentences or conjunctions
+      const targetStep = expandableSteps[0];
+      const stepText = targetStep.step;
+      
+      // Look for sentences ending with period, question mark, or exclamation point followed by a space and capital letter
+      let splitSteps = stepText.split(/(?<=[.!?])\s+(?=[A-Z])/);
+      
+      // If we couldn't split by sentences, try splitting by conjunctions
+      if (splitSteps.length === 1) {
+        splitSteps = stepText.split(/,\s*(and|then|while|after|before)\s+/i);
+      }
+      
+      // If we successfully split the step and have at least 2 parts
+      if (splitSteps.length > 1) {
+        // Replace the original step with the first part
+        improvedRecipe.instructions[targetStep.index] = splitSteps[0];
+        
+        // Insert the remaining parts as new steps
+        for (let i = 1; i < splitSteps.length; i++) {
+          improvedRecipe.instructions.splice(targetStep.index + i, 0, splitSteps[i]);
+        }
+        
+        modified = true;
+        modificationsApplied.push(`Broke up step ${targetStep.index + 1} into ${splitSteps.length} separate steps`);
+      }
+    }
+  }
+  
   if (modified) {
-    console.log(`[RECIPE IMPROVE] Fixed generic cooking instructions in recipe: ${recipe.name}`);
+    console.log(`[RECIPE IMPROVE] Fixed ${modificationsApplied.length} issues in recipe: ${recipe.name}`);
+    console.log(`[RECIPE IMPROVE] Modifications: ${modificationsApplied.join(', ')}`);
+    
+    // Add quality improvement metadata
+    improvedRecipe._recipeImproved = true;
+    improvedRecipe._improvementsMade = modificationsApplied;
   }
   
   return improvedRecipe;
@@ -1247,21 +1386,21 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
   if (!Array.isArray(ingredients)) {
     issues.push('Ingredients must be an array');
   } else {
-    // Check ingredient count
-    if (ingredients.length < 8) {
-      issues.push(`Insufficient ingredients: found ${ingredients.length}, minimum 8 required`);
+    // Check ingredient count - now requiring 10 ingredients minimum
+    if (ingredients.length < 10) {
+      issues.push(`Insufficient ingredients: found ${ingredients.length}, minimum 10 required`);
     }
     
-    // Check if ingredients have measurements
+    // Check if ingredients have measurements with an enhanced pattern
     const ingredientsWithoutMeasurements = ingredients.filter(ingredient => {
       if (typeof ingredient !== 'string') return true;
       
-      // Check for common measurement patterns
-      const hasMeasurement = /\d+\s*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|bunch|clove|pinch|dash)/i.test(ingredient);
+      // Enhanced pattern to check for more specific measurement formats
+      const hasMeasurement = /\d+[\s-]*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|bunch|clove|pinch|dash|slices?|pieces?|cans?|\d+[\s-]?inch)/i.test(ingredient);
       return !hasMeasurement;
     });
     
-    if (ingredientsWithoutMeasurements.length > ingredients.length * 0.25) {
+    if (ingredientsWithoutMeasurements.length > ingredients.length * 0.15) { // Reduced threshold to 15%
       issues.push(`Many ingredients (${ingredientsWithoutMeasurements.length}) lack specific measurements`);
     }
   }
@@ -1271,12 +1410,12 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
   if (!Array.isArray(instructions)) {
     issues.push('Instructions must be an array');
   } else {
-    // Check instruction count
-    if (instructions.length < 7) {
-      issues.push(`Insufficient instructions: found ${instructions.length}, minimum 7 required`);
+    // Check instruction count - now requiring 10 steps minimum
+    if (instructions.length < 10) {
+      issues.push(`Insufficient instructions: found ${instructions.length}, minimum 10 required`);
     }
     
-    // Check for generic steps
+    // Expanded list of generic phrases to detect
     const genericPhrases = [
       'standard procedure',
       'standard procedures',
@@ -1290,7 +1429,14 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
       'standard method',
       'according to the main',
       'thoroughly cooked',
-      'for this type of dish'
+      'for this type of dish',
+      'until ready',
+      'until finished',
+      'as desired',
+      'until cooked through',
+      'as needed',
+      'as normal',
+      'per package'
     ];
     
     const genericSteps = instructions.filter(step => {
@@ -1302,21 +1448,60 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
       issues.push(`Found ${genericSteps.length} generic instruction step(s) containing phrases like "standard procedure" or "cook until done"`);
     }
     
-    // Check for temperature and timing information
-    const cookingStepsWithoutDetails = instructions.filter(step => {
+    // Enhanced checks for detailed instructions
+    const stepQualityIssues = instructions.map((step, index) => {
+      if (typeof step !== 'string') return `Step ${index + 1} is not a string`;
+      
+      const issues = [];
+      
+      // Check for minimum length - expecting detailed steps (now 40 chars)
+      if (step.length < 40) {
+        issues.push(`too short (only ${step.length} characters)`);
+      }
+      
+      // Check for strong action verb at beginning
+      if (!/^(Heat|Preheat|Stir|Mix|Combine|Add|Pour|Place|Transfer|Cook|Bake|Boil|Simmer|Sauté|Grill|Roast|Cut|Chop|Slice|Dice|Mince|Prepare|Arrange|Whisk|Fold|Beat|Knead|Spread|Layer|Top|Garnish|Serve|Sprinkle|Drizzle|Marinate|Toss|Season|Brush|Coat|Dredge)/i.test(step)) {
+        issues.push("doesn't start with a specific action verb");
+      }
+      
+      // Look for temperature details when heating is involved
+      const hasCookingVerb = /(preheat|bake|roast|cook|heat|oven|grill)/i.test(step);
+      if (hasCookingVerb && !/(\d+)\s*[°º]F|\d+\s*[°º]C/i.test(step)) {
+        issues.push("missing temperature specification");
+      }
+      
+      // Look for timing details
+      if (!/(for\s+)?\d+[\-–]?\d*\s*(min|minute|sec|second|hour)/i.test(step)) {
+        issues.push("missing time specification");
+      }
+      
+      // Check for sensory cues (what to look for) in cooking steps
+      if (/(cook|bake|roast|sauté|fry|grill|broil|simmer|boil)/i.test(step) && 
+          !/(until|when).*?(golden|brown|crisp|tender|soft|firm|translucent|clear|opaque|bubbly|melted|thick|reduced|caramelized)/i.test(step)) {
+        issues.push("missing sensory cues for doneness");
+      }
+      
+      return issues.length > 0 ? `Step ${index + 1}: ${issues.join(', ')}` : null;
+    }).filter(Boolean);
+    
+    if (stepQualityIssues.length > 0) {
+      issues.push(`Instruction quality issues found in ${stepQualityIssues.length} steps: ${stepQualityIssues.join('; ')}`);
+    }
+    
+    // Check for cooking techniques explanation
+    const techniquesWithoutExplanation = instructions.filter(step => {
       if (typeof step !== 'string') return false;
-      const containsCookingWords = /(cook|bake|roast|simmer|boil|sauté|fry)/i.test(step);
-      if (!containsCookingWords) return false;
       
-      // Check if step has time or temperature information
-      const hasTimeInfo = /\d+\s*(minute|min|second|sec|hour)/i.test(step);
-      const hasTempInfo = /\d+\s*(degree|°F|°C|F|C)/i.test(step) || /(low|medium|high)\s+heat/i.test(step);
+      // Check for cooking techniques that should be explained
+      const techniques = ['fold', 'deglaze', 'reduce', 'braise', 'blanch', 'blind bake', 'score', 'temper', 'proof', 'al dente'];
+      const hasTechnique = techniques.some(tech => step.toLowerCase().includes(tech));
       
-      return containsCookingWords && !(hasTimeInfo || hasTempInfo);
+      // If technique is used, make sure there's an explanation (text in parentheses)
+      return hasTechnique && !/\([^)]{10,}\)/.test(step); // At least 10 chars in parentheses
     });
     
-    if (cookingStepsWithoutDetails.length > 0) {
-      issues.push(`Found ${cookingStepsWithoutDetails.length} cooking steps without specific time or temperature information`);
+    if (techniquesWithoutExplanation.length > 0) {
+      issues.push(`Found ${techniquesWithoutExplanation.length} cooking techniques without proper explanations`);
     }
   }
   
