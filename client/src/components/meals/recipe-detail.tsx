@@ -56,14 +56,17 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
   // Format the ingredients into a list with checkboxes
   // Handle both string arrays and object arrays with item/quantity properties
   const processIngredients = () => {
+    // Use the improved meal instead of the original
+    const mealToProcess = improvedMeal || meal;
+    
     // Use main ingredients first if available, then fall back to regular ingredients
     // This ensures modified meals with mainIngredients will show the updated ingredients
-    const rawIngredients = meal.mainIngredients || meal.ingredients || [];
+    const rawIngredients = mealToProcess.mainIngredients || mealToProcess.ingredients || [];
     const result: string[] = [];
     
     try {
       // Log raw data for debugging
-      console.log('Meal object:', JSON.stringify(meal));
+      console.log('Meal object:', JSON.stringify(mealToProcess));
       console.log('Raw Ingredients:', JSON.stringify(rawIngredients));
       
       // Check if it's an array first
