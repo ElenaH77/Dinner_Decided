@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Users, ChefHat, MessageSquare, Check, RefreshCw, Edit } from "lucide-react";
+import { fixRecipeInstructions } from "@/hooks/useRecipeQuality";
 
 interface Meal {
   id: string;
@@ -26,6 +27,9 @@ interface Meal {
   mealPrepTips?: string;
   dietaryInfo?: string;
   rationales?: string[];
+  _needsRegeneration?: boolean;
+  _qualityIssues?: string[];
+  regenerationNotes?: string;
 }
 
 interface RecipeDetailProps {
@@ -123,27 +127,59 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     }
   };
   
-  // Process ingredients when the component renders or meal changes
-  const ingredientsList = processIngredients();
+  // First try to improve the recipe quality if needed
+  const improvedMeal = useMemo(() => {
+    // Check if this meal requires improvement
+    const hasGenericInstructions = meal.instructions?.some((instr: string) => 
+      typeof instr === 'string' && (
+        instr.toLowerCase().includes('ingredients list') || 
+        instr.toLowerCase().includes('standard procedure') ||
+        instr.toLowerCase().includes('preheat your oven or stovetop as needed') ||
+        instr.toLowerCase().includes('enjoy with your family') ||
+        instr.toLowerCase().includes('following standard procedures') ||
+        instr.toLowerCase().includes('cook until all components are thoroughly cooked')
+      )
+    );
+    
+    // Check if the recipe has too few instructions
+    const hasTooFewInstructions = meal.instructions && meal.instructions.length <= 5;
+    
+    // If it needs improvement, use our recipe quality fixer
+    if (hasGenericInstructions || hasTooFewInstructions || meal._needsRegeneration) {
+      console.log('[RECIPE DETAIL] Improving low-quality recipe:', meal.name);
+      try {
+        const fixedMeal = fixRecipeInstructions(meal);
+        return fixedMeal;
+      } catch (err) {
+        console.error('[RECIPE DETAIL] Error improving recipe:', err);
+        return meal;
+      }
+    }
+    
+    return meal;
+  }, [meal]);
 
   // Process instructions which could be a string array, string or object format
   const processInstructions = () => {
     try {
-      // Log raw data for debugging
-      console.log('Raw Instructions:', JSON.stringify(meal.instructions || []));
+      // Use the improved meal instead of the original
+      const mealToProcess = improvedMeal || meal;
       
-      if (!meal.instructions) {
+      // Log raw data for debugging
+      console.log('Raw Instructions:', JSON.stringify(mealToProcess.instructions || []));
+      
+      if (!mealToProcess.instructions) {
         return [
-          `1. Prepare all ingredients for ${meal.name}.`,
+          `1. Prepare all ingredients for ${mealToProcess.name}.`,
           `2. Cook according to your preference and family's tastes.`,
           `3. Serve hot and enjoy!`
         ];
       }
       
       // If instructions exist, process them based on type
-      if (Array.isArray(meal.instructions)) {
+      if (Array.isArray(mealToProcess.instructions)) {
         // If it's already an array, ensure each item is properly formatted
-        const formattedInstructions = meal.instructions.map((step, index) => {
+        const formattedInstructions = mealToProcess.instructions.map((step, index) => {
           if (typeof step !== 'string') {
             // Handle non-string items in the array
             return `Step ${index+1}: ${JSON.stringify(step).replace(/[{}"\']/g, '').replace(/,/g, ', ').replace(/:/g, ': ')}`;
@@ -157,10 +193,10 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
           return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
         });
         
-        return formattedInstructions.length > 0 ? formattedInstructions : [`Prepare the ${meal.name}.`];
-      } else if (typeof meal.instructions === 'string') {
+        return formattedInstructions.length > 0 ? formattedInstructions : [`Prepare the ${mealToProcess.name}.`];
+      } else if (typeof mealToProcess.instructions === 'string') {
         // If it's a string, split by newlines or periods to create steps
-        const steps = meal.instructions
+        const steps = mealToProcess.instructions
           .split(/\n|\. /)
           .filter(step => step.trim().length > 0)
           .map((step, index) => {
@@ -171,11 +207,11 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
             return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
           });
           
-        return steps.length > 0 ? steps : [`Prepare the ${meal.name}.`];
-      } else if (typeof meal.instructions === 'object' && meal.instructions !== null) {
+        return steps.length > 0 ? steps : [`Prepare the ${mealToProcess.name}.`];
+      } else if (typeof mealToProcess.instructions === 'object' && mealToProcess.instructions !== null) {
         // If it's an object, extract steps
         const steps = [];
-        const entries = Object.entries(meal.instructions);
+        const entries = Object.entries(mealToProcess.instructions);
         
         // First try to extract step-like keys (step1, step 2, etc.)
         const stepEntries = entries.filter(([key]) => 
@@ -212,12 +248,12 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
           });
         }
         
-        return steps.length > 0 ? steps : [`Prepare the ${meal.name}.`];
+        return steps.length > 0 ? steps : [`Prepare the ${mealToProcess.name}.`];
       }
       
       // Default fallback
       return [
-        `1. Prepare all ingredients for ${meal.name}.`,
+        `1. Prepare all ingredients for ${mealToProcess.name}.`,
         `2. Cook according to your preference and family's tastes.`,
         `3. Serve hot and enjoy!`
       ];
@@ -231,7 +267,8 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     }
   };
   
-  // Process instructions when the component renders or meal changes
+  // Process ingredients and instructions when the component renders or meal changes
+  const ingredientsList = processIngredients();
   const instructions = processInstructions();
   
   console.log('Processed instructions:', instructions);

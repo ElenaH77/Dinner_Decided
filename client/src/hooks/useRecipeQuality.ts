@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 
 // Function to analyze and fix recipe instructions if they're generic or low quality
-function fixRecipeInstructions(recipe: any): any {
+export function fixRecipeInstructions(recipe: any): any {
   if (!recipe || !recipe.instructions || !Array.isArray(recipe.instructions)) {
     return recipe;
   }
