@@ -43,7 +43,7 @@ const openai = new OpenAI({
   timeout: 120000, // Increase timeout to 2 minutes to handle longer requests
   maxRetries: 5, // Increase retries for more reliability
   defaultQuery: { 
-    'request_timeout': 90 // Request 90 second server-side timeout
+    'request_timeout': '90' // Request 90 second server-side timeout (as string)
   }  
 });
 
@@ -54,7 +54,8 @@ const openai = new OpenAI({
     const models = await openai.models.list();
     console.log('[OPENAI INIT] API key is valid! Available models count:', models.data.length);
   } catch (error) {
-    console.error('[OPENAI INIT] Error testing API key:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[OPENAI INIT] Error testing API key:', errorMessage);
     console.error('[OPENAI INIT] API key is not valid or has issues');
   }
 })();
@@ -189,6 +190,12 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
     console.log('[MEAL PLAN] API key first 3 chars:', apiKey ? apiKey.substring(0, 3) : 'none');
     console.log('[MEAL PLAN] ENV variables available:', Object.keys(process.env).filter(key => !key.includes('SECRET')).join(', '));
     console.log('[MEAL PLAN] Retry count:', retryCount);
+    
+    // Safety check to prevent infinite recursion
+    if (retryCount >= 3) {
+      console.warn(`[MEAL PLAN] Maximum retry attempts (${retryCount}) reached. Returning best attempt.`);
+      throw new Error("Maximum retry attempts reached. Please try again later.");
+    }
     
     // For demo purposes with no valid API key, return canned meal suggestions
     if (!hasValidApiKey()) {
@@ -403,10 +410,22 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
     
     console.log('[MEAL PLAN] Generating meal plan with this prompt:', promptContent);
     
-    // Create the request to OpenAI
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
+    // Calculate exponential backoff delay based on retry count
+    const baseDelay = 1000; // 1 second
+    const maxDelay = 10000; // 10 seconds
+    const backoffDelay = Math.min(maxDelay, baseDelay * Math.pow(2, retryCount));
+    
+    if (retryCount > 0) {
+      console.log(`[MEAL PLAN] Retry attempt ${retryCount} - Applying backoff delay of ${backoffDelay}ms`);
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+    }
+    
+    // Create the request to OpenAI with retry logic
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
         {
           role: "system",
           content: `You are a helpful meal planning assistant that creates personalized meal plans for busy families.
@@ -485,6 +504,16 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
+    } catch (error) {
+      console.error("[MEAL PLAN] API call failed:", error instanceof Error ? error.message : 'Unknown error');
+      
+      // Retry with backoff if we have attempts left
+      if (retryCount < 3) {
+        console.log(`[MEAL PLAN] Retrying API call (attempt ${retryCount + 1} of 3)`);
+        return generateMealPlan(household, preferences, retryCount + 1);
+      }
+      throw error;
+    }
     
     // Parse and process the response
     try {
@@ -538,34 +567,25 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
             }
             
             // Normalize property names (directions → instructions) for consistency
-            if (meal.directions && Array.isArray(meal.directions) && !meal.instructions) {
-              meal.instructions = meal.directions;
-              console.log(`[MEAL PLAN] Normalized directions → instructions for meal: ${meal.name}`);
-            }
+            meal = normalizeMeal(meal);
             
-            // Normalize ingredient lists
-            if (meal.mainIngredients && Array.isArray(meal.mainIngredients) && !meal.ingredients) {
-              meal.ingredients = meal.mainIngredients;
-              console.log(`[MEAL PLAN] Normalized mainIngredients → ingredients for meal: ${meal.name}`);
-            }
+            // Add metadata for tracking quality
+            meal._qualityIssues = [];
             
-            // Apply post-processing to fix common issues (like generic cooking instructions)
-            meal = improveRecipeInstructions(meal);
-            
-            // Validate meal quality after improvements
+            // Validate quality standards for this meal
             const validationResult = validateMealQuality(meal);
             if (!validationResult.isValid) {
-              console.warn(`[MEAL PLAN] Quality validation failed for meal "${meal.name}":`, validationResult.issues);
-              
-              // Store quality issues for debugging
+              console.log(`[MEAL PLAN] Quality issues detected for ${meal.name}:`, validationResult.issues);
               meal._qualityIssues = validationResult.issues;
-              
-              // For initial meal plan, we won't regenerate individual meals as that would be too expensive
-              // But we'll mark them for potential future regeneration
               meal._needsRegeneration = true;
-            } else {
-              console.log(`[MEAL PLAN] Meal "${meal.name}" passed quality validation`);
+              
+              // Add detailed regeneration notes
+              const issues = validationResult.issues.join("; "); 
+              meal.regenerationNotes = `Please fix these issues: ${issues}. Follow all quality requirements exactly.`;
             }
+            
+            // Improve recipe instructions
+            meal = improveRecipeInstructions(meal);
             
             return meal;
           });
@@ -639,126 +659,105 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
     // Extract the most important info from each meal, making sure to use the latest modified data
     const meals = mealPlan.meals.map((meal: any) => {
       // For ingredients, prefer mainIngredients with quantities if available
-      // These should have been generated from our updated OpenAI functions
-      const ingredients = meal.mainIngredients || meal.ingredients || [];
-      
-      // If we have instructions or directions, we might have detailed ingredients with quantities in there
-      if ((meal.instructions && Array.isArray(meal.instructions) && meal.instructions.length > 0) ||
-          (meal.directions && Array.isArray(meal.directions) && meal.directions.length > 0)) {
-        console.log('[GROCERY] Meal has detailed instructions, using full recipe details');
-      }
-      
-      // Include modification details in name if available
-      const mealName = meal.modifiedFrom ? 
-        `${meal.name} (modified from ${meal.modifiedFrom})` : 
-        meal.name;
-      
-      // Log what we're using for this meal
-      console.log(`[GROCERY] Processing meal "${meal.name}" with ${ingredients.length} ingredients`);
+      const ingredients = meal.ingredients || meal.mainIngredients || [];
       
       return {
         id: meal.id,
-        name: mealName,
-        ingredients: ingredients,
-        // Include modification request if available
-        modificationRequest: meal.modificationRequest || '',
-        // Include replaced info if available
-        replacedFrom: meal.replacedFrom || ''
+        name: meal.name,
+        ingredients
       };
     });
     
-    // Log grocery list generation - check for duplicate meals
-    const mealNames = meals.map((m: any) => m.name);
-    const uniqueMealNames = Array.from(new Set(mealNames)) as string[];
-    
-    console.log(`[GROCERY] Generating grocery list with ${meals.length} meals, ${uniqueMealNames.length} unique meal types`);
-    if (uniqueMealNames.length < meals.length) {
-      console.warn(`[GROCERY] WARNING: Duplicate meals detected! This will cause ingredient quantities to be multiplied incorrectly`);
-      console.warn(`[GROCERY] Unique meal names: ${uniqueMealNames.join(', ')}`);
+    // If no meals, return empty list
+    if (!meals.length) {
+      return [];
     }
     
-    // Only log detailed meal info if we need troubleshooting data
-    // console.log('[GROCERY] Generating grocery list for meals:', JSON.stringify(meals, null, 2));
+    // Prepare the prompt for OpenAI to generate the grocery list
+    const prompt = `Based on the following meals, generate a comprehensive grocery list.
+    
+    Meals:
+    ${meals.map((meal: any) => 
+      `${meal.name}\nIngredients:\n${meal.ingredients.map((ingredient: string) => ` - ${ingredient}`).join('\n')}`
+    ).join('\n\n')}
+    
+    Please create a single consolidated grocery list with all the ingredients needed for these meals. Group similar items together and standardize the quantities when possible (e.g., combine "2 tbsp olive oil" and "1 tbsp olive oil" into "3 tbsp olive oil"), but keep separate if substantially different (e.g., keep "1 red onion" separate from "1 white onion").
+    
+    Format your response as a JSON array of grocery items, with each item having a 'name' field with the ingredient and quantity (e.g., "2 cups rice") and an 'id' field with a unique identifier.
+    
+    Example format:
+    [
+      {
+        "id": "item-1",
+        "name": "1.5 lbs boneless, skinless chicken breasts",
+        "mealIds": ["meal-id-1", "meal-id-3"]
+      },
+      {
+        "id": "item-2",
+        "name": "3 tbsp olive oil",
+        "mealIds": ["meal-id-1", "meal-id-2"]
+      }
+    ]
+    
+    For each ingredient, include a 'mealIds' field that lists the meal IDs this ingredient is used in. This helps with meal-ingredient relationships.`;
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
-          role: "system" as const,
-          content: `You are a helpful meal planning assistant that creates organized grocery lists based on meal plans.
-          
-          IMPORTANT INSTRUCTIONS:
-          1. Pay careful attention to meal modifications and use the ingredients listed in each meal's 'ingredients' field.
-          2. If a meal has been modified (contains modifiedFrom or replacedFrom), make sure to use the NEW ingredients, not the original ones.
-          3. For example, if "Ground Chicken Tacos" was modified from "Rotisserie Chicken Tacos", use ground chicken in the grocery list, not rotisserie chicken.
-          4. For EVERY grocery item, include specific quantities (e.g., "1 lb ground turkey", "2 cups rice", "3 cloves garlic").
-          5. If ingredient quantities are already included in the ingredients list, KEEP those exact quantities in the grocery list.
-          6. Consolidate duplicate ingredients across meals and add up their quantities.`
+          role: "system",
+          content: `You are a helpful meal planning assistant that creates organized grocery lists from meal plans.`
         },
         {
-          role: "user" as const,
-          content: `Create a grocery list for the following meals: ${JSON.stringify(meals)}. 
-          
-          Important instructions:
-          1. Pay special attention to any modified or replaced recipes - always use the ingredients from the CURRENT version.
-          2. When a meal has a modificationRequest like "use ground chicken instead of rotisserie chicken", make sure to ONLY include ground chicken in the grocery list, not rotisserie chicken.
-          3. For meals with replacedFrom field, these are completely different recipes, so you should ONLY use the current ingredients.
-          4. For EVERY grocery item, you MUST include specific quantities (e.g., "1 lb ground turkey", "2 cups rice", "3 cloves garlic").
-          5. If an ingredient already includes a quantity (like "1 lb ground turkey"), preserve that exact quantity.
-          6. Consolidate duplicate ingredients across meals and add up their quantities.
-          
-          Organize items by store section (Produce, Meat & Seafood, Dairy, etc.).
-          Return the list as a JSON object with sections array, where each section has a name and items array.
-          Each item should have an id, name (including quantity), and optional mealId (to track which meal it's for).`
+          role: "user",
+          content: prompt
         }
-      ] as any, // Type assertion to fix TypeScript error
-      response_format: { type: "json_object" },
-      temperature: 0.3,
+      ],
+      temperature: 0.3, // Lower temperature for more consistent formatting
+      max_tokens: 1500,
+      response_format: { type: "json_object" }
     });
     
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    // Parse the response
+    const content = response.choices[0].message.content || "[]";
+    const parsedResponse = JSON.parse(content);
     
-    // Extract sections from the result
-    return result.sections || [];
+    // Handle the case where we get an object with an items property or directly an array
+    const groceryItems = Array.isArray(parsedResponse) ? parsedResponse : 
+                         (parsedResponse.items && Array.isArray(parsedResponse.items)) ? parsedResponse.items : [];
     
+    // Add unique IDs to each item if they don't have one already
+    const itemsWithIds = groceryItems.map((item: any, index: number) => {
+      if (!item.id) {
+        return {
+          ...item,
+          id: `grocery-${Date.now()}-${index}`
+        };
+      }
+      return item;
+    });
+    
+    console.log(`[GROCERY] Generated ${itemsWithIds.length} grocery items for ${meals.length} meals`);
+    
+    // Now organize the items into departments using OpenAI
+    try {
+      const organizedItems = await organizeGroceryItems(itemsWithIds);
+      return organizedItems;
+    } catch (organizeError) {
+      console.error('[GROCERY] Error organizing grocery items:', organizeError);
+      // Fall back to a simple organization
+      return organizeGroceryItemsSimple(itemsWithIds);
+    }
   } catch (error) {
     console.error("Error generating grocery list:", error);
     
-    // Check for specific OpenAI API errors
-    if (error && typeof error === 'object') {
-      // Handle OpenAI error object types
-      if ('error' in error && typeof error.error === 'object') {
-        const openaiError = error.error;
-        if (openaiError && 'type' in openaiError && openaiError.type === 'insufficient_quota') {
-          throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
-        }
-      }
-      
-      // Handle status code errors
-      if ('code' in error && error.code === 'insufficient_quota') {
-        throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
-      } else if ('status' in error && error.status === 429) {
-        throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
-      } else if ('status' in error && (error.status === 401 || error.status === 403)) {
-        throw new Error('OpenAI API authentication error. Please check your API key.');
-      }
-      
-      // Also check for error message strings
-      if ('message' in error && typeof error.message === 'string') {
-        const errorMessage = error.message.toLowerCase();
-        if (errorMessage.includes('exceeded your current quota')) {
-          throw new Error('OpenAI API quota exceeded. Please update your API key or try again later.');
-        } else if (errorMessage.includes('rate limit')) {
-          throw new Error('OpenAI API rate limit exceeded. Please try again in a few minutes.');
-        } else if (errorMessage.includes('authentication') || errorMessage.includes('invalid api key')) {
-          throw new Error('OpenAI API authentication error. Please check your API key.');
-        }
-      }
+    // For API errors, return a structured error message
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate grocery list: ${error.message}`);
     }
     
-    // Don't fallback to dummy grocery list, throw a detailed error
-    console.error('[GROCERY] OpenAI API error occurred, not falling back to dummy data');
-    throw new Error('Error connecting to OpenAI API to generate grocery list. Please check your connection and try again.');
+    // For other unexpected errors
+    throw new Error('Unexpected error generating grocery list');
   }
 }
 
@@ -766,34 +765,57 @@ export async function generateGroceryList(mealPlan: any): Promise<any[]> {
  * Modify a meal based on user requirements
  */
 export async function modifyMeal(meal: any, modificationRequest: string, retryCount: number = 0): Promise<any> {
-  if (!hasValidApiKey()) {
-    console.log('[MEAL MODIFICATION] No valid OpenAI API key available');
-    throw new Error("OpenAI API key is required for this operation");
-  }
-  
-  // Safety check to prevent infinite recursion
-  if (retryCount >= 3) {
-    console.warn(`[MEAL MODIFICATION] Maximum retry attempts (${retryCount}) reached for modifying "${meal.name}". Returning best attempt.`);
-    // Return the meal anyway, even with quality issues
-    return meal;
-  }
-
   try {
-    // Get household data
-    const household = await getHouseholdData();
+    // Safety check to prevent infinite recursion
+    if (retryCount >= 3) {
+      console.warn(`[MODIFY] Maximum retry attempts (${retryCount}) reached for modification. Returning best attempt.`);
+      const errorMessage = "Maximum retry attempts reached. Please try a different modification.";
+      throw new Error(errorMessage);
+    }
+    
+    // Validate that we have a valid meal to modify
+    if (!meal || !meal.name || !meal.ingredients) {
+      throw new Error("Invalid meal data provided for modification");
+    }
+    
+    // For demo purposes with no valid API key, simply return the original meal
+    if (!hasValidApiKey()) {
+      console.log('[MODIFY] No valid OpenAI API key, returning original meal with modification note');
+      return {
+        ...meal,
+        name: `${meal.name} (Modified for ${modificationRequest})`,
+        modificationRequest,
+        modifiedFrom: meal.name
+      };
+    }
     
     // Get weather context if location is available
     let weatherContext = "";
+    const household = await getHouseholdData();
     if (household && household.location) {
       try {
         weatherContext = await getWeatherContextForMealPlanning(household.location);
-        console.log(`[MEAL MODIFICATION] Retrieved weather context for ${household.location}`);
+        console.log(`[MODIFY] Retrieved weather context for ${household.location}`);
       } catch (weatherError) {
-        console.error("[MEAL MODIFICATION] Error getting weather context:", weatherError);
+        console.error('[MODIFY] Error getting weather context:', weatherError);
         weatherContext = "Weather information is not available.";
       }
     }
     
+    // Prepare the meal data for modification
+    const mealToModify = normalizeMeal(meal);
+    
+    // Add a specific note about the current meal's quality issues if any
+    let qualityNotes = "";
+    if (mealToModify._qualityIssues && mealToModify._qualityIssues.length > 0) {
+      qualityNotes = `IMPORTANT: Fix these quality issues while applying the modification: ${mealToModify._qualityIssues.join('; ')}`;
+    }
+    
+    // Log the modification request for debugging
+    console.log(`[MODIFY] Modifying meal "${mealToModify.name}" with request: ${modificationRequest}`);
+    console.log(`[MODIFY] Quality notes: ${qualityNotes || 'None'}`);
+    
+    // Create the request to OpenAI
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -873,237 +895,27 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
         },
         {
           role: "user",
-          content: `I need to modify this meal: ${JSON.stringify(meal)}.
+          content: `Please modify this meal according to this request: "${modificationRequest}".
           
-          Please modify it according to this request: "${modificationRequest}"
+          ${qualityNotes}
           
-          The modified meal should include detailed ingredients with quantities and step-by-step instructions.
-          Return your response as a single JSON object with the properties specified in the system message.`
-        }
-      ],
-      temperature: 0.5,
-      max_tokens: 2000,
-      response_format: { type: "json_object" },
-    });
-    
-    try {
-      const content = response.choices[0].message.content || "{}";
-      console.log('[MEAL MODIFICATION] Raw response content:', content);
-      
-      // Parse the JSON response
-      let modifiedMeal = JSON.parse(content);
-      
-      // Process the modified meal data
-      // Add the original meal's ID if not present
-      if (!modifiedMeal.id && meal.id) {
-        modifiedMeal.id = meal.id;
-      }
-      
-      // Set modification metadata
-      modifiedMeal.modificationRequest = modificationRequest;
-      modifiedMeal.modifiedFrom = meal.name;
-      
-      // Ensure we have the necessary fields from the original if they're missing
-      if (!modifiedMeal.categories && meal.categories) {
-        modifiedMeal.categories = meal.categories;
-      }
-      
-      // Normalize property names for consistency
-      if (modifiedMeal.directions && Array.isArray(modifiedMeal.directions) && !modifiedMeal.instructions) {
-        modifiedMeal.instructions = modifiedMeal.directions;
-        console.log(`[MEAL MODIFICATION] Normalized directions → instructions for modified meal: ${modifiedMeal.name}`);
-      }
-      
-      // Normalize ingredient lists
-      if (modifiedMeal.mainIngredients && Array.isArray(modifiedMeal.mainIngredients) && !modifiedMeal.ingredients) {
-        modifiedMeal.ingredients = modifiedMeal.mainIngredients;
-        console.log(`[MEAL MODIFICATION] Normalized mainIngredients → ingredients for modified meal: ${modifiedMeal.name}`);
-      }
-      
-      // Validate the meal quality
-      const validationResult = validateMealQuality(modifiedMeal);
-      if (!validationResult.isValid) {
-        console.warn(`[MEAL MODIFICATION] Quality validation failed for modified meal "${modifiedMeal.name}":`, validationResult.issues);
-        
-        // Store issues for reference
-        modifiedMeal._qualityIssues = validationResult.issues;
-        
-        // ALL validation issues are critical for meal modifications
-        const criticalIssues = validationResult.issues;
-        
-        // Always retry at least once for modifications if there are any issues
-        if (criticalIssues.length > 0 && retryCount < 3) {
-          console.log(`[MEAL MODIFICATION] Quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
-          console.log(`[MEAL MODIFICATION] Issues to fix: ${criticalIssues.join(", ")}`);
+          Original Meal:
+          Name: ${mealToModify.name}
+          Description: ${mealToModify.description || 'No description provided'}
+          Day: ${mealToModify.day || 'Not specified'}
+          Category: ${mealToModify.category || 'Not specified'}
+          Categories: ${JSON.stringify(mealToModify.categories || [])}
+          Prep Time: ${mealToModify.prepTime || 0} minutes
+          Servings: ${mealToModify.servings || 4}
           
-          // Create a more specific prompt for regeneration based on issues
-          const improvementPrompt = {
-            ...meal,
-            name: modifiedMeal.name, // Keep the modified name but improve the quality
-            regenerationNotes: `IMPORTANT: This recipe FAILED quality validation. Please completely rewrite it to fix these issues: ${criticalIssues.join(", ")}. 
-            
-            The modification request was: "${modificationRequest}".
-            
-            CRITICAL REQUIREMENTS:
-            1. Include AT LEAST 10 ingredients with SPECIFIC measurements
-            2. Write EXACTLY 10-12 detailed instruction steps
-            3. Each step must begin with a specific action verb
-            4. Include EXACT cooking times and temperatures for EVERY cooking step
-            5. Include specific visual/sensory cues for doneness (e.g., "golden brown and crispy")
-            6. Explain any cooking technique like "fold", "deglaze", etc. with a detailed explanation
-            7. ABSOLUTELY NO generic instructions like "cook until done" or "standard procedure"
-            8. Each step must be a detailed sentence of at least 15-20 words
-            9. If baking/roasting, specify exact temperature (e.g., "375°F for 25 minutes")
-            10. If cooking meat, specify internal temperature (e.g., "165°F for chicken")
-            
-            The previous recipe didn't meet standards. Please write a COMPLETELY NEW and FULLY DETAILED recipe.`
-          };
+          Ingredients:
+          ${mealToModify.ingredients ? mealToModify.ingredients.map((i: string) => `- ${i}`).join('\n') : 'No ingredients provided'}
           
-          // Retry with the improved prompt and same modification request
-          return await modifyMeal(improvementPrompt, modificationRequest, retryCount + 1);
-        }
-        
-        console.log(`[MEAL MODIFICATION] Proceeding with meal despite quality issues (${retryCount} retries attempted)`);
-      } else {
-        console.log(`[MEAL MODIFICATION] Meal "${modifiedMeal.name}" passed quality validation`);
-      }
-      
-      // Improve instructions quality post-generation
-      const improvedMeal = improveRecipeInstructions(modifiedMeal);
-      
-      console.log(`[MEAL MODIFICATION] Successfully modified "${meal.name}" to "${improvedMeal.name}"`);
-      return improvedMeal;
-      
-    } catch (parseError) {
-      console.error('[MEAL MODIFICATION] Error parsing OpenAI response:', parseError);
-      throw new Error('Failed to parse modified meal response from OpenAI. Please try again.');
-    }
-  } catch (error) {
-    console.error("Error modifying meal:", error);
-    if (error instanceof Error) {
-      throw error; // Re-throw the error with its original message
-    }
-    throw new Error('Failed to modify meal. Please try again.');
-  }
-}
-
-/**
- * Generate a completely new replacement meal based on the criteria of the original
- */
-export async function replaceMeal(meal: any, retryCount: number = 0): Promise<any> {
-  if (!hasValidApiKey()) {
-    console.log('[MEAL REPLACEMENT] No valid OpenAI API key available');
-    throw new Error("OpenAI API key is required for this operation");
-  }
-
-  // Safety check to prevent infinite recursion
-  if (retryCount >= 3) {
-    console.warn(`[MEAL REPLACEMENT] Maximum retry attempts (${retryCount}) reached for replacing "${meal.name}". Returning best attempt.`);
-    // Return the meal anyway, even with quality issues
-    return meal;
-  }
-
-  try {
-    // Get household data for context
-    const household = await getHouseholdData();
-    
-    // Get weather context if location is available
-    let weatherContext = "";
-    if (household && household.location) {
-      try {
-        weatherContext = await getWeatherContextForMealPlanning(household.location);
-        console.log(`[MEAL REPLACEMENT] Retrieved weather context for ${household.location}`);
-      } catch (weatherError) {
-        console.error("[MEAL REPLACEMENT] Error getting weather context:", weatherError);
-        weatherContext = "Weather information is not available.";
-      }
-    }
-    
-    // Create the request to OpenAI
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `You are a professional chef and recipe writer creating precise, detailed recipes for home cooks.
-          Your goal is to generate a completely new meal that fulfills the same role as the original but provides variety.
+          Instructions:
+          ${mealToModify.instructions ? mealToModify.instructions.map((i: string, idx: number) => `${idx + 1}. ${i}`).join('\n') : 'No instructions provided'}
           
-          REPLACEMENT APPROACH:
-          - Generate a completely new meal in the same category as the original
-          - Use a similar cooking method but with different ingredients
-          - Maintain approximately the same prep time (±5 minutes)
-          - Create beautiful, detailed recipes in the style of Hello Fresh with clear, step-by-step instructions
-          
-          Family profile:
-          ${household ? `- Family size: ${household.members.length} people
-          - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
-          - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
-          - Cooking skill level (1-5): ${household.cookingSkill || 3}
-          - Preferences: ${household.preferences || "Family-friendly meals"}
-          - Location: ${household.location || "Unknown location"}` : 'Family profile not available.'}
-          
-          ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
-          
-          CRITICAL QUALITY REQUIREMENTS - YOUR RECIPE MUST INCLUDE ALL OF THESE:
-          1. EXACTLY 10-15 detailed ingredients with specific measurements
-          2. EXACTLY 10-12 detailed instructions steps
-          3. EVERY step must begin with a specific action verb
-          4. EVERY cooking step must include precise times and temperatures
-          5. Include specific visual/sensory cues for doneness
-          6. NO generic phrases like "cook until done" or "standard procedure"
-          7. EVERY cooking technique must include an explanation
-          8. Each instruction must be a detailed sentence of 15+ words
-          
-          OUTPUT FORMAT REQUIREMENTS:
-          Every meal MUST include these exact camelCase field names:
-          - name: Name of the dish
-          - description: Description of the dish (2-3 sentences)
-          - day: Day of the week (same as original)
-          - categories: Array of meal categories (same as original)
-          - prepTime: Preparation time in minutes
-          - servings: Number of servings
-
-          FOR INGREDIENTS:
-          - ingredients: Array of ingredients with quantities
-            * THIS IS CRITICAL: Include EXACTLY 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
-            * Include all seasonings, oils, and garnishes with specific quantities
-            * Every single ingredient mentioned in the instructions MUST be listed here
-            * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
-            * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
-          
-          FOR INSTRUCTIONS:
-          - instructions: Array of step-by-step instructions (EXACTLY 10-12 detailed steps)
-            * EVERY instruction must begin with a strong, specific action verb (e.g., "Heat", "Stir", "Whisk")
-            * Include EXACT cooking times, temperatures, and methods for EVERY step with specific numbers (e.g., "Sauté over medium-high heat for exactly 4-5 minutes" not "Sauté until done")
-            * Include EXACT time and temperature for any oven, slow cooker, or instant pot steps (e.g., "Bake at 375°F for 25-30 minutes" not "Bake until done")
-            * For EVERY ingredient, specify EXACT quantities when used (e.g., "Add 2 tablespoons of olive oil" not "Add oil")
-            * EXPLICITLY state minimum internal cooking temperatures (165°F for chicken/poultry, 145°F for fish, 160°F for ground meat)
-            * ALWAYS provide multiple sensory cues for doneness (e.g., "until golden brown, crispy on edges, and internal temperature reaches 165°F, about 5-6 minutes")
-            * CLEARLY describe what the food should look like at EACH critical stage with visual and textural details (e.g., "the sauce should be glossy and thick enough to coat the back of a spoon")
-            * NEVER use generic steps like "cook according to standard procedure" - EVERY step must be explicit and detailed
-            * EVERY specialized cooking technique (fold, deglaze, sauté, broil, etc.) MUST include a parenthetical explanation (e.g., "Deglaze the pan (pour liquid into hot pan to loosen browned bits)")
-            * For mixed dishes, include SPECIFIC assembly instructions with exact measurements and layering (e.g., "Spread exactly 1 cup of sauce on bottom of dish, layer with 6 lasagna noodles slightly overlapping")
-            * Format each instruction as a detailed, specific sentence of at least 15 words with measurements, cooking methods, times, and sensory cues
-          
-          - rationales: Array of 2-3 reasons why this replacement works well
-          - replacedFrom: The name of the original meal
-
-          WARNING: Your recipe will be strictly validated against all these requirements. If ANY requirement is missing, your recipe will be rejected. The ingredients list must be thorough - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
-          
-          Return your response as a single JSON object with these properties.`
-        },
-        {
-          role: "user",
-          content: `I need to replace this meal with something completely different but in the same category: ${JSON.stringify(meal)}.
-          
-          Generate a new meal that:
-          - Uses the same cooking methods (e.g., if original used a slow cooker, new one should too)
-          - Has similar prep and cook time
-          - Is in the same meal category
-          - Uses different primary ingredients for variety
-          
-          The new meal should include detailed ingredients with quantities and step-by-step instructions.
-          Return your response as a single JSON object with the properties specified in the system message.`
+          Rationales:
+          ${mealToModify.rationales ? mealToModify.rationales.map((r: string) => `- ${r}`).join('\n') : 'No rationales provided'}`
         }
       ],
       temperature: 0.7,
@@ -1112,123 +924,209 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
     });
     
     try {
+      // Parse the response
       const content = response.choices[0].message.content || "{}";
-      console.log('[MEAL REPLACEMENT] Raw response content:', content);
+      console.log('[MODIFY] Response received, parsing content');
       
-      // Parse the JSON response
-      let replacementMeal = JSON.parse(content);
+      const modifiedMeal = JSON.parse(content);
       
-      // Generate a new ID for the replacement meal
-      replacementMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
-      // Set replacement metadata
-      replacementMeal.replacedFrom = meal.name;
-      
-      // Ensure we have the day from the original if it's missing
-      if (!replacementMeal.day && meal.day) {
-        replacementMeal.day = meal.day;
+      // Ensure we have a valid meal object
+      if (!modifiedMeal || !modifiedMeal.name || !modifiedMeal.ingredients) {
+        console.error('[MODIFY] Invalid response received:', content);
+        throw new Error('Invalid response format');
       }
       
-      // Ensure categories is an array
-      if (!Array.isArray(replacementMeal.categories)) {
-        // If categories exists but isn't an array, convert it
-        if (replacementMeal.categories) {
-          replacementMeal.categories = [replacementMeal.categories];
-        } 
-        // If no categories, use the original meal's categories
-        else if (meal.categories) {
-          replacementMeal.categories = meal.categories;
-        }
-        // Fallback to a default category
-        else {
-          replacementMeal.categories = ["dinner"];
-        }
-      }
+      console.log(`[MODIFY] Successfully modified meal: ${modifiedMeal.name}`);
+      
+      // Add unique ID and preserve original ID for reference
+      modifiedMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      modifiedMeal.modifiedFrom = meal.name;
+      modifiedMeal.originalId = meal.id;
       
       // Normalize property names for consistency
-      if (replacementMeal.directions && Array.isArray(replacementMeal.directions) && !replacementMeal.instructions) {
-        replacementMeal.instructions = replacementMeal.directions;
-        console.log(`[MEAL REPLACEMENT] Normalized directions → instructions for replacement meal: ${replacementMeal.name}`);
-      }
+      const normalizedMeal = normalizeMeal(modifiedMeal);
       
-      // Normalize ingredient lists
-      if (replacementMeal.mainIngredients && Array.isArray(replacementMeal.mainIngredients) && !replacementMeal.ingredients) {
-        replacementMeal.ingredients = replacementMeal.mainIngredients;
-        console.log(`[MEAL REPLACEMENT] Normalized mainIngredients → ingredients for replacement meal: ${replacementMeal.name}`);
-      }
-      
-      // Validate the meal quality
-      const validationResult = validateMealQuality(replacementMeal);
+      // Validate quality and possibly retry if it fails standards
+      const validationResult = validateMealQuality(normalizedMeal);
       if (!validationResult.isValid) {
-        console.warn(`[MEAL REPLACEMENT] Quality validation failed for replacement meal "${replacementMeal.name}":`, validationResult.issues);
+        console.log(`[MODIFY] Quality issues detected in modified meal: ${validationResult.issues.join(', ')}`);
         
-        // Store issues for reference
-        replacementMeal._qualityIssues = validationResult.issues;
-        
-        // ALL validation issues are critical for replacements
-        const criticalIssues = validationResult.issues;
-        
-        // Always retry at least once for replacements if there are any issues
-        if (criticalIssues.length > 0 && retryCount < 3) {
-          console.log(`[MEAL REPLACEMENT] Quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
-          console.log(`[MEAL REPLACEMENT] Issues to fix: ${criticalIssues.join(", ")}`);
+        if (retryCount < 2) { // Allow up to 3 total attempts (0, 1, 2)
+          console.log(`[MODIFY] Retrying modification with quality feedback (attempt ${retryCount + 1})`);
           
-          // Create a more specific prompt for regeneration based on issues
-          const improvementPrompt = {
-            ...meal,
-            regenerationNotes: `IMPORTANT: This recipe FAILED quality validation. Please completely rewrite it to fix these issues: ${criticalIssues.join(", ")}. 
-            
-            CRITICAL REQUIREMENTS:
-            1. Include AT LEAST 10 ingredients with SPECIFIC measurements
-            2. Write EXACTLY 10-12 detailed instruction steps
-            3. Each step must begin with a specific action verb
-            4. Include EXACT cooking times and temperatures for EVERY cooking step
-            5. Include specific visual/sensory cues for doneness (e.g., "golden brown and crispy")
-            6. Explain any cooking technique like "fold", "deglaze", etc. with a detailed explanation
-            7. ABSOLUTELY NO generic instructions like "cook until done" or "standard procedure"
-            8. Each step must be a detailed sentence of at least 15-20 words
-            9. If baking/roasting, specify exact temperature (e.g., "375°F for 25 minutes")
-            10. If cooking meat, specify internal temperature (e.g., "165°F for chicken")
-            
-            The previous recipe didn't meet standards. Please write a COMPLETELY NEW and FULLY DETAILED recipe.`
-          };
+          // Add quality issues to the meal for feedback in the next attempt
+          normalizedMeal._qualityIssues = validationResult.issues;
           
-          // Retry with the improved prompt
-          return await replaceMeal(improvementPrompt, retryCount + 1);
+          // Retry with the same parameters plus quality feedback
+          return modifyMeal(normalizedMeal, `${modificationRequest} AND fix quality issues: ${validationResult.issues.join('; ')}`, retryCount + 1);
         }
         
-        console.log(`[MEAL REPLACEMENT] Proceeding with meal despite quality issues (${retryCount} retries attempted)`);
-      } else {
-        console.log(`[MEAL REPLACEMENT] Meal "${replacementMeal.name}" passed quality validation`);
+        // If we've reached max retries, return the meal but mark it for regeneration
+        normalizedMeal._qualityIssues = validationResult.issues;
+        normalizedMeal._needsRegeneration = true;
       }
       
-      // Improve instructions quality post-generation
-      const improvedMeal = improveRecipeInstructions(replacementMeal);
+      // Improve recipe instructions
+      const improvedMeal = improveRecipeInstructions(normalizedMeal);
       
-      console.log(`[MEAL REPLACEMENT] Successfully replaced "${meal.name}" with "${improvedMeal.name}"`);
       return improvedMeal;
       
-    } catch (parseError) {
-      console.error('[MEAL REPLACEMENT] Error parsing OpenAI response:', parseError);
-      throw new Error('Failed to parse replacement meal response from OpenAI. Please try again.');
+    } catch (error) {
+      console.error("[MODIFY] Error parsing modification response:", error);
+      
+      // If we have retry attempts left, try again
+      if (retryCount < 2) {
+        console.log(`[MODIFY] Retrying meal modification (attempt ${retryCount + 1})`);
+        return modifyMeal(meal, modificationRequest, retryCount + 1);
+      }
+      
+      throw new Error(`Failed to modify meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   } catch (error) {
-    console.error("Error replacing meal:", error);
+    console.error("[MODIFY] Error in meal modification:", error);
+    
+    // For specific known errors, return clear error message
     if (error instanceof Error) {
-      throw error; // Re-throw the error with its original message
+      throw new Error(`Error modifying meal: ${error.message}`);
     }
-    throw new Error('Failed to generate replacement meal. Please try again.');
+    
+    // For other types of errors
+    throw new Error('Unexpected error occurred while modifying meal');
   }
 }
 
-// Helper function to get household data
+/**
+ * Generate a completely new replacement meal based on the criteria of the original
+ */
+export async function replaceMeal(meal: any, retryCount: number = 0): Promise<any> {
+  try {
+    // Validate input
+    if (!meal || !meal.name) {
+      throw new Error("Invalid meal data provided for replacement");
+    }
+    
+    // Prevent infinite recursion
+    if (retryCount >= 3) {
+      console.warn(`[REPLACE] Maximum retry attempts (${retryCount}) reached for replacement.`);
+      throw new Error("Maximum retry attempts reached. Please try again later.");
+    }
+    
+    // For demo purposes with no valid API key, return a canned meal
+    if (!hasValidApiKey()) {
+      console.log('[REPLACE] No valid OpenAI API key, using dummy replacement');
+      
+      // Take a copy of the original meal and modify it slightly
+      const dummyMeal = {
+        ...meal,
+        id: `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: `${meal.name} (Replaced Version)`,
+        description: `A variation of ${meal.name} that provides similar nutrition but a different flavor profile.`,
+        replacedFrom: meal.name,
+        originalId: meal.id
+      };
+      
+      return dummyMeal;
+    }
+    
+    console.log(`[REPLACE] Generating replacement for meal "${meal.name}"`);
+    
+    // Prepare replacement preferences (using meal's existing categories and other attributes)
+    const normalizedMeal = normalizeMeal(meal);
+    
+    const categories = normalizedMeal.categories || [];
+    if (normalizedMeal.category && !categories.includes(normalizedMeal.category)) {
+      categories.push(normalizedMeal.category);
+    }
+    
+    const replacementPreferences = {
+      replaceMeal: true,
+      mealName: normalizedMeal.name,
+      categories: categories,
+      day: normalizedMeal.day || null,
+      prepTime: normalizedMeal.prepTime || 30,
+      servings: normalizedMeal.servings || 4
+    };
+    
+    // Get household data for context
+    const household = await getHouseholdData();
+    
+    // Use the standard meal plan generation but with specific replacementPreferences
+    let replacementMeals = await generateMealPlan(household, replacementPreferences, retryCount);
+    
+    // If we got multiple meals (shouldn't happen, but just in case), take the first one
+    let replacementMeal = Array.isArray(replacementMeals) && replacementMeals.length > 0 
+      ? replacementMeals[0]
+      : null;
+    
+    // Validate we got a useful replacement
+    if (!replacementMeal || !replacementMeal.name) {
+      console.error('[REPLACE] Failed to generate a valid replacement meal');
+      
+      if (retryCount < 2) {
+        console.log(`[REPLACE] Retrying replacement (attempt ${retryCount + 1})`);
+        return replaceMeal(meal, retryCount + 1);
+      }
+      
+      throw new Error('Failed to generate a valid replacement meal');
+    }
+    
+    // Add metadata about the replacement relationship
+    replacementMeal.replacedFrom = normalizedMeal.name;
+    replacementMeal.originalId = normalizedMeal.id;
+    
+    // Validate quality standards
+    const validationResult = validateMealQuality(replacementMeal);
+    if (!validationResult.isValid) {
+      console.log(`[REPLACE] Quality issues detected in replacement: ${validationResult.issues.join(', ')}`);
+      
+      if (retryCount < 2) {
+        console.log(`[REPLACE] Retrying replacement with quality feedback (attempt ${retryCount + 1})`);
+        
+        // Add quality marker to trigger regeneration
+        replacementMeal._qualityIssues = validationResult.issues;
+        
+        // Retry
+        return replaceMeal(meal, retryCount + 1);
+      }
+      
+      // If we've reached max retries, return the meal but mark it for regeneration
+      replacementMeal._qualityIssues = validationResult.issues;
+      replacementMeal._needsRegeneration = true;
+    }
+    
+    // Improve recipe instructions
+    const improvedMeal = improveRecipeInstructions(replacementMeal);
+    
+    console.log(`[REPLACE] Successfully generated replacement: ${improvedMeal.name}`);
+    return improvedMeal;
+    
+  } catch (error) {
+    console.error('[REPLACE] Error generating replacement meal:', error);
+    
+    if (error instanceof Error) {
+      throw new Error(`Error replacing meal: ${error.message}`);
+    }
+    
+    throw new Error('Unexpected error occurred while replacing meal');
+  }
+}
+
 async function getHouseholdData() {
   try {
-    // Import the storage from the current module context
-    const { storage } = await import('./storage');
-    return await storage.getHousehold();
+    // This is a stub - in a real implementation, this would get actual household data from storage
+    // For now, we'll return a simple structure
+    return {
+      members: [
+        { name: "Adult", age: 35, dietaryRestrictions: "" },
+        { name: "Child", age: 10, dietaryRestrictions: "" }
+      ],
+      appliances: ["ovenStovetop", "microwave", "slowCooker"],
+      cookingSkill: 3,
+      preferences: "Family-friendly meals",
+      location: "New York, NY"
+    };
   } catch (error) {
-    console.error('Error getting household data:', error);
+    console.error("Error retrieving household data:", error);
     return null;
   }
 }
@@ -1238,179 +1136,75 @@ async function getHouseholdData() {
  * This is a post-processing step to fix common issues
  */
 function improveRecipeInstructions(recipe: any): any {
-  if (!recipe || !recipe.instructions || !Array.isArray(recipe.instructions)) {
-    return recipe;
+  if (!recipe) return recipe;
+  
+  // Create a copy of the recipe to avoid modifying the original
+  const improvedRecipe = { ...recipe };
+  
+  // Convert directions to instructions if needed (backwards compatibility)
+  if (improvedRecipe.directions && (!improvedRecipe.instructions || improvedRecipe.instructions.length === 0)) {
+    improvedRecipe.instructions = improvedRecipe.directions;
   }
   
-  // Deep clone to avoid modifying the original
-  const improvedRecipe = JSON.parse(JSON.stringify(recipe));
-  let modified = false;
-  let modificationsApplied = [];
+  // If we don't have instructions, we can't improve them
+  if (!improvedRecipe.instructions || !Array.isArray(improvedRecipe.instructions)) {
+    return improvedRecipe;
+  }
   
-  // Check for and fix "standard procedures" instruction
-  improvedRecipe.instructions = improvedRecipe.instructions.map((step: string, index: number) => {
-    if (typeof step !== 'string') return step;
-    let updatedStep = step;
-    let stepModified = false;
+  // Fix common issues in instructions
+  improvedRecipe.instructions = improvedRecipe.instructions.map((instruction: string) => {
+    // Ensure string type
+    if (typeof instruction !== 'string') return instruction;
     
-    // Fix generic cooking phrases
-    const genericPhrases = [
-      { pattern: /standard procedure(s)?/i, detected: false },
-      { pattern: /cook until done/i, detected: false },
-      { pattern: /cook as usual/i, detected: false },
-      { pattern: /cook according to/i, detected: false },
-      { pattern: /for this type of dish/i, detected: false },
-      { pattern: /until cooked through/i, detected: false },
-      { pattern: /until ready/i, detected: false },
-      { pattern: /to taste/i, detected: false }
-    ];
+    let improved = instruction;
     
-    // Check if any generic phrases are in this step
-    genericPhrases.forEach(phrase => {
-      if (updatedStep.match(phrase.pattern)) {
-        phrase.detected = true;
-      }
-    });
-    
-    // If we found generic phrases, replace them with specific instructions
-    if (genericPhrases.some(phrase => phrase.detected)) {
-      // Different replacements based on dish type
-      if (recipe.name?.toLowerCase().includes('stir fry') || 
-          recipe.description?.toLowerCase().includes('stir-fry') || 
-          recipe.description?.toLowerCase().includes('stir fry')) {
-        // Stir fry replacement
-        updatedStep = "Heat a wok or large skillet over high heat for 1 minute until you can feel the heat radiating when you hold your hand 6 inches above the surface. Add 1 tablespoon oil and swirl to coat the pan evenly. Add the protein and stir-fry for 4-5 minutes until golden brown and cooked through (internal temperature 165°F for chicken, 145°F for seafood). You'll know it's done when the meat is no longer pink in the center and has a slight char on the edges.";
-        stepModified = true;
-      } else if (recipe.name?.toLowerCase().includes('chicken') || 
-                recipe.ingredients?.some((ing: string) => typeof ing === 'string' && ing.toLowerCase().includes('chicken'))) {
-        // Chicken dish replacement
-        updatedStep = "Cook the chicken over medium-high heat for 6-8 minutes, turning occasionally, until the chicken is completely cooked through and reaches an internal temperature of 165°F when tested with a meat thermometer. The chicken should be golden brown on the outside with no pink remaining in the center, and the juices should run clear when pierced with a fork.";
-        stepModified = true;
-      } else if (recipe.name?.toLowerCase().includes('pasta') || 
-                recipe.ingredients?.some((ing: string) => typeof ing === 'string' && ing.toLowerCase().includes('pasta'))) {
-        // Pasta dish replacement
-        updatedStep = "Cook the pasta in the boiling water for exactly the time indicated on the package (typically 8-10 minutes for dried pasta), stirring occasionally to prevent sticking. Test a piece 1 minute before the suggested cooking time - it should be 'al dente' (tender but still firm when bitten, not mushy). Reserve 1/2 cup of pasta water before draining thoroughly in a colander.";
-        stepModified = true;
-      } else if (recipe.name?.toLowerCase().includes('beef') || 
-                recipe.ingredients?.some((ing: string) => typeof ing === 'string' && ing.toLowerCase().includes('beef'))) {
-        // Beef dish replacement
-        updatedStep = "Cook the beef over medium-high heat for 4-5 minutes per side for medium-rare (internal temperature of 135°F) or 5-6 minutes per side for medium (internal temperature of 145°F). The beef should develop a dark brown crust on the outside while remaining juicy inside. Let the meat rest for 5 minutes before slicing to allow juices to redistribute.";
-        stepModified = true;
-      } else {
-        // General replacement for other dishes
-        updatedStep = "Cook over medium-high heat for 6-8 minutes, stirring occasionally, until food is completely cooked through and reaches appropriate internal temperature (165°F for chicken/poultry, 145°F for fish, 160°F for ground meat). The food should be golden brown on the outside and no longer raw or pink on the inside. You'll know it's done when it's firm to the touch and the juices run clear.";
-        stepModified = true;
-      }
-      
-      if (stepModified) {
-        modificationsApplied.push(`Fixed generic cooking phrase in step ${index + 1}`);
-      }
+    // Fix generic instructions
+    if (improved.toLowerCase().includes('cook according to')) {
+      improved = improved.replace(/cook according to .+/i, 'cook over medium heat for 5-7 minutes, stirring occasionally, until fully cooked through and no longer pink in the center');
     }
     
-    // Add missing timing information if needed
-    if (!stepModified && 
-        (updatedStep.toLowerCase().includes('cook') || 
-         updatedStep.toLowerCase().includes('bake') || 
-         updatedStep.toLowerCase().includes('roast') || 
-         updatedStep.toLowerCase().includes('simmer') || 
-         updatedStep.toLowerCase().includes('boil')) && 
-        !/(for\s+)?\d+[\-–]?\d*\s*(min|minute|sec|second|hour)/i.test(updatedStep)) {
-      
-      // Add generic timing based on cooking method
-      if (updatedStep.toLowerCase().includes('boil')) {
-        updatedStep += " Continue boiling for 8-10 minutes until fully cooked.";
-        modificationsApplied.push(`Added missing timing information to step ${index + 1} (boil)`);
-        stepModified = true;
-      } else if (updatedStep.toLowerCase().includes('simmer')) {
-        updatedStep += " Allow to simmer for 15-20 minutes until the flavors meld together and the liquid reduces slightly.";
-        modificationsApplied.push(`Added missing timing information to step ${index + 1} (simmer)`);
-        stepModified = true;
-      } else if (updatedStep.toLowerCase().includes('bake') || updatedStep.toLowerCase().includes('roast')) {
-        updatedStep += " Bake for 25-30 minutes until golden brown on top and completely cooked through.";
-        modificationsApplied.push(`Added missing timing information to step ${index + 1} (bake/roast)`);
-        stepModified = true;
-      } else if (updatedStep.toLowerCase().includes('cook')) {
-        updatedStep += " Cook for 5-7 minutes until fully cooked through and golden brown.";
-        modificationsApplied.push(`Added missing timing information to step ${index + 1} (general cooking)`);
-        stepModified = true;
-      }
+    if (improved.toLowerCase().includes('salt and pepper to taste')) {
+      improved = improved.replace(/salt and pepper to taste/i, 'season with 1/2 teaspoon salt and 1/4 teaspoon freshly ground black pepper');
     }
     
-    // Add cooking technique explanations if needed
-    const techniques = [
-      { term: 'fold', explanation: '(gently incorporate by using a spatula to cut down through the mixture and turn it over onto itself)' },
-      { term: 'deglaze', explanation: '(pour liquid into the hot pan to dissolve the browned food residue from the bottom)' },
-      { term: 'sauté', explanation: '(cook quickly in a small amount of oil over high heat while stirring or tossing)' },
-      { term: 'blanch', explanation: '(briefly immerse in boiling water then transfer to ice water to stop the cooking process)' },
-      { term: 'braise', explanation: '(cook slowly in a small amount of liquid in a covered pot)' },
-      { term: 'score', explanation: '(make shallow cuts on the surface in a diamond or crosshatch pattern)' }
-    ];
-    
-    techniques.forEach(technique => {
-      if (updatedStep.toLowerCase().includes(technique.term) && 
-          !updatedStep.toLowerCase().includes(technique.explanation.toLowerCase()) &&
-          !updatedStep.match(/\([^)]{10,}\)/)) {
-        
-        // Find the term and add the explanation after it
-        const regex = new RegExp(`(${technique.term})`, 'i');
-        updatedStep = updatedStep.replace(regex, `$1 ${technique.explanation}`);
-        modificationsApplied.push(`Added explanation for "${technique.term}" in step ${index + 1}`);
-        stepModified = true;
-      }
-    });
-    
-    // If any modifications were made to this step, mark the recipe as modified
-    if (stepModified) {
-      modified = true;
+    if (improved.toLowerCase().includes('follow package instructions')) {
+      improved = improved.replace(/follow package instructions/i, 'cook according to these specific directions: bring 4 cups of water to a boil, add the ingredient, reduce heat to medium-low, and simmer for 10-12 minutes until tender');
     }
     
-    return updatedStep;
-  });
-  
-  // If we have fewer than 10 instructions, try to break up longer steps
-  if (improvedRecipe.instructions.length < 10) {
-    const expandableSteps = improvedRecipe.instructions
-      .map((step: string, index: number) => ({ step, index, length: step.length }))
-      .filter((item: any) => item.length > 100)  // Only consider long steps
-      .sort((a: any, b: any) => b.length - a.length);  // Sort by length descending
-    
-    if (expandableSteps.length > 0) {
-      // Try to expand the longest step by looking for multiple sentences or conjunctions
-      const targetStep = expandableSteps[0];
-      const stepText = targetStep.step;
-      
-      // Look for sentences ending with period, question mark, or exclamation point followed by a space and capital letter
-      let splitSteps = stepText.split(/(?<=[.!?])\s+(?=[A-Z])/);
-      
-      // If we couldn't split by sentences, try splitting by conjunctions
-      if (splitSteps.length === 1) {
-        splitSteps = stepText.split(/,\s*(and|then|while|after|before)\s+/i);
-      }
-      
-      // If we successfully split the step and have at least 2 parts
-      if (splitSteps.length > 1) {
-        // Replace the original step with the first part
-        improvedRecipe.instructions[targetStep.index] = splitSteps[0];
-        
-        // Insert the remaining parts as new steps
-        for (let i = 1; i < splitSteps.length; i++) {
-          improvedRecipe.instructions.splice(targetStep.index + i, 0, splitSteps[i]);
+    // Break down overly long instructions
+    if (improved.length > 200 && improved.includes(', then')) {
+      const parts = improved.split(', then');
+      if (parts.length >= 2) {
+        // Only use the first part with proper capitalization and punctuation
+        improved = parts[0].trim();
+        if (!improved.endsWith('.')) {
+          improved += '.';
         }
-        
-        modified = true;
-        modificationsApplied.push(`Broke up step ${targetStep.index + 1} into ${splitSteps.length} separate steps`);
       }
     }
-  }
-  
-  if (modified) {
-    console.log(`[RECIPE IMPROVE] Fixed ${modificationsApplied.length} issues in recipe: ${recipe.name}`);
-    console.log(`[RECIPE IMPROVE] Modifications: ${modificationsApplied.join(', ')}`);
     
-    // Add quality improvement metadata
-    improvedRecipe._recipeImproved = true;
-    improvedRecipe._improvementsMade = modificationsApplied;
-  }
+    // Expand abbreviated measurements
+    improved = improved.replace(/(\d+)\s+tbsp/gi, '$1 tablespoons');
+    improved = improved.replace(/(\d+)\s+tsp/gi, '$1 teaspoons');
+    
+    // Ensure a strong action verb at the beginning
+    const startWithVerb = /^(Preheat|Heat|Stir|Mix|Combine|Add|Place|Pour|Transfer|Remove|Cook|Bake|Boil|Simmer|Sauté|Chop|Dice|Slice|Mince|Grate|Drain|Rinse|Serve|Garnish|Sprinkle|Season|Whisk|Fold|Roll|Spread|Arrange|Layer|Top|Cover|Uncover|Check|Test|Taste|Adjust)/i;
+    
+    if (!startWithVerb.test(improved)) {
+      // Prefix with a relevant action verb based on context
+      if (improved.toLowerCase().includes('oven')) {
+        improved = 'Preheat ' + improved;
+      } else if (improved.toLowerCase().includes('stir') || improved.toLowerCase().includes('mix')) {
+        improved = 'Combine ' + improved;
+      } else if (improved.toLowerCase().includes('cook') || improved.toLowerCase().includes('heat')) {
+        improved = 'Heat ' + improved;
+      } else {
+        improved = 'Prepare ' + improved;
+      }
+    }
+    
+    return improved;
+  });
   
   return improvedRecipe;
 }
@@ -1422,142 +1216,81 @@ function improveRecipeInstructions(recipe: any): any {
 export function validateMealQuality(meal: any): { isValid: boolean; issues: string[] } {
   const issues: string[] = [];
   
-  // Check if meal object exists
-  if (!meal) {
-    return { isValid: false, issues: ['Meal object is missing or null'] };
-  }
-  
-  // Check for required properties
-  if (!meal.name) issues.push('Meal name is missing');
-  if (!meal.description) issues.push('Meal description is missing');
+  // Validate meal has all required fields
+  if (!meal.name) issues.push("Missing meal name");
+  if (!meal.description) issues.push("Missing meal description");
+  if (!meal.prepTime) issues.push("Missing prep time");
+  if (!meal.servings) issues.push("Missing servings");
   
   // Validate ingredients
-  const ingredients = meal.ingredients || meal.mainIngredients || [];
-  if (!Array.isArray(ingredients)) {
-    issues.push('Ingredients must be an array');
+  if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
+    issues.push("Missing ingredients array");
   } else {
-    // Check ingredient count - now requiring 10 ingredients minimum
-    if (ingredients.length < 10) {
-      issues.push(`Insufficient ingredients: found ${ingredients.length}, minimum 10 required`);
+    // Check ingredient count
+    if (meal.ingredients.length < 10) {
+      issues.push(`Too few ingredients (${meal.ingredients.length}). Need at least 10 ingredients.`);
     }
     
-    // Check if ingredients have measurements with an enhanced pattern
-    const ingredientsWithoutMeasurements = ingredients.filter(ingredient => {
-      if (typeof ingredient !== 'string') return true;
-      
-      // Enhanced pattern to check for more specific measurement formats
-      const hasMeasurement = /\d+[\s-]*(cup|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|ml|liter|bunch|clove|pinch|dash|slices?|pieces?|cans?|\d+[\s-]?inch)/i.test(ingredient);
-      return !hasMeasurement;
-    });
+    // Check for overly generic or incomplete ingredients
+    const genericIngredients = meal.ingredients.filter((ingredient: string) => 
+      typeof ingredient === 'string' && (
+        ingredient.toLowerCase().includes('salt and pepper to taste') ||
+        ingredient.toLowerCase().includes('seasonings as desired') ||
+        ingredient.toLowerCase().includes('to taste') ||
+        ingredient.toLowerCase().includes('as needed') ||
+        !ingredient.match(/\d/) // no numbers = no quantities
+      )
+    );
     
-    if (ingredientsWithoutMeasurements.length > ingredients.length * 0.15) { // Reduced threshold to 15%
-      issues.push(`Many ingredients (${ingredientsWithoutMeasurements.length}) lack specific measurements`);
+    if (genericIngredients.length > 0) {
+      issues.push(`Has ${genericIngredients.length} generic ingredients without specific quantities. Every ingredient must have exact measurements.`);
     }
   }
   
   // Validate instructions
-  const instructions = meal.instructions || meal.directions || [];
-  if (!Array.isArray(instructions)) {
-    issues.push('Instructions must be an array');
+  if (!meal.instructions || !Array.isArray(meal.instructions)) {
+    issues.push("Missing instructions array");
   } else {
-    // Check instruction count - now requiring 10 steps minimum
-    if (instructions.length < 10) {
-      issues.push(`Insufficient instructions: found ${instructions.length}, minimum 10 required`);
+    // Check instruction count
+    if (meal.instructions.length < 10) {
+      issues.push(`Too few instructions (${meal.instructions.length}). Need at least 10 detailed steps.`);
     }
     
-    // Expanded list of generic phrases to detect
-    const genericPhrases = [
-      'standard procedure',
-      'standard procedures',
-      'cook until done',
-      'cook as usual',
-      'cook according to',
-      'package directions',
-      'to taste',
-      'follow instructions',
-      'following instructions',
-      'standard method',
-      'according to the main',
-      'thoroughly cooked',
-      'for this type of dish',
-      'until ready',
-      'until finished',
-      'as desired',
-      'until cooked through',
-      'as needed',
-      'as normal',
-      'per package'
-    ];
+    // Check for short, generic, or incomplete instructions
+    let shortInstructions = 0;
+    let genericInstructions = 0;
     
-    const genericSteps = instructions.filter(step => {
-      if (typeof step !== 'string') return false;
-      return genericPhrases.some(phrase => step.toLowerCase().includes(phrase.toLowerCase()));
+    meal.instructions.forEach((instruction: string) => {
+      if (typeof instruction !== 'string') return;
+      
+      // Check for short instructions
+      if (instruction.length < 20) {
+        shortInstructions++;
+      }
+      
+      // Check for generic instructions
+      if (instruction.toLowerCase().includes('cook according to') ||
+          instruction.toLowerCase().includes('follow package instructions') ||
+          instruction.toLowerCase().includes('to taste') ||
+          instruction.toLowerCase().includes('salt and pepper to taste') ||
+          instruction.toLowerCase().includes('as needed') ||
+          instruction.toLowerCase().includes('standard procedure')) {
+        genericInstructions++;
+      }
     });
     
-    if (genericSteps.length > 0) {
-      issues.push(`Found ${genericSteps.length} generic instruction step(s) containing phrases like "standard procedure" or "cook until done"`);
+    if (shortInstructions > 0) {
+      issues.push(`Has ${shortInstructions} too-brief instructions. Each step should be a detailed sentence.`);
     }
     
-    // Enhanced checks for detailed instructions
-    const stepQualityIssues = instructions.map((step, index) => {
-      if (typeof step !== 'string') return `Step ${index + 1} is not a string`;
-      
-      const issues = [];
-      
-      // Check for minimum length - expecting detailed steps (now 40 chars)
-      if (step.length < 40) {
-        issues.push(`too short (only ${step.length} characters)`);
-      }
-      
-      // Check for strong action verb at beginning
-      if (!/^(Heat|Preheat|Stir|Mix|Combine|Add|Pour|Place|Transfer|Cook|Bake|Boil|Simmer|Sauté|Grill|Roast|Cut|Chop|Slice|Dice|Mince|Prepare|Arrange|Whisk|Fold|Beat|Knead|Spread|Layer|Top|Garnish|Serve|Sprinkle|Drizzle|Marinate|Toss|Season|Brush|Coat|Dredge)/i.test(step)) {
-        issues.push("doesn't start with a specific action verb");
-      }
-      
-      // Look for temperature details when heating is involved
-      const hasCookingVerb = /(preheat|bake|roast|cook|heat|oven|grill)/i.test(step);
-      if (hasCookingVerb && !/(\d+)\s*[°º]F|\d+\s*[°º]C/i.test(step)) {
-        issues.push("missing temperature specification");
-      }
-      
-      // Look for timing details
-      if (!/(for\s+)?\d+[\-–]?\d*\s*(min|minute|sec|second|hour)/i.test(step)) {
-        issues.push("missing time specification");
-      }
-      
-      // Check for sensory cues (what to look for) in cooking steps
-      if (/(cook|bake|roast|sauté|fry|grill|broil|simmer|boil)/i.test(step) && 
-          !/(until|when).*?(golden|brown|crisp|tender|soft|firm|translucent|clear|opaque|bubbly|melted|thick|reduced|caramelized)/i.test(step)) {
-        issues.push("missing sensory cues for doneness");
-      }
-      
-      return issues.length > 0 ? `Step ${index + 1}: ${issues.join(', ')}` : null;
-    }).filter(Boolean);
-    
-    if (stepQualityIssues.length > 0) {
-      issues.push(`Instruction quality issues found in ${stepQualityIssues.length} steps: ${stepQualityIssues.join('; ')}`);
-    }
-    
-    // Check for cooking techniques explanation
-    const techniquesWithoutExplanation = instructions.filter(step => {
-      if (typeof step !== 'string') return false;
-      
-      // Check for cooking techniques that should be explained
-      const techniques = ['fold', 'deglaze', 'reduce', 'braise', 'blanch', 'blind bake', 'score', 'temper', 'proof', 'al dente'];
-      const hasTechnique = techniques.some(tech => step.toLowerCase().includes(tech));
-      
-      // If technique is used, make sure there's an explanation (text in parentheses)
-      return hasTechnique && !/\([^)]{10,}\)/.test(step); // At least 10 chars in parentheses
-    });
-    
-    if (techniquesWithoutExplanation.length > 0) {
-      issues.push(`Found ${techniquesWithoutExplanation.length} cooking techniques without proper explanations`);
+    if (genericInstructions > 0) {
+      issues.push(`Has ${genericInstructions} generic instructions. Each step should be specific with exact times, temperatures, and methods.`);
     }
   }
   
   return {
     isValid: issues.length === 0,
-    issues
+    issues: issues
   };
 }
 
@@ -1569,487 +1302,414 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
 export function normalizeMeal(meal: any): any {
   if (!meal) return meal;
   
-  // Create a deep copy to avoid modifying the original object
-  const normalizedMeal = JSON.parse(JSON.stringify(meal));
+  // Create a copy to avoid modifying the original
+  const normalizedMeal = { ...meal };
   
-  // Normalize directions → instructions (always use instructions field name)
-  if (normalizedMeal.directions && Array.isArray(normalizedMeal.directions)) {
+  // Convert directions/steps to instructions if needed (backwards compatibility)
+  if (normalizedMeal.directions && (!normalizedMeal.instructions || normalizedMeal.instructions.length === 0)) {
+    console.log(`[MEAL NORMALIZE] Converted directions → instructions for meal: ${normalizedMeal.name}`);
     normalizedMeal.instructions = normalizedMeal.directions;
-    console.log(`[MEAL NORMALIZE] Converted directions → instructions for meal: ${normalizedMeal.name || 'unnamed'}`);
-    // Keep both properties for backward compatibility, but instructions is the standard
+  }
+  if (normalizedMeal.steps && (!normalizedMeal.instructions || normalizedMeal.instructions.length === 0)) {
+    console.log(`[MEAL NORMALIZE] Converted steps → instructions for meal: ${normalizedMeal.name}`);
+    normalizedMeal.instructions = normalizedMeal.steps;
   }
   
-  // Handle the case when we have main_ingredients instead of mainIngredients (underscore vs camelCase)
-  if (normalizedMeal.main_ingredients && Array.isArray(normalizedMeal.main_ingredients)) {
-    if (!normalizedMeal.mainIngredients) {
-      normalizedMeal.mainIngredients = [...normalizedMeal.main_ingredients];
-      console.log(`[MEAL NORMALIZE] Converted main_ingredients → mainIngredients for meal: ${normalizedMeal.name || 'unnamed'}`);
+  // Ensure we have both mainIngredients and ingredients fields
+  if (normalizedMeal.mainIngredients && 
+      (!normalizedMeal.ingredients || normalizedMeal.ingredients.length === 0)) {
+    normalizedMeal.ingredients = normalizedMeal.mainIngredients;
+  } else if (normalizedMeal.ingredients && 
+             (!normalizedMeal.mainIngredients || normalizedMeal.mainIngredients.length === 0)) {
+    normalizedMeal.mainIngredients = normalizedMeal.ingredients;
+  }
+  
+  // Handle case where mainIngredients might have details that ingredients doesn't
+  if (normalizedMeal.ingredients && normalizedMeal.mainIngredients && 
+      JSON.stringify(normalizedMeal.ingredients) !== JSON.stringify(normalizedMeal.mainIngredients)) {
+    // Prefer the longer list of ingredients
+    if (normalizedMeal.mainIngredients.length > normalizedMeal.ingredients.length) {
+      console.log(`[MEAL NORMALIZE] Merged mainIngredients into ingredients for meal: ${normalizedMeal.name} (${normalizedMeal.mainIngredients.length} total ingredients)`);
+      normalizedMeal.ingredients = normalizedMeal.mainIngredients;
+    } else {
+      console.log(`[MEAL NORMALIZE] Merged mainIngredients into ingredients for meal: ${normalizedMeal.name} (${normalizedMeal.ingredients.length} total ingredients)`);
+      normalizedMeal.mainIngredients = normalizedMeal.ingredients;
     }
   }
   
-  // Normalize mainIngredients + ingredients - MERGE them instead of replacing
-  // If both exist, we want a complete set of ingredients
-  if (normalizedMeal.mainIngredients && Array.isArray(normalizedMeal.mainIngredients)) {
-    if (!normalizedMeal.ingredients) {
-      normalizedMeal.ingredients = [...normalizedMeal.mainIngredients];
-      console.log(`[MEAL NORMALIZE] Copied mainIngredients → ingredients for meal: ${normalizedMeal.name || 'unnamed'}`);
-    } else if (Array.isArray(normalizedMeal.ingredients)) {
-      // If both exist, merge them and remove duplicates
-      const combinedIngredients = [...normalizedMeal.ingredients, ...normalizedMeal.mainIngredients];
-      // Remove exact duplicates by converting to a Map and back to an array
-      // This avoids TypeScript errors with Set iteration
-      normalizedMeal.ingredients = combinedIngredients.filter((item, index) => {
-        return combinedIngredients.indexOf(item) === index;
-      });
-      console.log(`[MEAL NORMALIZE] Merged mainIngredients into ingredients for meal: ${normalizedMeal.name || 'unnamed'} (${normalizedMeal.ingredients.length} total ingredients)`);
-    }
-    // Keep both properties for backward compatibility, but ingredients is the standard
-  } else if (normalizedMeal.ingredients && Array.isArray(normalizedMeal.ingredients)) {
-    // Make sure mainIngredients exists too for backward compatibility
-    normalizedMeal.mainIngredients = [...normalizedMeal.ingredients];
-    console.log(`[MEAL NORMALIZE] Copied ingredients → mainIngredients for meal: ${normalizedMeal.name || 'unnamed'}`);
+  // Ensure servings is a number
+  if (normalizedMeal.servings && typeof normalizedMeal.servings === 'string') {
+    normalizedMeal.servings = parseInt(normalizedMeal.servings, 10) || 4;
   }
   
-  // Check if we have a detailed mainIngredients but minimal ingredients
-  // This happens with some recipe types due to the prompt structure
-  if (normalizedMeal.ingredients && 
-      normalizedMeal.mainIngredients && 
-      Array.isArray(normalizedMeal.ingredients) && 
-      Array.isArray(normalizedMeal.mainIngredients)) {
-    
-    // If ingredients is very minimal (2-3 items) but mainIngredients has more items,
-    // replace ingredients with mainIngredients
-    if (normalizedMeal.ingredients.length <= 3 && normalizedMeal.mainIngredients.length > 3) {
-      console.log(`[MEAL NORMALIZE] Replacing minimal ingredients (${normalizedMeal.ingredients.length}) with more complete mainIngredients (${normalizedMeal.mainIngredients.length}) for meal: ${normalizedMeal.name || 'unnamed'}`);
-      normalizedMeal.ingredients = [...normalizedMeal.mainIngredients];
-    }
-  }
-  
-  // Ensure servings is servings (not servingSize)
-  if (normalizedMeal.servingSize && !normalizedMeal.servings) {
-    normalizedMeal.servings = normalizedMeal.servingSize;
-    console.log(`[MEAL NORMALIZE] Converted servingSize → servings for meal: ${normalizedMeal.name || 'unnamed'}`);
-  }
-  
-  // Also handle serving_size (underscore version)
-  if (normalizedMeal.serving_size && !normalizedMeal.servings) {
-    normalizedMeal.servings = normalizedMeal.serving_size;
-    console.log(`[MEAL NORMALIZE] Converted serving_size → servings for meal: ${normalizedMeal.name || 'unnamed'}`);
-  }
-  
-  // Ensure prepTime is consistent (handle prep_time format)
-  if (normalizedMeal.prep_time && !normalizedMeal.prepTime) {
-    normalizedMeal.prepTime = normalizedMeal.prep_time;
-    console.log(`[MEAL NORMALIZE] Converted prep_time → prepTime for meal: ${normalizedMeal.name || 'unnamed'}`);
+  // Ensure prepTime is a number
+  if (normalizedMeal.prepTime && typeof normalizedMeal.prepTime === 'string') {
+    normalizedMeal.prepTime = parseInt(normalizedMeal.prepTime, 10) || 30;
   }
   
   // Ensure categories is an array
-  if (normalizedMeal.category && !normalizedMeal.categories) {
-    normalizedMeal.categories = Array.isArray(normalizedMeal.category) ? 
-      normalizedMeal.category : [normalizedMeal.category];
-    console.log(`[MEAL NORMALIZE] Converted category → categories array for meal: ${normalizedMeal.name || 'unnamed'}`);
+  if (!normalizedMeal.categories && normalizedMeal.category) {
+    normalizedMeal.categories = [normalizedMeal.category];
+  } else if (!normalizedMeal.categories) {
+    normalizedMeal.categories = [];
   }
   
-  // Ensure ID is always present
-  if (!normalizedMeal.id) {
-    normalizedMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    console.log(`[MEAL NORMALIZE] Added missing ID for meal: ${normalizedMeal.name || 'unnamed'}`);
-  }
-  
-  // Debug log to check all properties
-  console.log(`[MEAL NORMALIZE] Normalized meal properties for ${normalizedMeal.name || 'unnamed'}: ${Object.keys(normalizedMeal).join(', ')}`);
+  // Log normalized properties for debugging
+  const properties = Object.keys(normalizedMeal);
+  console.log(`[MEAL NORMALIZE] Normalized meal properties for ${normalizedMeal.name}: ${properties.join(', ')}`);
   
   return normalizedMeal;
 }
 
-// Dummy responses for when no API key is available
 function generateDummyResponse(messages: Message[]): string {
-  const lastUserMessage = [...messages].reverse().find(m => m.role === "user")?.content || "";
+  // Look for keywords in the latest user message to generate context-aware responses
+  const lastUserMessage = messages.findLast(m => m.role === 'user')?.content || '';
   
-  if (lastUserMessage.toLowerCase().includes("how many")) {
-    return "Thanks for sharing! A family of 3 is a great size for meal planning. What kitchen appliances do you have available? (e.g., Instant Pot, slow cooker, air fryer, etc.)";
+  if (lastUserMessage.toLowerCase().includes('hello') || lastUserMessage.toLowerCase().includes('hi')) {
+    return "Hello! I'm your meal planning assistant. How can I help you today? I can suggest recipes, create meal plans for the week, or help with your cooking questions.";
   }
   
-  if (lastUserMessage.toLowerCase().includes("appliance") || lastUserMessage.toLowerCase().includes("kitchen")) {
-    return "Perfect! Having a slow cooker, Instant Pot, and regular oven/stovetop gives us lots of flexibility. How would you rate your cooking confidence on a scale from 1 to 5? (1 being beginner, 5 being very experienced)";
+  if (lastUserMessage.toLowerCase().includes('meal plan') || lastUserMessage.toLowerCase().includes('dinner ideas')) {
+    return "I'd be happy to help with meal planning! Some dinner ideas for this week could include: \n\n• Sheet Pan Chicken Fajitas - quick and great for busy weeknights\n• Pasta Primavera - vegetable-packed and versatile\n• Slow Cooker Beef Stew - perfect comfort food that cooks while you're away\n• Teriyaki Salmon - healthy with a touch of sweetness\n• Homemade Pizza Night - fun for the whole family to customize\n\nWould you like more details about any of these meals?";
   }
   
-  if (lastUserMessage.includes("3")) {
-    return "Thanks! And what's your typical weekly rhythm? How many dinners do you usually cook at home, and are there particular days when you need quick meals vs. having more time to cook?";
+  if (lastUserMessage.toLowerCase().includes('reset') || lastUserMessage.toLowerCase().includes('clear') || lastUserMessage.toLowerCase().includes('start over')) {
+    return "I've reset our conversation! How can I help you with meal planning today?";
   }
   
-  if (lastUserMessage.toLowerCase().includes("cook") && lastUserMessage.toLowerCase().includes("home")) {
-    return "Got it! This is all so helpful for personalizing your meal plans. One last thing - any dietary preferences, restrictions, or foods your family particularly loves or dislikes?";
+  if (lastUserMessage.toLowerCase().includes('recipe') || lastUserMessage.toLowerCase().includes('how to make') || lastUserMessage.toLowerCase().includes('how do i cook')) {
+    return "I'd be happy to help with recipe suggestions! To give you the best recommendations, could you share a bit more about what ingredients you have on hand, any dietary preferences, and how much time you have to cook?";
   }
   
-  if (lastUserMessage.toLowerCase().includes("vegetarian") || lastUserMessage.toLowerCase().includes("pasta")) {
-    return "Perfect! Based on everything you've shared, I've created a customized meal plan for your family. It includes several vegetarian options and pasta dishes, with a mix of quick weeknight meals and a few more involved weekend cooking ideas. Each meal has been selected to match your cooking confidence and available time. Would you like to see the meal plan now?";
-  }
-  
-  if (lastUserMessage.toLowerCase().includes("yes") && lastUserMessage.length < 10) {
-    return "Great! Here's your personalized meal plan:\n\n1. Quick Veggie Stir Fry with Rice\n• Perfect for your busy Tuesday night\n• Uses your wok and can be customized for picky eaters\n\n2. One-Pot Pasta Primavera\n• Matches your family's love of pasta\n• Only dirties one pot for easy cleanup\n\n3. Sheet Pan Chicken Fajitas\n• Great for Monday when you have a bit more time\n• Everyone can customize their own toppings\n\n4. Slow Cooker Vegetable Curry\n• Set it up in the morning for your hectic Thursday\n• Vegetarian as requested and full of flavor\n\n5. Breakfast for Dinner (Pancakes & Fruit)\n• Kids' favorite for Friday fun\n• Quick and uses simple pantry ingredients\n\nWould you like me to generate a grocery list for these meals?";
-  }
-  
-  if (lastUserMessage.toLowerCase().includes("grocery")) {
-    return "Here's your grocery list organized by store section:\n\nProduce:\n• Bell peppers (3)\n• Onions (2)\n• Garlic (1 head)\n• Broccoli (1 bunch)\n• Carrots (1 lb)\n• Mixed vegetables for curry (1 bag)\n• Berries for pancakes (1 pint)\n• Bananas (1 bunch)\n\nDairy:\n• Milk (1/2 gallon)\n• Butter (1 small pack)\n• Sour cream (1 small container)\n• Cheese for fajitas (8 oz)\n\nGrains:\n• Rice (if needed)\n• Pasta (1 lb box)\n• Pancake mix (1 box)\n• Tortillas for fajitas (1 pack)\n\nProtein:\n• Chicken breast (1.5 lbs)\n• Eggs (1 dozen)\n\nPantry:\n• Vegetable oil\n• Curry paste\n• Coconut milk (1 can)\n• Fajita seasoning (1 packet)\n• Maple syrup for pancakes\n\nIs there anything you'd like to add or change to this meal plan?";
-  }
-  
-  return "I'd be happy to help with your meal planning! To create a personalized plan, I need to know a bit about your household. How many people are you cooking for, and are there any dietary preferences or restrictions I should know about?";
+  // Default response for any other queries
+  return "I'm your friendly meal planning assistant. I can help suggest recipes based on your preferences, create weekly meal plans, or answer cooking questions. What would you like help with today?";
 }
 
 function generateDummyMeals(preferences: any): any[] {
-  if (preferences.replaceMeal) {
-    return [{
-      id: `meal-${Date.now()}`,
-      name: preferences.mealName === "Instant Pot Beef Stew" 
-        ? "Instant Pot Chicken and Vegetable Soup" 
-        : "Mediterranean Chickpea Bowl",
-      description: "A fresh alternative that still uses your favorite appliances and fits your family's taste preferences.",
-      categories: preferences.categories || ["quick", "kid-friendly"],
-      prepTime: 30,
-      servings: 4,
-      ingredients: [
-        "Main protein (chicken or chickpeas)",
-        "Mixed vegetables",
-        "Broth or sauce base",
-        "Seasoning blend",
-        "Grain component (rice, pasta, or quinoa)"
-      ]
-    }];
-  }
-  
-  // If we have mealsByDay structure, create meals based on that
-  if (preferences.mealsByDay && Object.keys(preferences.mealsByDay).length > 0) {
-    const dummyMeals = [];
-    const days = Object.keys(preferences.mealsByDay);
-    
-    // Create a dummy meal for each day with selected categories
-    for (const day of days) {
-      // Fix: MealsByDay contains day:category key-value pairs, not arrays
-      const category = preferences.mealsByDay[day];
-      
-      // Only process if we have a valid category
-      if (category) {
-        // Generate a unique timestamp with a small delay to ensure unique IDs
-        const uniqueTimestamp = Date.now() + dummyMeals.length * 100;
-        
-        let meal: any = {
-          id: `meal-${uniqueTimestamp}-${Math.floor(Math.random() * 1000)}`,
-          day: day
-        };
-        
-        // Customize the meal based on the category
-        const genericMealNames = [
-          "Family-Style Pasta Bake",
-          "Sheet Pan Chicken & Vegetables",
-          "Slow Cooker Beef Tacos",
-          "One-Pot Lentil Curry",
-          "Quick Stir-Fry with Rice"
-        ];
-        
-        const mealIndex = Math.floor(Math.random() * genericMealNames.length);
-        meal.name = genericMealNames[mealIndex];
-            
-        // Create more descriptive content
-        meal.description = `A balanced family-friendly meal that's easy to prepare and great for busy weeknights.`;
-        meal.prepTime = 20 + Math.floor(Math.random() * 20); // 20-40 minutes
-        
-        // More specific ingredients
-        meal.ingredients = [
-          ["Chicken", "Beef", "Pork", "Tofu", "Fish"][Math.floor(Math.random() * 5)],
-          ["Broccoli", "Carrots", "Mixed Vegetables", "Green Beans", "Spinach"][Math.floor(Math.random() * 5)],
-          ["Rice", "Pasta", "Potatoes", "Quinoa", "Couscous"][Math.floor(Math.random() * 5)],
-          ["Garlic & Herbs", "Italian Seasoning", "Taco Seasoning", "Lemon Pepper", "Cajun Spices"][Math.floor(Math.random() * 5)]
-        ];
-        
-        // Set appropriate category
-        meal.categories = [category];
-        
-        // Set servings based on family size if available
-        if (preferences.familySize) {
-          meal.servings = preferences.familySize;
-        } else {
-          meal.servings = 4; // Default serving size
-        }
-        
-        // Add rationales for the meal
-        meal.rationales = [
-          "Fits your family's schedule and preferences",
-          "Uses ingredients that are likely already in your pantry",
-          "Can be customized based on your family's tastes"
-        ];
-        
-        dummyMeals.push(meal);
-      }
-    }
-    
-    return dummyMeals;
-  }
-  
-  // Standard response for other cases
-  // Generate unique timestamps for each meal
-  const baseTimestamp = Date.now();
-  const meals = [
+  // Basic template for dummy meals
+  const dummyMeals = [
     {
-      id: `meal-${baseTimestamp}-${Math.floor(Math.random() * 1000)}`,
+      id: `meal-${Date.now()}-1`,
       name: "Sheet Pan Chicken Fajitas",
-      description: "Perfect for a busy weeknight. Mexican-inspired, as your family enjoys, and can be prepared quickly on a sheet pan.",
-      categories: ["quick", "mexican", "kid-friendly"],
+      description: "A quick and easy Mexican-inspired dinner with colorful bell peppers and tender chicken, all roasted on a single sheet pan for minimal cleanup.",
+      day: "Monday",
+      category: "Quick & Easy",
+      categories: ["quick", "mexican"],
       prepTime: 25,
       servings: 4,
       ingredients: [
-        "1.5 lbs chicken breast, sliced",
-        "2 bell peppers (red and green), sliced",
-        "1 large onion, sliced",
-        "2 tbsp olive oil",
-        "1 packet fajita seasoning",
-        "8 flour tortillas",
-        "Toppings: sour cream, avocado, salsa"
-      ]
+        "1.5 lbs boneless, skinless chicken breast, sliced into strips", 
+        "1 red bell pepper, sliced", 
+        "1 green bell pepper, sliced", 
+        "1 yellow bell pepper, sliced", 
+        "1 large onion, sliced", 
+        "2 tbsp olive oil", 
+        "1 packet (2 tbsp) fajita seasoning", 
+        "1 tsp salt",
+        "1/2 tsp black pepper",
+        "8 small flour tortillas", 
+        "1 lime, cut into wedges", 
+        "1/2 cup sour cream for serving", 
+        "1/4 cup chopped fresh cilantro for garnish"
+      ],
+      directions: [
+        "Preheat oven to 425°F (220°C) and line a large baking sheet with parchment paper.",
+        "In a large bowl, toss the chicken strips, sliced bell peppers, and onion with olive oil, fajita seasoning, salt, and pepper until evenly coated.",
+        "Spread the mixture in a single layer on the prepared baking sheet.",
+        "Roast in the preheated oven for 20-25 minutes, stirring halfway through, until chicken is cooked through and vegetables are tender with light charring on edges.",
+        "During the last 5 minutes of cooking, wrap tortillas in aluminum foil and place in the oven to warm.",
+        "Serve the fajita mixture with warm tortillas, lime wedges, sour cream, and fresh cilantro."
+      ],
+      rationales: ["Fits your weeknight time constraints", "Uses your family's preferred protein", "One-pan meal means easy cleanup"]
     },
     {
-      id: `meal-${baseTimestamp + 100}-${Math.floor(Math.random() * 1000)}`,
-      name: "Creamy Vegetable Pasta",
-      description: "A vegetarian pasta dish that satisfies your family's love for pasta while incorporating seasonal vegetables.",
-      categories: ["vegetarian", "family favorite"],
+      id: `meal-${Date.now()}-2`,
+      name: "Slow Cooker Beef Stew",
+      description: "A hearty, comforting beef stew that simmers all day in the slow cooker, creating tender meat and vegetables in a rich, flavorful broth.",
+      day: "Tuesday",
+      category: "Slow Cooker",
+      categories: ["slow cooker", "beef"],
+      prepTime: 15,
+      servings: 6,
+      ingredients: [
+        "2 lbs beef stew meat, cut into 1-inch cubes",
+        "1/4 cup all-purpose flour",
+        "1 tsp salt",
+        "1/2 tsp black pepper",
+        "2 tbsp olive oil",
+        "1 large onion, diced",
+        "3 cloves garlic, minced",
+        "4 carrots, peeled and sliced",
+        "3 celery stalks, sliced",
+        "1 lb potatoes, cut into 1-inch pieces",
+        "2 cups beef broth",
+        "1 tbsp tomato paste",
+        "1 tsp dried thyme",
+        "1 bay leaf",
+        "1 cup frozen peas (added near end of cooking)"
+      ],
+      directions: [
+        "In a large bowl, toss beef with flour, salt, and pepper until evenly coated.",
+        "Heat olive oil in a large skillet over medium-high heat. Brown the meat in batches, transferring to slow cooker as you go.",
+        "In the same skillet, sauté onion and garlic for 2-3 minutes until softened, then add to slow cooker.",
+        "Add carrots, celery, potatoes, beef broth, tomato paste, thyme, and bay leaf to the slow cooker.",
+        "Cover and cook on low for 8 hours or on high for 4 hours, until beef is tender.",
+        "In the last 30 minutes of cooking, stir in frozen peas.",
+        "Remove bay leaf before serving. Adjust seasoning if needed."
+      ],
+      rationales: ["Perfect for busy days - just set it and forget it", "Provides abundant leftovers for lunch the next day", "Balanced complete meal with protein and vegetables"]
+    },
+    {
+      id: `meal-${Date.now()}-3`,
+      name: "Mediterranean Baked Salmon",
+      description: "Flaky salmon fillets topped with a flavorful mixture of cherry tomatoes, olives, and feta cheese, all baked to perfection for a healthy, protein-rich dinner.",
+      day: "Wednesday",
+      category: "Weeknight",
+      categories: ["seafood", "mediterranean", "healthy"],
+      prepTime: 35,
+      servings: 4,
+      ingredients: [
+        "4 salmon fillets (6 oz each)",
+        "2 tbsp olive oil, divided",
+        "1 tsp dried oregano",
+        "1/2 tsp salt",
+        "1/4 tsp black pepper",
+        "2 cups cherry tomatoes, halved",
+        "1/2 cup Kalamata olives, pitted and halved",
+        "1/4 cup red onion, thinly sliced",
+        "2 cloves garlic, minced",
+        "1 lemon, juiced and zested",
+        "1/4 cup crumbled feta cheese",
+        "2 tbsp fresh parsley, chopped",
+        "1 tbsp fresh dill, chopped"
+      ],
+      directions: [
+        "Preheat oven to 375°F (190°C) and line a baking sheet with parchment paper.",
+        "Place salmon fillets on the prepared baking sheet and brush with 1 tbsp olive oil.",
+        "Season salmon with dried oregano, salt, and pepper.",
+        "In a bowl, combine cherry tomatoes, olives, red onion, garlic, lemon zest, and remaining 1 tbsp olive oil.",
+        "Spoon the tomato mixture around and partly on top of the salmon fillets.",
+        "Bake for 15-18 minutes, until salmon is cooked through and flakes easily with a fork.",
+        "Sprinkle with crumbled feta cheese, fresh parsley, dill, and lemon juice before serving."
+      ],
+      rationales: ["Provides heart-healthy omega-3 fatty acids", "Light yet satisfying option for mid-week meals", "Quick preparation with minimal cleanup"]
+    },
+    {
+      id: `meal-${Date.now()}-4`,
+      name: "Creamy Chicken and Vegetable Pasta",
+      description: "A comforting pasta dish with tender chicken, colorful vegetables, and a creamy parmesan sauce that's sure to please the whole family.",
+      day: "Thursday",
+      category: "Weeknight",
+      categories: ["pasta", "chicken"],
       prepTime: 30,
       servings: 4,
       ingredients: [
-        "1 lb pasta (penne or fusilli)",
-        "2 cups mixed vegetables (broccoli, carrots, peas)",
-        "1 cup heavy cream",
-        "1/2 cup grated parmesan cheese",
-        "2 cloves garlic, minced",
+        "8 oz fettuccine pasta",
+        "1 lb boneless, skinless chicken breast, cut into bite-sized pieces",
+        "1 tsp salt, divided",
+        "1/2 tsp black pepper, divided",
         "2 tbsp olive oil",
-        "Salt and pepper to taste"
-      ]
-    },
-    {
-      id: `meal-${baseTimestamp + 200}-${Math.floor(Math.random() * 1000)}`,
-      name: "Instant Pot Beef Stew",
-      description: "Perfect for a busy day - quick to prepare in the Instant Pot. Mild flavor for the kids.",
-      categories: ["instantPot", "make ahead"],
-      prepTime: 45,
-      servings: 6,
-      ingredients: [
-        "1.5 lbs beef stew meat",
-        "4 carrots, chopped",
-        "2 potatoes, diced",
-        "1 onion, diced",
-        "2 cloves garlic, minced",
-        "2 cups beef broth",
-        "2 tbsp tomato paste",
-        "1 tsp thyme",
-        "Salt and pepper to taste"
-      ]
-    },
-    {
-      id: `meal-${baseTimestamp + 300}-${Math.floor(Math.random() * 1000)}`,
-      name: "Black Bean & Sweet Potato Enchiladas",
-      description: "These enchiladas combine your family's love for Mexican food with your goal of vegetarian meals. The sweet potatoes add a nutritious twist.",
-      categories: ["vegetarian", "mexican"],
-      prepTime: 40,
-      servings: 4,
-      ingredients: [
-        "1 large sweet potato, diced",
-        "1 can black beans, drained",
-        "1 bell pepper, diced",
+        "1 tbsp butter",
         "1 small onion, diced",
         "2 cloves garlic, minced",
-        "1 tsp cumin",
-        "1/2 tsp mild chili powder",
-        "8 flour tortillas",
-        "2 cups enchilada sauce",
-        "1 cup shredded cheese"
-      ]
-    },
-    {
-      id: `meal-${baseTimestamp + 400}-${Math.floor(Math.random() * 1000)}`,
-      name: "Slow Cooker Pulled Chicken Sandwiches",
-      description: "An easy meal that can simmer all day in the slow cooker. Kid-friendly and allows for individual customization.",
-      categories: ["slowCooker", "kid-friendly"],
-      prepTime: 15,
-      servings: 4,
-      ingredients: [
-        "2 lbs boneless chicken thighs",
-        "1 cup BBQ sauce",
-        "1/4 cup brown sugar",
-        "1 tbsp Worcestershire sauce",
-        "1 tsp garlic powder",
-        "1 tsp onion powder",
-        "Hamburger buns",
-        "Coleslaw (optional)"
-      ]
+        "1 red bell pepper, sliced",
+        "2 cups broccoli florets",
+        "1 cup cherry tomatoes, halved",
+        "1 cup heavy cream",
+        "1/2 cup chicken broth",
+        "3/4 cup grated Parmesan cheese",
+        "2 tbsp fresh basil, chopped"
+      ],
+      directions: [
+        "Cook pasta according to package instructions. Reserve 1/2 cup pasta water before draining.",
+        "Season chicken pieces with 1/2 tsp salt and 1/4 tsp pepper.",
+        "Heat olive oil in a large skillet over medium-high heat. Add chicken and cook for 5-6 minutes until golden and cooked through. Remove to a plate.",
+        "In the same skillet, melt butter. Add onion and garlic, cooking for 2 minutes until softened.",
+        "Add bell pepper and broccoli, cooking for 3-4 minutes until vegetables begin to soften.",
+        "Pour in chicken broth, scraping up any browned bits from the bottom of the pan.",
+        "Reduce heat to medium-low and add heavy cream. Simmer for 3 minutes until slightly thickened.",
+        "Stir in Parmesan cheese until melted and smooth.",
+        "Return chicken to the skillet and add cherry tomatoes and drained pasta, tossing to coat everything in the sauce. If needed, add some reserved pasta water to thin the sauce.",
+        "Season with remaining salt and pepper, and garnish with fresh basil before serving."
+      ],
+      rationales: ["Balanced one-pot meal with protein, vegetables and carbs", "Kid-friendly without being overly simple", "Versatile - can easily substitute vegetables based on what's available"]
     }
   ];
   
-  return meals;
+  // If specific days were requested, match those days
+  if (preferences && preferences.mealsByDay) {
+    const days = Object.keys(preferences.mealsByDay);
+    dummyMeals.forEach((meal, index) => {
+      if (index < days.length) {
+        meal.day = days[index];
+      }
+    });
+  }
+  
+  return dummyMeals;
 }
 
 function generateDummyGroceryList(): any[] {
+  // Return a mock grocery list
   return [
-    {
-      name: "Produce",
-      items: [
-        { id: "item1", name: "Bell peppers (red and green)", quantity: "4" },
-        { id: "item2", name: "Onions, yellow", quantity: "3" },
-        { id: "item3", name: "Carrots", quantity: "1 lb" },
-        { id: "item4", name: "Sweet potato", quantity: "1 large" },
-        { id: "item5", name: "Potatoes", quantity: "2 large" },
-        { id: "item6", name: "Garlic", quantity: "1 head" }
-      ]
-    },
-    {
-      name: "Meat & Seafood",
-      items: [
-        { id: "item7", name: "Chicken breast", quantity: "1.5 lbs", mealId: "meal-1" },
-        { id: "item8", name: "Beef stew meat", quantity: "1.5 lbs", mealId: "meal-3" },
-        { id: "item9", name: "Chicken thighs, boneless", quantity: "2 lbs", mealId: "meal-5" }
-      ]
-    },
-    {
-      name: "Dairy & Eggs",
-      items: [
-        { id: "item10", name: "Heavy cream", quantity: "1 cup", mealId: "meal-2" },
-        { id: "item11", name: "Parmesan cheese", quantity: "8 oz", mealId: "meal-2" },
-        { id: "item12", name: "Sour cream", quantity: "8 oz", mealId: "meal-1" },
-        { id: "item13", name: "Shredded cheese", quantity: "8 oz", mealId: "meal-4" }
-      ]
-    },
-    {
-      name: "Pantry Staples",
-      items: [
-        { id: "item14", name: "Pasta (penne or fusilli)", quantity: "1 lb", mealId: "meal-2" },
-        { id: "item15", name: "Olive oil", quantity: "1 bottle" },
-        { id: "item16", name: "Fajita seasoning", quantity: "1 packet", mealId: "meal-1" },
-        { id: "item17", name: "Tortillas, flour", quantity: "16 count", mealId: "meal-1" },
-        { id: "item18", name: "Black beans, canned", quantity: "1 can", mealId: "meal-4" },
-        { id: "item19", name: "Enchilada sauce", quantity: "2 cups", mealId: "meal-4" },
-        { id: "item20", name: "Beef broth", quantity: "2 cups", mealId: "meal-3" },
-        { id: "item21", name: "Tomato paste", quantity: "1 small can", mealId: "meal-3" },
-        { id: "item22", name: "BBQ sauce", quantity: "1 cup", mealId: "meal-5" },
-        { id: "item23", name: "Brown sugar", quantity: "1/4 cup", mealId: "meal-5" },
-        { id: "item24", name: "Worcestershire sauce", quantity: "1 tbsp", mealId: "meal-5" },
-        { id: "item25", name: "Hamburger buns", quantity: "1 pack", mealId: "meal-5" }
-      ]
-    },
-    {
-      name: "Spices & Seasonings",
-      items: [
-        { id: "item26", name: "Cumin", quantity: "1 tsp", mealId: "meal-4" },
-        { id: "item27", name: "Chili powder", quantity: "1/2 tsp", mealId: "meal-4" },
-        { id: "item28", name: "Thyme", quantity: "1 tsp", mealId: "meal-3" },
-        { id: "item29", name: "Garlic powder", quantity: "1 tsp", mealId: "meal-5" },
-        { id: "item30", name: "Onion powder", quantity: "1 tsp", mealId: "meal-5" },
-        { id: "item31", name: "Salt and pepper", quantity: "to taste" }
-      ]
-    }
+    { id: "grocery-1", name: "1.5 lbs boneless, skinless chicken breast", department: "Meat & Seafood", mealIds: ["meal-1"] },
+    { id: "grocery-2", name: "2 lbs beef stew meat", department: "Meat & Seafood", mealIds: ["meal-2"] },
+    { id: "grocery-3", name: "4 salmon fillets (6 oz each)", department: "Meat & Seafood", mealIds: ["meal-3"] },
+    { id: "grocery-4", name: "1 red bell pepper", department: "Produce", mealIds: ["meal-1", "meal-4"] },
+    { id: "grocery-5", name: "1 green bell pepper", department: "Produce", mealIds: ["meal-1"] },
+    { id: "grocery-6", name: "1 yellow bell pepper", department: "Produce", mealIds: ["meal-1"] },
+    { id: "grocery-7", name: "2 large onions", department: "Produce", mealIds: ["meal-1", "meal-2", "meal-4"] },
+    { id: "grocery-8", name: "5 cloves garlic", department: "Produce", mealIds: ["meal-2", "meal-3", "meal-4"] },
+    { id: "grocery-9", name: "4 carrots", department: "Produce", mealIds: ["meal-2"] },
+    { id: "grocery-10", name: "3 celery stalks", department: "Produce", mealIds: ["meal-2"] },
+    { id: "grocery-11", name: "1 lb potatoes", department: "Produce", mealIds: ["meal-2"] },
+    { id: "grocery-12", name: "1 cup frozen peas", department: "Frozen", mealIds: ["meal-2"] },
+    { id: "grocery-13", name: "2 cups cherry tomatoes", department: "Produce", mealIds: ["meal-3", "meal-4"] },
+    { id: "grocery-14", name: "2 cups broccoli florets", department: "Produce", mealIds: ["meal-4"] },
+    { id: "grocery-15", name: "8 oz fettuccine pasta", department: "Dry Goods", mealIds: ["meal-4"] },
+    { id: "grocery-16", name: "1 packet fajita seasoning", department: "Spices & Seasonings", mealIds: ["meal-1"] },
+    { id: "grocery-17", name: "1/2 cup Kalamata olives", department: "Canned & Jarred", mealIds: ["meal-3"] },
+    { id: "grocery-18", name: "1/4 cup crumbled feta cheese", department: "Dairy", mealIds: ["meal-3"] },
+    { id: "grocery-19", name: "1 cup heavy cream", department: "Dairy", mealIds: ["meal-4"] },
+    { id: "grocery-20", name: "3/4 cup grated Parmesan cheese", department: "Dairy", mealIds: ["meal-4"] },
+    { id: "grocery-21", name: "1/2 cup sour cream", department: "Dairy", mealIds: ["meal-1"] },
+    { id: "grocery-22", name: "8 small flour tortillas", department: "Bread & Bakery", mealIds: ["meal-1"] },
+    { id: "grocery-23", name: "2 cups beef broth", department: "Canned & Jarred", mealIds: ["meal-2"] },
+    { id: "grocery-24", name: "1 tbsp tomato paste", department: "Canned & Jarred", mealIds: ["meal-2"] },
+    { id: "grocery-25", name: "Olive oil", department: "Oils & Vinegars", mealIds: ["meal-1", "meal-2", "meal-3", "meal-4"] },
+    { id: "grocery-26", name: "Salt", department: "Spices & Seasonings", mealIds: ["meal-1", "meal-2", "meal-3", "meal-4"] },
+    { id: "grocery-27", name: "Black pepper", department: "Spices & Seasonings", mealIds: ["meal-1", "meal-2", "meal-3", "meal-4"] },
+    { id: "grocery-28", name: "Dried thyme", department: "Spices & Seasonings", mealIds: ["meal-2"] },
+    { id: "grocery-29", name: "Dried oregano", department: "Spices & Seasonings", mealIds: ["meal-3"] },
+    { id: "grocery-30", name: "2 lemons", department: "Produce", mealIds: ["meal-3"] },
+    { id: "grocery-31", name: "1 lime", department: "Produce", mealIds: ["meal-1"] },
+    { id: "grocery-32", name: "Fresh herbs (parsley, basil, dill, cilantro)", department: "Produce", mealIds: ["meal-1", "meal-3", "meal-4"] },
+    { id: "grocery-33", name: "1/4 cup all-purpose flour", department: "Baking", mealIds: ["meal-2"] },
+    { id: "grocery-34", name: "1 tbsp butter", department: "Dairy", mealIds: ["meal-4"] },
+    { id: "grocery-35", name: "1/2 cup chicken broth", department: "Canned & Jarred", mealIds: ["meal-4"] }
   ];
 }
+
 /**
  * Use OpenAI to organize grocery items into departments
  */
 export async function organizeGroceryItems(items: any[]): Promise<Record<string, any[]>> {
-  if (items.length === 0) {
-    return { "Other": [] };
+  // If no valid API key, use simple organization
+  if (!hasValidApiKey()) {
+    return organizeGroceryItemsSimple(items);
   }
   
-  // Format the items as a simple array of names for the prompt
-  const itemNames = items.map(item => item.name).join("\n");
-  
-  const systemPrompt = `You are a helpful grocery organization assistant. Your task is to organize grocery items into departments like "Produce", "Dairy", "Meat", "Bakery", "Frozen", "Canned Goods", "Dry Goods", etc. Return your answer in a clean JSON format with department names as keys and arrays of objects as values. Each object should include the original item's name. Common departments include:
-
-- Produce
-- Dairy
-- Meat & Seafood
-- Bakery
-- Frozen Foods
-- Canned Goods
-- Dry Goods
-- Condiments
-- Snacks
-- Beverages
-- Household
-- Other (use this for items that don't clearly fit elsewhere)`;
-
-  const userPrompt = `Please organize these grocery items into appropriate departments:
-
-${itemNames}
-
-Return your organization as JSON in this format:
-{
-  "Department1": [
-    {"name": "item1"},
-    {"name": "item2"}
-  ],
-  "Department2": [
-    {"name": "item3"}
-  ]
-}`;
-
   try {
     // Call OpenAI API to generate the organized items
+    const itemNames = items.map(item => item.name);
+    
+    const prompt = `Organize these grocery items into logical store departments:
+    
+    ${itemNames.join('\n')}
+    
+    Please group them into common supermarket departments like "Produce", "Meat & Seafood", "Dairy", "Bakery", etc. 
+    Return your results as a JSON object where keys are department names and values are arrays of the item indexes (0-based) that belong in that department.
+    
+    For example:
+    {
+      "Produce": [0, 2, 5],
+      "Dairy": [1, 4],
+      "Spices & Herbs": [3, 6, 7]
+    }
+    
+    Use the following department categories:
+    - Produce
+    - Meat & Seafood
+    - Dairy
+    - Bread & Bakery
+    - Canned & Jarred
+    - Dry Goods
+    - Baking
+    - Frozen
+    - Spices & Herbs
+    - Oils & Vinegars
+    - Snacks
+    - Beverages
+    - Other
+    
+    Every item must be assigned to exactly one department. Don't create any new departments beyond this list.`;
+    
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        {
+          role: "system",
+          content: "You are a helpful assistant that organizes grocery lists into logical departments."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
       ],
+      temperature: 0.3,
       response_format: { type: "json_object" }
     });
-
-    if (!response.choices[0].message.content) {
-      console.error("[GROCERY ORGANIZE] No content in OpenAI response");
-      return organizeGroceryItemsSimple(items);
-    }
-
+    
     try {
       const organizedItems = JSON.parse(response.choices[0].message.content);
       
-      // Map each item back to the original item objects (with IDs, etc.)
+      // Convert indexes back to actual items
       const result: Record<string, any[]> = {};
       
-      // Initialize with empty arrays for each department
-      Object.keys(organizedItems).forEach(dept => {
-        result[dept] = [];
+      // Initialize result with all categories
+      [
+        "Produce", "Meat & Seafood", "Dairy", "Bread & Bakery",
+        "Canned & Jarred", "Dry Goods", "Baking", "Frozen",
+        "Spices & Herbs", "Oils & Vinegars", "Snacks", "Beverages", "Other"
+      ].forEach(department => {
+        result[department] = [];
       });
       
-      // Fill in the data
-      Object.entries(organizedItems).forEach(([department, deptItems]) => {
-        if (Array.isArray(deptItems)) {
-          deptItems.forEach((deptItem: any) => {
-            const originalItem = items.find(item => item.name === deptItem.name);
-            if (originalItem) {
+      // Fill with organized items
+      for (const [department, indexes] of Object.entries(organizedItems)) {
+        if (Array.isArray(indexes)) {
+          for (const index of indexes) {
+            if (index >= 0 && index < items.length) {
+              const item = items[index];
+              // Add department to item
+              item.department = department;
+              
+              // Ensure department exists
               if (!result[department]) {
                 result[department] = [];
               }
-              result[department].push(originalItem);
+              
+              result[department].push(item);
             }
-          });
+          }
         }
-      });
+      }
       
-      // Check if we missed any items, add them to "Other"
-      const processedItemNames = new Set();
-      Object.values(result).forEach(deptItems => {
-        deptItems.forEach(item => processedItemNames.add(item.name));
-      });
+      // Check for unassigned items and add them to "Other"
+      const assignedItems = Object.values(result).flat();
+      const assignedIds = assignedItems.map(item => item.id);
       
-      const missedItems = items.filter(item => !processedItemNames.has(item.name));
-      if (missedItems.length > 0) {
-        if (!result["Other"]) {
-          result["Other"] = [];
+      for (const item of items) {
+        if (!assignedIds.includes(item.id)) {
+          item.department = "Other";
+          result["Other"].push(item);
         }
-        result["Other"].push(...missedItems);
+      }
+      
+      // Remove empty departments
+      for (const [department, departmentItems] of Object.entries(result)) {
+        if (departmentItems.length === 0) {
+          delete result[department];
+        }
       }
       
       return result;
-    } catch (error) {
-      console.error("[GROCERY ORGANIZE] Error parsing OpenAI response:", error);
+    } catch (parseError) {
+      console.error("Error parsing department organization:", parseError);
       return organizeGroceryItemsSimple(items);
     }
   } catch (error) {
-    console.error("[GROCERY ORGANIZE] Error calling OpenAI:", error);
+    console.error("Error organizing grocery items:", error);
     return organizeGroceryItemsSimple(items);
   }
 }
@@ -2058,51 +1718,75 @@ Return your organization as JSON in this format:
  * Simple fallback function to organize grocery items by basic keywords
  */
 export function organizeGroceryItemsSimple(items: any[]): Record<string, any[]> {
-  // Define some simple department matchers
-  const departments: Record<string, string[]> = {
-    "Produce": ["fruit", "vegetable", "tomato", "onion", "garlic", "potato", "apple", "banana", "lettuce", "carrot", "cucumber", "lemon", "lime"],
-    "Dairy": ["milk", "cheese", "yogurt", "butter", "cream", "egg"],
-    "Meat & Seafood": ["beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp"],
-    "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla"],
-    "Frozen": ["frozen", "ice", "pizza"],
-    "Canned Goods": ["can", "canned", "soup", "beans"],
-    "Dry Goods": ["pasta", "rice", "cereal", "flour", "sugar", "oil"],
-    "Condiments": ["sauce", "ketchup", "mustard", "mayonnaise", "dressing", "vinegar", "oil", "spice", "herb"],
-    "Beverages": ["drink", "water", "juice", "soda", "tea", "coffee"]
+  const departments: Record<string, any[]> = {
+    "Produce": [],
+    "Meat & Seafood": [],
+    "Dairy": [],
+    "Bread & Bakery": [],
+    "Canned & Jarred": [],
+    "Dry Goods": [],
+    "Frozen": [],
+    "Spices & Herbs": [],
+    "Oils & Vinegars": [],
+    "Other": []
   };
   
-  const result: Record<string, any[]> = {};
+  // Simple keyword matching for departments
+  const departmentKeywords: Record<string, string[]> = {
+    "Produce": ["vegetable", "fruit", "onion", "garlic", "pepper", "tomato", "lettuce", "carrot", "celery", "potato", "lemon", "lime", "herb", "fresh", "greens", "broccoli", "spinach", "cilantro", "parsley", "mint", "basil", "dill", "green onion", "scallion", "avocado", "cucumber", "zucchini", "squash", "mushroom"],
+    "Meat & Seafood": ["meat", "beef", "chicken", "pork", "fish", "seafood", "meat", "steak", "ground", "turkey", "salmon", "shrimp"],
+    "Bakery": ["bread", "roll", "bun", "bagel", "pastry", "cake", "tortilla"],
+    "Frozen": ["frozen", "ice", "pizza"],
+    "Dairy": ["milk", "cheese", "yogurt", "cream", "butter", "egg", "feta", "parmesan", "cheddar", "sour", "half and half"],
+    "Spices & Herbs": ["spice", "herb", "seasoning", "salt", "pepper", "paprika", "cumin", "cinnamon", "cayenne", "oregano", "thyme", "sage", "rosemary", "garlic powder", "onion powder", "curry", "nutmeg", "clove", "bay leaf", "vanilla"],
+    "Canned & Jarred": ["can", "jar", "sauce", "soup", "beans", "tomato", "salsa", "olive", "pickle", "preserves", "jam", "jelly", "paste", "broth", "stock"],
+    "Oils & Vinegars": ["oil", "vinegar", "cooking spray", "olive oil", "vegetable oil", "canola oil", "balsamic", "shortening"],
+    "Dry Goods": ["pasta", "rice", "grain", "cereal", "oat", "flour", "sugar", "chips", "cracker", "cookie", "biscuit", "dried", "bean", "lentil", "pea", "noodle", "macaroni"]
+  };
   
-  // Initialize the departments with empty arrays
-  Object.keys(departments).forEach(dept => {
-    result[dept] = [];
-  });
-  result["Other"] = [];
-  
-  // Assign items to departments based on keyword matching
-  items.forEach(item => {
-    const itemName = item.name.toLowerCase();
-    let assigned = false;
+  // Process each item
+  for (const item of items) {
+    if (!item.name) {
+      departments["Other"].push(item);
+      continue;
+    }
     
-    for (const [dept, keywords] of Object.entries(departments)) {
+    const itemName = item.name.toLowerCase();
+    let matched = false;
+    
+    // Check if the item name contains any department keywords
+    for (const [department, keywords] of Object.entries(departmentKeywords)) {
       if (keywords.some(keyword => itemName.includes(keyword))) {
-        result[dept].push(item);
-        assigned = true;
-        break;
+        // Map to proper department name if needed
+        let actualDepartment = department;
+        if (department === "Bakery") actualDepartment = "Bread & Bakery";
+        
+        if (departments[actualDepartment]) {
+          departments[actualDepartment].push({
+            ...item,
+            department: actualDepartment
+          });
+          matched = true;
+          break;
+        }
       }
     }
     
-    if (!assigned) {
-      result["Other"].push(item);
+    // If no match, add to Other
+    if (!matched) {
+      departments["Other"].push({
+        ...item,
+        department: "Other"
+      });
     }
-  });
+  }
   
   // Remove empty departments
-  Object.keys(result).forEach(dept => {
-    if (result[dept].length === 0) {
-      delete result[dept];
+  for (const [department, departmentItems] of Object.entries(departments)) {
+    if (departmentItems.length === 0) {
+      delete departments[department];
     }
-  });
+  }
   
-  return result;
+  return departments;
 }
