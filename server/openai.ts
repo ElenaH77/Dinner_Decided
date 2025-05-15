@@ -1138,8 +1138,8 @@ async function getHouseholdData() {
 function improveRecipeInstructions(recipe: any): any {
   if (!recipe) return recipe;
   
-  // Create a copy of the recipe to avoid modifying the original
-  const improvedRecipe = { ...recipe };
+  // Deep copy to avoid modifying the original
+  const improvedRecipe = JSON.parse(JSON.stringify(recipe));
   
   // Convert directions to instructions if needed (backwards compatibility)
   if (improvedRecipe.directions && (!improvedRecipe.instructions || improvedRecipe.instructions.length === 0)) {
@@ -1151,6 +1151,240 @@ function improveRecipeInstructions(recipe: any): any {
     return improvedRecipe;
   }
   
+  // Check for generic placeholder instructions
+  const genericInstructionPatterns = [
+    'according to the ingredients list',
+    'as needed for this recipe',
+    'following standard procedures',
+    'enjoy with your family',
+    'standard procedure',
+    'preheat your oven or stovetop as needed',
+    'cook until all components are thoroughly cooked',
+    'combine the ingredients according to'
+  ];
+  
+  const hasGenericInstructions = improvedRecipe.instructions.some((instruction: string) => 
+    typeof instruction === 'string' && 
+    genericInstructionPatterns.some(pattern => instruction.toLowerCase().includes(pattern))
+  );
+  
+  // Check if we have too few instructions (likely placeholders or incomplete)
+  const hasTooFewInstructions = improvedRecipe.instructions.length <= 5;
+  
+  // If we have placeholder instructions, generate more detailed ones based on the ingredients
+  if (hasGenericInstructions || hasTooFewInstructions) {
+    console.log(`[IMPROVE RECIPE] Detected ${hasGenericInstructions ? 'generic placeholder instructions' : 'too few instructions'} for ${improvedRecipe.name}`);
+    
+    // Mark this recipe for regeneration
+    improvedRecipe._qualityIssues = improvedRecipe._qualityIssues || [];
+    improvedRecipe._qualityIssues.push("Contains generic placeholder instructions that need improvement");
+    improvedRecipe._needsRegeneration = true;
+    
+    // Only attempt to generate detailed instructions if we have ingredients
+    if (improvedRecipe.ingredients && Array.isArray(improvedRecipe.ingredients) && improvedRecipe.ingredients.length >= 5) {
+      console.log(`[IMPROVE RECIPE] Attempting to create better instructions based on ${improvedRecipe.ingredients.length} ingredients`);
+      
+      // Categorize ingredients
+      const proteins = improvedRecipe.ingredients.filter((ing: string) => {
+        const lower = ing.toLowerCase();
+        return lower.includes('chicken') || lower.includes('beef') || 
+               lower.includes('pork') || lower.includes('fish') || 
+               lower.includes('tofu') || lower.includes('shrimp') ||
+               lower.includes('salmon') || lower.includes('turkey');
+      });
+      
+      const vegetables = improvedRecipe.ingredients.filter((ing: string) => {
+        const lower = ing.toLowerCase();
+        return lower.includes('onion') || lower.includes('carrot') || 
+               lower.includes('pepper') || lower.includes('broccoli') || 
+               lower.includes('zucchini') || lower.includes('tomato') ||
+               lower.includes('spinach') || lower.includes('kale');
+      });
+      
+      const starches = improvedRecipe.ingredients.filter((ing: string) => {
+        const lower = ing.toLowerCase();
+        return lower.includes('rice') || lower.includes('pasta') || 
+               lower.includes('potato') || lower.includes('bread') || 
+               lower.includes('noodle') || lower.includes('quinoa');
+      });
+      
+      const sauces = improvedRecipe.ingredients.filter((ing: string) => {
+        const lower = ing.toLowerCase();
+        return lower.includes('sauce') || lower.includes('stock') || 
+               lower.includes('broth') || lower.includes('olive oil') || 
+               lower.includes('vinegar') || lower.includes('soy sauce');
+      });
+      
+      const herbs = improvedRecipe.ingredients.filter((ing: string) => {
+        const lower = ing.toLowerCase();
+        return lower.includes('cilantro') || lower.includes('parsley') || 
+               lower.includes('basil') || lower.includes('thyme') || 
+               lower.includes('oregano') || lower.includes('rosemary');
+      });
+      
+      // Determine recipe type based on name and ingredients
+      const isStirFry = improvedRecipe.name.toLowerCase().includes('stir') || 
+                        improvedRecipe.name.toLowerCase().includes('asian') ||
+                        improvedRecipe.name.toLowerCase().includes('teriyaki');
+      
+      const isTaco = improvedRecipe.name.toLowerCase().includes('taco') ||
+                     improvedRecipe.ingredients.some((ing: string) => ing.toLowerCase().includes('tortilla'));
+      
+      const isPasta = improvedRecipe.name.toLowerCase().includes('pasta') || 
+                      improvedRecipe.name.toLowerCase().includes('alfredo') ||
+                      improvedRecipe.ingredients.some((ing: string) => ing.toLowerCase().includes('pasta'));
+      
+      const isInstantPot = improvedRecipe.name.toLowerCase().includes('instant pot') ||
+                           improvedRecipe.name.toLowerCase().includes('pressure cooker');
+      
+      const isSlowCooker = improvedRecipe.name.toLowerCase().includes('slow cooker') ||
+                           improvedRecipe.name.toLowerCase().includes('crock pot');
+                           
+      // Generate appropriate instructions based on recipe type
+      const newInstructions = [];
+      
+      // Step 1: Prep ingredients (all recipe types)
+      newInstructions.push(`Prepare all ingredients by washing, chopping, and measuring according to the ingredients list: thoroughly rinse all produce, chop vegetables into uniform pieces, and organize ingredients in separate bowls for easy access during cooking.`);
+      
+      // Step 2: Initial cooking setup
+      if (isInstantPot) {
+        newInstructions.push(`Set the Instant Pot to sauté mode and add 2 tablespoons of oil, allowing it to heat for approximately 1 minute until the display shows "Hot" and the oil shimmers slightly.`);
+      } else if (isSlowCooker) {
+        newInstructions.push(`Lightly coat the slow cooker insert with 1 tablespoon of oil or cooking spray, ensuring even coverage to prevent sticking during the long cooking process.`);
+      } else {
+        newInstructions.push(`Heat a large skillet or sauté pan over medium-high heat and add 2 tablespoons of oil, allowing it to heat for 30 seconds until it shimmers but doesn't smoke.`);
+      }
+      
+      // Step 3-4: Protein cooking (recipe specific)
+      if (proteins.length > 0) {
+        const protein = proteins[0].replace(/^\d+\s+(tablespoons?|teaspoons?|cups?|pounds?|ounces?|grams?)\s+/i, '');
+        newInstructions.push(`Season ${protein} with 1/2 teaspoon salt and 1/4 teaspoon black pepper, ensuring even coverage on all sides for balanced flavor throughout the dish.`);
+        
+        if (isStirFry) {
+          newInstructions.push(`Cook ${protein} in the hot oil for 3-4 minutes per side until golden brown on the outside and no longer pink inside, with an internal temperature of 165°F for poultry or 145°F for beef, working in batches if necessary to avoid overcrowding the pan.`);
+        } else if (isTaco) {
+          newInstructions.push(`Cook ${protein} over medium-high heat for 5-6 minutes, breaking larger pieces apart with a wooden spoon, until completely browned with no pink remaining and the internal temperature reaches the appropriate safety level (165°F for poultry, 160°F for ground meat).`);
+        } else if (isPasta) {
+          newInstructions.push(`Sauté ${protein} in the hot pan for 5-7 minutes until browned and cooked through to an internal temperature of 165°F, then remove to a clean plate and set aside while keeping warm.`);
+        } else if (isInstantPot) {
+          newInstructions.push(`Brown ${protein} in the Instant Pot on sauté mode for 4-5 minutes until golden on all sides but not fully cooked through, working in batches if necessary to avoid steaming instead of browning.`);
+        } else if (isSlowCooker) {
+          newInstructions.push(`Place the seasoned ${protein} in an even layer at the bottom of the slow cooker, arranging pieces to ensure even cooking throughout the long cooking process.`);
+        } else {
+          newInstructions.push(`Cook ${protein} for 5-6 minutes, turning occasionally, until browned on all sides and cooked to the proper internal temperature (165°F for chicken, 145°F for fish, 160°F for ground meat), then transfer to a clean plate.`);
+        }
+      }
+      
+      // Step 5-6: Vegetable cooking
+      if (vegetables.length > 0) {
+        const firstTwoVegetables = vegetables.slice(0, 2).map(v => v.replace(/^\d+\s+(tablespoons?|teaspoons?|cups?|pounds?|ounces?|grams?)\s+/i, '')).join(' and ');
+        
+        if (isStirFry) {
+          newInstructions.push(`Add ${firstTwoVegetables} to the same pan and stir-fry for 3-4 minutes over high heat, tossing frequently until vegetables are bright in color and crisp-tender but not fully soft.`);
+        } else if (isInstantPot || isSlowCooker) {
+          newInstructions.push(`Layer ${firstTwoVegetables} on top of the protein in the ${isInstantPot ? 'Instant Pot' : 'slow cooker'}, distributing evenly across the cooking surface.`);
+        } else {
+          newInstructions.push(`Add ${firstTwoVegetables} to the pan and sauté for 4-5 minutes over medium heat, stirring occasionally until softened but still maintaining some firmness and bright color.`);
+        }
+        
+        // More vegetables if available
+        if (vegetables.length > 2) {
+          const remainingVegetables = vegetables.slice(2, 4).map(v => v.replace(/^\d+\s+(tablespoons?|teaspoons?|cups?|pounds?|ounces?|grams?)\s+/i, '')).join(' and ');
+          
+          if (!isInstantPot && !isSlowCooker) {
+            newInstructions.push(`Add ${remainingVegetables} to the pan and continue cooking for an additional 2-3 minutes, stirring frequently until all vegetables are tender-crisp and aromatic.`);
+          }
+        }
+      }
+      
+      // Step 7-8: Sauce/liquid addition
+      if (sauces.length > 0) {
+        const sauce = sauces[0].replace(/^\d+\s+(tablespoons?|teaspoons?|cups?|pounds?|ounces?|grams?)\s+/i, '');
+        
+        if (isStirFry) {
+          newInstructions.push(`Pour ${sauce} over the vegetables and bring to a simmer, then return the cooked protein to the pan and toss everything together for 1-2 minutes until the sauce thickens slightly and coats all ingredients evenly.`);
+        } else if (isInstantPot) {
+          newInstructions.push(`Pour ${sauce} over all ingredients in the Instant Pot, secure the lid ensuring the valve is set to "sealing" position, and program to cook on high pressure for 8 minutes followed by a 10-minute natural pressure release.`);
+        } else if (isSlowCooker) {
+          newInstructions.push(`Pour ${sauce} over all ingredients in the slow cooker, place the lid securely on top, and cook on low heat for 6-8 hours or high heat for 3-4 hours until the protein is fork-tender and fully cooked through.`);
+        } else if (isPasta) {
+          newInstructions.push(`Reduce heat to medium-low and pour ${sauce} into the pan, stirring constantly to incorporate any browned bits from the bottom of the pan (deglazing), then simmer for 3-4 minutes until the sauce begins to thicken slightly.`);
+        } else {
+          newInstructions.push(`Add ${sauce} to the pan and bring to a gentle simmer, then return any reserved protein to the pan, reduce heat to medium-low, and cook for 5-7 minutes until sauce thickens slightly and all ingredients are heated through.`);
+        }
+      }
+      
+      // Step 9: Starch addition if available
+      if (starches.length > 0) {
+        const starch = starches[0].replace(/^\d+\s+(tablespoons?|teaspoons?|cups?|pounds?|ounces?|grams?)\s+/i, '');
+        
+        if (isPasta && starch.toLowerCase().includes('pasta')) {
+          newInstructions.push(`While the sauce simmers, cook ${starch} in a separate large pot of salted boiling water according to package directions until al dente (tender but still firm when bitten), about 8-10 minutes, then drain well but do not rinse.`);
+          newInstructions.push(`Add the drained ${starch} directly to the sauce, gently tossing with tongs or a pasta fork to coat every strand evenly, then cook together for 1-2 minutes allowing the pasta to absorb some of the sauce's flavor.`);
+        } else if (starch.toLowerCase().includes('rice') || starch.toLowerCase().includes('quinoa')) {
+          newInstructions.push(`Serve the finished dish over hot cooked ${starch}, spooning the protein, vegetables, and sauce generously over the base for an attractive presentation.`);
+        } else if (isTaco && starch.toLowerCase().includes('tortilla')) {
+          newInstructions.push(`Warm ${starch} according to package directions until soft and pliable: either wrap in foil and heat in a 350°F oven for 5-7 minutes, or place directly over a gas flame for 10-15 seconds per side until lightly charred in spots.`);
+        }
+      }
+      
+      // Step 10: Herb/garnish addition
+      if (herbs.length > 0) {
+        const herb = herbs[0].replace(/^\d+\s+(tablespoons?|teaspoons?|cups?|pounds?|ounces?|grams?)\s+/i, '');
+        newInstructions.push(`Sprinkle ${herb} over the finished dish just before serving, distributing evenly for a fresh flavor boost and attractive color contrast against the other ingredients.`);
+      } else {
+        newInstructions.push(`Taste the finished dish and adjust seasoning if necessary, adding up to 1/4 teaspoon more salt and a pinch of black pepper if needed to enhance the flavors.`);
+      }
+      
+      // Step 11: Final plating/serving
+      if (isTaco) {
+        newInstructions.push(`Assemble tacos by placing a generous portion of the filling in the center of each warmed tortilla, then top with your favorite garnishes such as diced tomatoes, shredded lettuce, cheese, or sour cream.`);
+      } else if (isStirFry) {
+        newInstructions.push(`Transfer the stir-fry to a large serving platter or individual plates, ensuring a good mixture of protein, vegetables, and sauce in each portion for balanced flavor and appearance.`);
+      } else if (isPasta) {
+        newInstructions.push(`Serve the pasta immediately in warmed bowls, twirling long pasta shapes into a neat mound or arranging shorter shapes in an even layer, then sprinkle with additional cheese or herbs if desired.`);
+      } else if (isInstantPot || isSlowCooker) {
+        newInstructions.push(`Carefully transfer the finished dish to a large serving bowl using a slotted spoon to drain excess liquid, arranging larger pieces of protein on top for an attractive presentation.`);
+      } else {
+        newInstructions.push(`Plate the finished dish attractively, dividing the components evenly among warmed plates and spooning sauce on top, ensuring each portion has a good balance of protein, vegetables, and accompaniments.`);
+      }
+      
+      // Step 12: Enjoy!
+      newInstructions.push(`Serve immediately while hot, garnishing with any remaining fresh ingredients or a squeeze of citrus if available to brighten the flavors, and enjoy within 15-20 minutes of cooking for the best taste and texture.`);
+      
+      // Only use our generated instructions if we have enough of them
+      if (newInstructions.length >= 10) {
+        // Mark the recipe with a note about the regenerated instructions
+        improvedRecipe._regeneratedInstructions = true;
+        improvedRecipe.instructions = newInstructions;
+        
+        // Also update directions for backward compatibility
+        if (improvedRecipe.directions) {
+          improvedRecipe.directions = newInstructions;
+        }
+        
+        console.log(`[IMPROVE RECIPE] Successfully generated ${newInstructions.length} detailed instructions for ${improvedRecipe.name}`);
+      }
+    }
+    
+    return improvedRecipe;
+  }
+  
+  // Define common generic instructions that need improvement
+  const genericPhraseReplacements = [
+    { pattern: /cook until done/i, replacement: "cook until golden brown and internal temperature reaches the safe point (165°F for poultry, 145°F for fish, 160°F for ground meat), about 10-12 minutes" },
+    { pattern: /salt and pepper to taste/i, replacement: "add 1/2 teaspoon salt and 1/4 teaspoon freshly ground black pepper, adjusting according to your preference" },
+    { pattern: /season to taste/i, replacement: "season with 1/2 teaspoon salt and 1/4 teaspoon black pepper, adjusting to your preference after tasting" },
+    { pattern: /set aside/i, replacement: "transfer to a clean plate or bowl and set aside, keeping warm by covering loosely with aluminum foil" },
+    { pattern: /serve immediately/i, replacement: "serve immediately while hot, garnishing with fresh herbs if desired for added color and flavor" },
+    { pattern: /enjoy/i, replacement: "enjoy while hot, with your favorite beverage on the side for a complete dining experience" },
+    { pattern: /prepare all ingredients/i, replacement: "measure and prepare all ingredients according to the list: wash and chop vegetables, measure spices, and organize your cooking station" },
+    { pattern: /preheat your oven/i, replacement: "preheat your oven to 375°F (190°C) and position the rack in the center of the oven for even cooking" },
+    { pattern: /cook following standard procedures/i, replacement: "cook over medium-high heat for 6-8 minutes, stirring occasionally, until golden brown and cooked through to a safe internal temperature" },
+    { pattern: /mix well/i, replacement: "mix thoroughly with a wooden spoon or silicone spatula, ensuring all ingredients are well incorporated for even flavor distribution" },
+    { pattern: /combine the ingredients/i, replacement: "combine all prepared ingredients in the bowl, gently folding together with a spatula until everything is evenly distributed" }
+  ];
+  
   // Fix common issues in instructions
   improvedRecipe.instructions = improvedRecipe.instructions.map((instruction: string) => {
     // Ensure string type
@@ -1158,17 +1392,11 @@ function improveRecipeInstructions(recipe: any): any {
     
     let improved = instruction;
     
-    // Fix generic instructions
-    if (improved.toLowerCase().includes('cook according to')) {
-      improved = improved.replace(/cook according to .+/i, 'cook over medium heat for 5-7 minutes, stirring occasionally, until fully cooked through and no longer pink in the center');
-    }
-    
-    if (improved.toLowerCase().includes('salt and pepper to taste')) {
-      improved = improved.replace(/salt and pepper to taste/i, 'season with 1/2 teaspoon salt and 1/4 teaspoon freshly ground black pepper');
-    }
-    
-    if (improved.toLowerCase().includes('follow package instructions')) {
-      improved = improved.replace(/follow package instructions/i, 'cook according to these specific directions: bring 4 cups of water to a boil, add the ingredient, reduce heat to medium-low, and simmer for 10-12 minutes until tender');
+    // Replace generic phrases with more specific ones
+    for (const { pattern, replacement } of genericPhraseReplacements) {
+      if (pattern.test(improved)) {
+        improved = improved.replace(pattern, replacement);
+      }
     }
     
     // Break down overly long instructions
@@ -1200,6 +1428,25 @@ function improveRecipeInstructions(recipe: any): any {
         improved = 'Heat ' + improved;
       } else {
         improved = 'Prepare ' + improved;
+      }
+    }
+    
+    // If instruction is still too short, add more detail
+    if (improved.length < 25) {
+      // Flag the meal for regeneration
+      improvedRecipe._qualityIssues = improvedRecipe._qualityIssues || [];
+      if (!improvedRecipe._qualityIssues.includes("Contains short instructions that need more detail")) {
+        improvedRecipe._qualityIssues.push("Contains short instructions that need more detail");
+      }
+      improvedRecipe._needsRegeneration = true;
+      
+      // Try to expand it anyway
+      if (improved.toLowerCase().includes('stir')) {
+        improved += ' using a wooden spoon or silicone spatula, ensuring all ingredients are well distributed for even cooking and flavor';
+      } else if (improved.toLowerCase().includes('heat') || improved.toLowerCase().includes('cook')) {
+        improved += ' at medium-high temperature for 4-5 minutes, monitoring closely to prevent burning while ensuring thorough cooking';
+      } else if (improved.toLowerCase().includes('season')) {
+        improved += ' evenly on all sides, using your fingers to gently rub the spices into the surface for maximum flavor penetration';
       }
     }
     
