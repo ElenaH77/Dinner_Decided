@@ -796,7 +796,7 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
       messages: [
         {
           role: "system",
-          content: `You are a helpful meal planning assistant tasked with modifying recipes.
+          content: `You are a professional chef and recipe writer creating precise, detailed recipes for home cooks.
           Your goal is to modify the provided recipe according to the user's request while keeping the same meal type and similar prep time.
           
           MODIFICATION APPROACH:
@@ -815,8 +815,18 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           
           ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
-          IMPORTANT OUTPUT FORMAT:
-          Every meal MUST include camelCase field names exactly as specified:
+          CRITICAL QUALITY REQUIREMENTS - YOUR RECIPE MUST INCLUDE ALL OF THESE:
+          1. EXACTLY 10-15 detailed ingredients with specific measurements
+          2. EXACTLY 10-12 detailed instructions steps
+          3. EVERY step must begin with a specific action verb
+          4. EVERY cooking step must include precise times and temperatures
+          5. Include specific visual/sensory cues for doneness
+          6. NO generic phrases like "cook until done" or "standard procedure"
+          7. EVERY cooking technique must include an explanation
+          8. Each instruction must be a detailed sentence of 15+ words
+          
+          OUTPUT FORMAT REQUIREMENTS:
+          Every meal MUST include these exact camelCase field names:
           - name: Name of the dish
           - description: Description of the dish (2-3 sentences)
           - day: Day of the week
@@ -827,7 +837,7 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           
           FOR INGREDIENTS:
           - ingredients: Array of ingredients with quantities
-            * THIS IS CRITICAL: Include 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+            * THIS IS CRITICAL: Include EXACTLY 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
             * Include all seasonings, oils, and garnishes with specific quantities
             * Every single ingredient mentioned in the instructions MUST be listed here
             * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
@@ -835,22 +845,25 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
           
           - mainIngredients: Array of ingredients with quantities (same as ingredients, for backward compatibility)
           
-          - instructions: Array of step-by-step instructions (minimum 8-10 detailed steps)
-            * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
-            * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
-            * Include exact time and temperature for any oven, slow cooker, or instant pot steps
-            * Mention each ingredient specifically when it's used with exact quantities
-            * Break complex processes into multiple detailed steps
-            * Include specific guidance on how to tell when things are properly cooked
-            * NO generic steps like "cook according to standard procedure" - every step must be explicit
-            * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
-            * For mixed dishes, include how to assemble and serve
+          FOR INSTRUCTIONS:
+          - instructions: Array of step-by-step instructions (EXACTLY 10-12 detailed steps)
+            * EVERY instruction must begin with a strong, specific action verb (e.g., "Heat", "Stir", "Whisk")
+            * Include EXACT cooking times, temperatures, and methods for EVERY step with specific numbers (e.g., "Sauté over medium-high heat for exactly 4-5 minutes" not "Sauté until done")
+            * Include EXACT time and temperature for any oven, slow cooker, or instant pot steps (e.g., "Bake at 375°F for 25-30 minutes" not "Bake until done")
+            * For EVERY ingredient, specify EXACT quantities when used (e.g., "Add 2 tablespoons of olive oil" not "Add oil")
+            * EXPLICITLY state minimum internal cooking temperatures (165°F for chicken/poultry, 145°F for fish, 160°F for ground meat)
+            * ALWAYS provide multiple sensory cues for doneness (e.g., "until golden brown, crispy on edges, and internal temperature reaches 165°F, about 5-6 minutes")
+            * CLEARLY describe what the food should look like at EACH critical stage with visual and textural details (e.g., "the sauce should be glossy and thick enough to coat the back of a spoon")
+            * NEVER use generic steps like "cook according to standard procedure" - EVERY step must be explicit and detailed
+            * EVERY specialized cooking technique (fold, deglaze, sauté, broil, etc.) MUST include a parenthetical explanation (e.g., "Deglaze the pan (pour liquid into hot pan to loosen browned bits)")
+            * For mixed dishes, include SPECIFIC assembly instructions with exact measurements and layering (e.g., "Spread exactly 1 cup of sauce on bottom of dish, layer with 6 lasagna noodles slightly overlapping")
+            * Format each instruction as a detailed, specific sentence of at least 15 words with measurements, cooking methods, times, and sensory cues
           
           - rationales: Array of 2-3 reasons why this modification works well
           - modificationRequest: The modification that was requested
           - modifiedFrom: The name of the original meal
           
-          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
+          WARNING: Your recipe will be strictly validated against all these requirements. If ANY requirement is missing, your recipe will be rejected. The ingredients list must be thorough - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
           IMPORTANT: Make sure every single ingredient mentioned in the instructions is listed in the ingredients array with proper quantities!
           
           Return your response as a single JSON object with these properties.`
@@ -912,24 +925,35 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
         // Store issues for reference
         modifiedMeal._qualityIssues = validationResult.issues;
         
-        // Check if we should retry based on severity of issues
-        const criticalIssues = validationResult.issues.filter(issue => 
-          issue.includes("Insufficient instructions") || 
-          issue.includes("Insufficient ingredients") ||
-          issue.includes("generic instruction")
-        );
+        // ALL validation issues are critical for meal modifications
+        const criticalIssues = validationResult.issues;
         
-        if (criticalIssues.length > 0 && retryCount < 2) {
-          console.log(`[MEAL MODIFICATION] Critical quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+        // Always retry at least once for modifications if there are any issues
+        if (criticalIssues.length > 0 && retryCount < 3) {
+          console.log(`[MEAL MODIFICATION] Quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+          console.log(`[MEAL MODIFICATION] Issues to fix: ${criticalIssues.join(", ")}`);
           
           // Create a more specific prompt for regeneration based on issues
           const improvementPrompt = {
             ...meal,
             name: modifiedMeal.name, // Keep the modified name but improve the quality
-            regenerationNotes: `Please improve this recipe to fix the following issues: ${criticalIssues.join(", ")}. 
+            regenerationNotes: `IMPORTANT: This recipe FAILED quality validation. Please completely rewrite it to fix these issues: ${criticalIssues.join(", ")}. 
+            
             The modification request was: "${modificationRequest}".
-            Ensure there are at least 8 ingredients with specific measurements and at least 7 detailed instruction steps.
-            Include specific cooking times and temperatures.`
+            
+            CRITICAL REQUIREMENTS:
+            1. Include AT LEAST 10 ingredients with SPECIFIC measurements
+            2. Write EXACTLY 10-12 detailed instruction steps
+            3. Each step must begin with a specific action verb
+            4. Include EXACT cooking times and temperatures for EVERY cooking step
+            5. Include specific visual/sensory cues for doneness (e.g., "golden brown and crispy")
+            6. Explain any cooking technique like "fold", "deglaze", etc. with a detailed explanation
+            7. ABSOLUTELY NO generic instructions like "cook until done" or "standard procedure"
+            8. Each step must be a detailed sentence of at least 15-20 words
+            9. If baking/roasting, specify exact temperature (e.g., "375°F for 25 minutes")
+            10. If cooking meat, specify internal temperature (e.g., "165°F for chicken")
+            
+            The previous recipe didn't meet standards. Please write a COMPLETELY NEW and FULLY DETAILED recipe.`
           };
           
           // Retry with the improved prompt and same modification request
@@ -998,7 +1022,7 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
       messages: [
         {
           role: "system",
-          content: `You are a helpful meal planning assistant that creates new recipe suggestions.
+          content: `You are a professional chef and recipe writer creating precise, detailed recipes for home cooks.
           Your goal is to generate a completely new meal that fulfills the same role as the original but provides variety.
           
           REPLACEMENT APPROACH:
@@ -1017,8 +1041,18 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
           
           ${weatherContext ? `Current weather and forecast: ${weatherContext}` : ''}
           
-          IMPORTANT OUTPUT FORMAT:
-          Every meal MUST include camelCase field names exactly as specified:
+          CRITICAL QUALITY REQUIREMENTS - YOUR RECIPE MUST INCLUDE ALL OF THESE:
+          1. EXACTLY 10-15 detailed ingredients with specific measurements
+          2. EXACTLY 10-12 detailed instructions steps
+          3. EVERY step must begin with a specific action verb
+          4. EVERY cooking step must include precise times and temperatures
+          5. Include specific visual/sensory cues for doneness
+          6. NO generic phrases like "cook until done" or "standard procedure"
+          7. EVERY cooking technique must include an explanation
+          8. Each instruction must be a detailed sentence of 15+ words
+          
+          OUTPUT FORMAT REQUIREMENTS:
+          Every meal MUST include these exact camelCase field names:
           - name: Name of the dish
           - description: Description of the dish (2-3 sentences)
           - day: Day of the week (same as original)
@@ -1028,27 +1062,30 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
 
           FOR INGREDIENTS:
           - ingredients: Array of ingredients with quantities
-            * THIS IS CRITICAL: Include 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
+            * THIS IS CRITICAL: Include EXACTLY 10-15 ingredients with EXACT measurements for each (like "1 lb ground beef", "2 cloves garlic, minced")
             * Include all seasonings, oils, and garnishes with specific quantities
             * Every single ingredient mentioned in the instructions MUST be listed here
             * Include salt, pepper, oil quantities specifically - never just "salt and pepper to taste"
             * Format as complete phrases (e.g., "1 pound boneless chicken breasts, cut into 1-inch pieces")
           
-          - instructions: Array of step-by-step instructions (minimum 8-10 detailed steps)
-            * CRITICAL: Instructions must be comprehensive enough for a beginner cook to follow without prior knowledge
-            * Include precise cooking times, temperatures, and methods for EVERY step (e.g., "sauté over medium heat for 5 minutes" not just "sauté until done")
-            * Include exact time and temperature for any oven, slow cooker, or instant pot steps
-            * Mention each ingredient specifically when it's used with exact quantities
-            * Break complex processes into multiple detailed steps
-            * Include specific guidance on how to tell when things are properly cooked
-            * NO generic steps like "cook according to standard procedure" - every step must be explicit
-            * NEVER assume prior cooking knowledge - explain techniques like "fold in", "deglaze", etc.
-            * For mixed dishes, include how to assemble and serve
+          FOR INSTRUCTIONS:
+          - instructions: Array of step-by-step instructions (EXACTLY 10-12 detailed steps)
+            * EVERY instruction must begin with a strong, specific action verb (e.g., "Heat", "Stir", "Whisk")
+            * Include EXACT cooking times, temperatures, and methods for EVERY step with specific numbers (e.g., "Sauté over medium-high heat for exactly 4-5 minutes" not "Sauté until done")
+            * Include EXACT time and temperature for any oven, slow cooker, or instant pot steps (e.g., "Bake at 375°F for 25-30 minutes" not "Bake until done")
+            * For EVERY ingredient, specify EXACT quantities when used (e.g., "Add 2 tablespoons of olive oil" not "Add oil")
+            * EXPLICITLY state minimum internal cooking temperatures (165°F for chicken/poultry, 145°F for fish, 160°F for ground meat)
+            * ALWAYS provide multiple sensory cues for doneness (e.g., "until golden brown, crispy on edges, and internal temperature reaches 165°F, about 5-6 minutes")
+            * CLEARLY describe what the food should look like at EACH critical stage with visual and textural details (e.g., "the sauce should be glossy and thick enough to coat the back of a spoon")
+            * NEVER use generic steps like "cook according to standard procedure" - EVERY step must be explicit and detailed
+            * EVERY specialized cooking technique (fold, deglaze, sauté, broil, etc.) MUST include a parenthetical explanation (e.g., "Deglaze the pan (pour liquid into hot pan to loosen browned bits)")
+            * For mixed dishes, include SPECIFIC assembly instructions with exact measurements and layering (e.g., "Spread exactly 1 cup of sauce on bottom of dish, layer with 6 lasagna noodles slightly overlapping")
+            * Format each instruction as a detailed, specific sentence of at least 15 words with measurements, cooking methods, times, and sensory cues
           
           - rationales: Array of 2-3 reasons why this replacement works well
           - replacedFrom: The name of the original meal
 
-          ATTENTION: Your response must be complete with ALL the details above. The ingredients list should be thorough and comprehensive - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
+          WARNING: Your recipe will be strictly validated against all these requirements. If ANY requirement is missing, your recipe will be rejected. The ingredients list must be thorough - every cooking oil, herb, spice and seasoning needs a specific quantity. The instructions must be detailed enough that someone who has never cooked before could successfully follow them.
           
           Return your response as a single JSON object with these properties.`
         },
@@ -1125,22 +1162,32 @@ export async function replaceMeal(meal: any, retryCount: number = 0): Promise<an
         // Store issues for reference
         replacementMeal._qualityIssues = validationResult.issues;
         
-        // Check if we should retry based on severity of issues
-        const criticalIssues = validationResult.issues.filter(issue => 
-          issue.includes("Insufficient instructions") || 
-          issue.includes("Insufficient ingredients") ||
-          issue.includes("generic instruction")
-        );
+        // ALL validation issues are critical for replacements
+        const criticalIssues = validationResult.issues;
         
-        if (criticalIssues.length > 0 && retryCount < 2) {
-          console.log(`[MEAL REPLACEMENT] Critical quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+        // Always retry at least once for replacements if there are any issues
+        if (criticalIssues.length > 0 && retryCount < 3) {
+          console.log(`[MEAL REPLACEMENT] Quality issues detected. Attempting to regenerate meal (attempt ${retryCount + 1})...`);
+          console.log(`[MEAL REPLACEMENT] Issues to fix: ${criticalIssues.join(", ")}`);
           
           // Create a more specific prompt for regeneration based on issues
           const improvementPrompt = {
             ...meal,
-            regenerationNotes: `Please improve this recipe to fix the following issues: ${criticalIssues.join(", ")}. 
-            Ensure there are at least 8 ingredients with specific measurements and at least 7 detailed instruction steps.
-            Include specific cooking times and temperatures.`
+            regenerationNotes: `IMPORTANT: This recipe FAILED quality validation. Please completely rewrite it to fix these issues: ${criticalIssues.join(", ")}. 
+            
+            CRITICAL REQUIREMENTS:
+            1. Include AT LEAST 10 ingredients with SPECIFIC measurements
+            2. Write EXACTLY 10-12 detailed instruction steps
+            3. Each step must begin with a specific action verb
+            4. Include EXACT cooking times and temperatures for EVERY cooking step
+            5. Include specific visual/sensory cues for doneness (e.g., "golden brown and crispy")
+            6. Explain any cooking technique like "fold", "deglaze", etc. with a detailed explanation
+            7. ABSOLUTELY NO generic instructions like "cook until done" or "standard procedure"
+            8. Each step must be a detailed sentence of at least 15-20 words
+            9. If baking/roasting, specify exact temperature (e.g., "375°F for 25 minutes")
+            10. If cooking meat, specify internal temperature (e.g., "165°F for chicken")
+            
+            The previous recipe didn't meet standards. Please write a COMPLETELY NEW and FULLY DETAILED recipe.`
           };
           
           // Retry with the improved prompt
