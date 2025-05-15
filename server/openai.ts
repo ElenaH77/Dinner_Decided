@@ -1259,32 +1259,75 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
     // Check for short, generic, or incomplete instructions
     let shortInstructions = 0;
     let genericInstructions = 0;
+    let missingActionVerbs = 0;
+    let missingTempTime = 0;
+    
+    const ACTION_VERBS = [
+      "heat", "stir", "mix", "combine", "add", "place", "pour", "transfer", "remove", 
+      "cook", "bake", "boil", "simmer", "sauté", "chop", "dice", "slice", "mince", 
+      "grate", "drain", "rinse", "serve", "garnish", "sprinkle", "season", "whisk", 
+      "fold", "roll", "spread", "arrange", "layer", "top", "cover", "uncover"
+    ];
     
     meal.instructions.forEach((instruction: string) => {
       if (typeof instruction !== 'string') return;
       
       // Check for short instructions
-      if (instruction.length < 20) {
+      if (instruction.length < 25) { // Stricter length requirement
         shortInstructions++;
       }
       
-      // Check for generic instructions
+      // Check for missing action verbs at beginning
+      const firstWord = instruction.trim().split(' ')[0].toLowerCase();
+      if (!ACTION_VERBS.includes(firstWord)) {
+        missingActionVerbs++;
+      }
+      
+      // Check for missing temperature or time specifics
+      if (!instruction.match(/\d+\s*(?:degree|°F|°C|minutes?|mins?|hours?|hrs?|seconds?|secs?)/i)) {
+        // Only count this for cooking steps
+        if (instruction.toLowerCase().match(/cook|bake|roast|simmer|boil|sauté|fry|grill|heat|warm/)) {
+          missingTempTime++;
+        }
+      }
+      
+      // Check for generic instructions - more comprehensive patterns
       if (instruction.toLowerCase().includes('cook according to') ||
           instruction.toLowerCase().includes('follow package instructions') ||
           instruction.toLowerCase().includes('to taste') ||
           instruction.toLowerCase().includes('salt and pepper to taste') ||
           instruction.toLowerCase().includes('as needed') ||
-          instruction.toLowerCase().includes('standard procedure')) {
+          instruction.toLowerCase().includes('standard procedure') ||
+          instruction.toLowerCase().includes('according to the ingredients list') ||
+          instruction.toLowerCase().includes('as needed for this recipe') ||
+          instruction.toLowerCase().includes('following standard procedures') ||
+          instruction.toLowerCase().includes('enjoy with your family')) {
         genericInstructions++;
       }
     });
     
     if (shortInstructions > 0) {
-      issues.push(`Has ${shortInstructions} too-brief instructions. Each step should be a detailed sentence.`);
+      issues.push(`Has ${shortInstructions} too-brief instructions. Each step should be a detailed sentence of at least 25 characters.`);
+    }
+    
+    if (missingActionVerbs > 0) {
+      issues.push(`Found ${missingActionVerbs} instructions that don't start with an action verb. Each step must begin with a clear action verb.`);
+    }
+    
+    if (missingTempTime > 0) {
+      issues.push(`Found ${missingTempTime} cooking steps without specific temperatures or times. All cooking steps must include precise numbers.`);
     }
     
     if (genericInstructions > 0) {
-      issues.push(`Has ${genericInstructions} generic instructions. Each step should be specific with exact times, temperatures, and methods.`);
+      issues.push(`Found ${genericInstructions} generic instructions. Each step must be specific with exact times, temperatures, and methods.`);
+    }
+    
+    // Check if instructions look like placeholders or filler content by examining content patterns
+    if (meal.instructions.length <= 5 && 
+        meal.instructions.some((instr: string) => 
+          instr.toLowerCase().includes('ingredients list') || 
+          instr.toLowerCase().includes('standard procedure'))) {
+      issues.push(`Recipe appears to contain placeholder instructions rather than genuine cooking steps. Each step must be detailed and specific.`);
     }
   }
   
