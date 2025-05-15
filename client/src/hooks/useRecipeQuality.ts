@@ -27,7 +27,14 @@ export function fixRecipeInstructions(recipe: any): any {
   const hasTooFewInstructions = recipe.instructions.length <= 5;
   
   // If the recipe doesn't need fixing, return as is
-  if (!hasGenericInstructions && !hasTooFewInstructions && !recipe._needsRegeneration) {
+  // IMPORTANT: Always apply fixes for stir-fry shrimp recipes regardless of quality flags
+  const isShrimp = recipe.name?.toLowerCase().includes('shrimp') || 
+                  (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
+  const isStirFry = recipe.name?.toLowerCase().includes('stir') || 
+                   recipe.name?.toLowerCase().includes('asian') ||
+                   recipe.name?.toLowerCase().includes('teriyaki');
+  
+  if (!hasGenericInstructions && !hasTooFewInstructions && !recipe._needsRegeneration && !(isStirFry && isShrimp)) {
     return recipe;
   }
   
@@ -53,13 +60,6 @@ export function fixRecipeInstructions(recipe: any): any {
   const isGrill = recipe.name.toLowerCase().includes('grill') || 
                 recipe.name.toLowerCase().includes('bbq') ||
                 recipe.name.toLowerCase().includes('skewer');
-  
-  const isStirFry = recipe.name.toLowerCase().includes('stir') || 
-                   recipe.name.toLowerCase().includes('asian') ||
-                   recipe.name.toLowerCase().includes('teriyaki');
-                   
-  const isShrimp = recipe.name.toLowerCase().includes('shrimp') || 
-                  (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
   
   const isPasta = recipe.name.toLowerCase().includes('pasta') || 
                 (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('pasta') || 

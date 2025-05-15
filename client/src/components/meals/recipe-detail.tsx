@@ -140,7 +140,11 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
         instr.toLowerCase().includes('preheat your oven or stovetop as needed') ||
         instr.toLowerCase().includes('enjoy with your family') ||
         instr.toLowerCase().includes('following standard procedures') ||
-        instr.toLowerCase().includes('cook until all components are thoroughly cooked')
+        instr.toLowerCase().includes('cook until all components are thoroughly cooked') ||
+        instr.toLowerCase().includes('as needed for this recipe') ||
+        instr.toLowerCase().includes('with your family') ||
+        instr.toLowerCase().includes('combine the ingredients') ||
+        instr.toLowerCase().includes('according to the ingredient')
       )
     );
     
@@ -160,7 +164,7 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     }
     
     return meal;
-  }, [meal]);
+  }, [meal, openTimestamp]);
 
   // Process instructions which could be a string array, string or object format
   const processInstructions = () => {
