@@ -15,7 +15,11 @@ export function fixRecipeInstructions(recipe: any): any {
       instr.toLowerCase().includes('preheat your oven or stovetop as needed') ||
       instr.toLowerCase().includes('enjoy with your family') ||
       instr.toLowerCase().includes('following standard procedures') ||
-      instr.toLowerCase().includes('cook until all components are thoroughly cooked')
+      instr.toLowerCase().includes('cook until all components are thoroughly cooked') ||
+      instr.toLowerCase().includes('as needed for this recipe') ||
+      instr.toLowerCase().includes('with your family') ||
+      instr.toLowerCase().includes('combine the ingredients') ||
+      instr.toLowerCase().includes('according to the ingredient')
     )
   );
   
@@ -53,13 +57,35 @@ export function fixRecipeInstructions(recipe: any): any {
   const isStirFry = recipe.name.toLowerCase().includes('stir') || 
                    recipe.name.toLowerCase().includes('asian') ||
                    recipe.name.toLowerCase().includes('teriyaki');
+                   
+  const isShrimp = recipe.name.toLowerCase().includes('shrimp') || 
+                  (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
   
   const isPasta = recipe.name.toLowerCase().includes('pasta') || 
                 (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('pasta') || 
                  ing.toLowerCase().includes('spaghetti')));
 
   // Create appropriate instructions based on recipe type
-  if (isGrill && isChicken) {
+  if (isStirFry && isShrimp) {
+    // Shrimp stir fry instructions
+    newInstructions = [
+      "Heat 1 tablespoon of vegetable oil in a large skillet or wok over medium-high heat (approximately 375°F) until shimmering but not smoking, about 30-45 seconds.",
+      "Pat the peeled and deveined shrimp completely dry with paper towels to ensure proper searing and prevent excess moisture in the pan.",
+      "Add the shrimp to the hot pan in a single layer, being careful not to overcrowd (work in batches if necessary), and cook for exactly 2 minutes per side until they turn pink and opaque, reaching an internal temperature of 145°F.",
+      "Transfer the cooked shrimp to a clean plate, covering loosely with foil to keep warm while preparing the vegetables.",
+      "Return the same pan to the heat and add minced garlic and grated ginger, stirring constantly for 30 seconds until fragrant but not browned to avoid bitterness.",
+      "Add the sliced bell peppers to the pan and stir-fry for 2 minutes until they begin to soften slightly while maintaining their vibrant color and crisp texture.",
+      "Add the sugar snap peas and broccoli florets to the pan, cooking for an additional 3 minutes while stirring frequently, until vegetables are bright and crisp-tender.",
+      "Whisk together the teriyaki sauce, soy sauce, and sesame oil in a small bowl until thoroughly combined.",
+      "In a separate small bowl, create a slurry by mixing 1 tablespoon cornstarch with 1 tablespoon cold water until completely smooth, ensuring no lumps remain.",
+      "Pour the prepared sauce mixture into the pan with the vegetables and bring to a simmer over medium heat, stirring constantly for 1 minute.",
+      "Add the cornstarch slurry to the simmering sauce while stirring continuously, and cook for 2 minutes until the sauce thickens and becomes glossy, coating the back of a spoon.",
+      "Return the cooked shrimp to the pan, gently folding them into the vegetables and sauce to avoid breaking them, and cook for 1 minute to rewarm the shrimp and allow flavors to meld.",
+      "Taste the dish and adjust seasoning with additional soy sauce if needed, keeping in mind the saltiness of the teriyaki sauce.",
+      "Transfer the stir-fry to a serving platter over hot cooked rice, arranging the shrimp and vegetables attractively on top.",
+      "Sprinkle 1 tablespoon of sesame seeds evenly over the top of the dish just before serving for visual appeal and a nutty flavor."
+    ];
+  } else if (isGrill && isChicken) {
     // Grilled chicken instructions
     newInstructions = [
       "Preheat your grill to medium-high heat (approximately 375-400°F) for 10-15 minutes, ensuring the grates are clean and lightly oiled to prevent sticking.",
