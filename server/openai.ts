@@ -40,8 +40,11 @@ console.log('[OPENAI INIT] Initializing OpenAI client with key:', apiKey ? `${ap
 
 const openai = new OpenAI({ 
   apiKey: apiKey || undefined,
-  timeout: 60000, // Add a longer timeout (60 seconds) to avoid timing out on long requests
-  maxRetries: 3 // Add automatic retries for failed requests
+  timeout: 120000, // Increase timeout to 2 minutes to handle longer requests
+  maxRetries: 5, // Increase retries for more reliability
+  defaultQuery: { 
+    'request_timeout': 90 // Request 90 second server-side timeout
+  }  
 });
 
 // Test if the client can be used by making a small request
