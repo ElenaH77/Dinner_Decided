@@ -154,8 +154,27 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
       typeof instr === 'string' && instr.length < 15
     );
     
+    // Special case for shrimp recipes (always improve quality)
+    const isShrimp = meal.name?.toLowerCase().includes('shrimp') || 
+                    (meal.ingredients && meal.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
+    const isStirFry = meal.name?.toLowerCase().includes('stir') || 
+                     meal.name?.toLowerCase().includes('asian') ||
+                     meal.name?.toLowerCase().includes('teriyaki') ||
+                     meal.name?.toLowerCase().includes('szechuan');
+    
+    // Log recipe details
+    console.log('[RECIPE DETAIL] Recipe check:', {
+      name: meal.name,
+      hasGenericInstructions,
+      hasTooFewInstructions,
+      hasShortInstructions,
+      needsRegeneration: meal._needsRegeneration,
+      isShrimp,
+      isStirFry
+    });
+    
     // If it needs improvement, use our recipe quality fixer
-    if (hasGenericInstructions || hasTooFewInstructions || hasShortInstructions || meal._needsRegeneration) {
+    if (hasGenericInstructions || hasTooFewInstructions || hasShortInstructions || meal._needsRegeneration || (isShrimp && isStirFry)) {
       console.log('[RECIPE DETAIL] Improving low-quality recipe:', meal.name);
       try {
         const fixedMeal = fixRecipeInstructions(meal);

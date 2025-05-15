@@ -84,23 +84,27 @@ export function fixRecipeInstructions(recipe: any): any {
 
   // Create appropriate instructions based on recipe type
   if (isStirFry && isShrimp) {
-    // Shrimp stir fry instructions
+    // Enhanced shrimp stir fry instructions with Szechuan specifics
     newInstructions = [
-      "Heat 1 tablespoon of vegetable oil in a large skillet or wok over medium-high heat (approximately 375°F) until shimmering but not smoking, about 30-45 seconds.",
-      "Pat the peeled and deveined shrimp completely dry with paper towels to ensure proper searing and prevent excess moisture in the pan.",
-      "Add the shrimp to the hot pan in a single layer, being careful not to overcrowd (work in batches if necessary), and cook for exactly 2 minutes per side until they turn pink and opaque, reaching an internal temperature of 145°F.",
-      "Transfer the cooked shrimp to a clean plate, covering loosely with foil to keep warm while preparing the vegetables.",
-      "Return the same pan to the heat and add minced garlic and grated ginger, stirring constantly for 30 seconds until fragrant but not browned to avoid bitterness.",
-      "Add the sliced bell peppers to the pan and stir-fry for 2 minutes until they begin to soften slightly while maintaining their vibrant color and crisp texture.",
-      "Add the sugar snap peas and broccoli florets to the pan, cooking for an additional 3 minutes while stirring frequently, until vegetables are bright and crisp-tender.",
-      "Whisk together the teriyaki sauce, soy sauce, and sesame oil in a small bowl until thoroughly combined.",
-      "In a separate small bowl, create a slurry by mixing 1 tablespoon cornstarch with 1 tablespoon cold water until completely smooth, ensuring no lumps remain.",
-      "Pour the prepared sauce mixture into the pan with the vegetables and bring to a simmer over medium heat, stirring constantly for 1 minute.",
-      "Add the cornstarch slurry to the simmering sauce while stirring continuously, and cook for 2 minutes until the sauce thickens and becomes glossy, coating the back of a spoon.",
-      "Return the cooked shrimp to the pan, gently folding them into the vegetables and sauce to avoid breaking them, and cook for 1 minute to rewarm the shrimp and allow flavors to meld.",
-      "Taste the dish and adjust seasoning with additional soy sauce if needed, keeping in mind the saltiness of the teriyaki sauce.",
-      "Transfer the stir-fry to a serving platter over hot cooked rice, arranging the shrimp and vegetables attractively on top.",
-      "Sprinkle 1 tablespoon of sesame seeds evenly over the top of the dish just before serving for visual appeal and a nutty flavor."
+      "Prepare all ingredients before starting: ensure shrimp are completely peeled, deveined, and patted dry with paper towels (moisture will prevent proper searing); slice bell peppers into 1/4-inch strips; trim snow peas; and mince garlic and ginger finely.",
+      "In a small bowl, whisk together 2 tablespoons soy sauce, 1 tablespoon Szechuan sauce (which contains fermented broad beans, chili oil, and garlic), 1 teaspoon sesame oil, and set aside. This creates the flavor base that will permeate the entire dish.",
+      "In a separate small bowl, create a cornstarch slurry by mixing 1 teaspoon cornstarch with 2 tablespoons cool water until completely smooth with no lumps. This will be used to thicken the sauce to the perfect consistency.",
+      "Heat a large wok or heavy skillet over high heat for 2 minutes until very hot - you should feel intense heat when holding your hand 6 inches above the surface. This proper preheating is essential for achieving 'wok hei' (breath of the wok).",
+      "Add 1 tablespoon vegetable oil to the hot wok and immediately swirl to coat the cooking surface. The oil should shimmer but not smoke excessively, indicating the perfect temperature of approximately 375-400°F.",
+      "Carefully add the shrimp in a single layer without overcrowding (work in batches if necessary) and let them sear undisturbed for exactly 45 seconds. The shrimp should begin to turn pink and opaque along the edges.",
+      "Flip each shrimp and cook for an additional 45 seconds until they reach an internal temperature of exactly 145°F. The shrimp should be pinkish-orange with a slight translucency in the thickest part - overcooked shrimp become rubbery.",
+      "Using a slotted spoon, transfer the partially cooked shrimp to a clean plate, leaving any rendered juices in the wok. The shrimp will finish cooking when returned to the sauce later.",
+      "Return the wok to high heat and add the remaining 1 tablespoon vegetable oil. Once hot (about 15 seconds), add the minced garlic (3 cloves) and ginger (1 tablespoon), stirring constantly for precisely 20 seconds until fragrant but not browned.",
+      "Add 1 teaspoon of crushed red pepper flakes and stir for 10 seconds to infuse the oil with spice - you should smell the aromatic heat releasing from the flakes. Adjust this amount based on desired spice level.",
+      "Add the sliced red and green bell peppers to the wok and stir-fry for exactly 2 minutes, using a consistent tossing motion to ensure even cooking while maintaining their vibrant color and crisp-tender texture.",
+      "Add the trimmed snow peas and stir-fry for 90 seconds until bright green and glossy, but still crisp - they should make a slight snapping sound when bent.",
+      "Pour the prepared sauce mixture around the edges of the wok (not directly on the vegetables), allowing it to caramelize slightly as it hits the hot surface, then quickly stir everything together.",
+      "When the sauce begins to bubble (about 30 seconds), add the cornstarch slurry while stirring continuously. The sauce should immediately begin to thicken and turn glossy within 30-45 seconds.",
+      "Return the shrimp to the wok and gently toss for exactly 1 minute to finish cooking and coat evenly with sauce. The shrimp should be plump, completely opaque, and slightly curled into a 'C' shape when fully cooked.",
+      "Turn off the heat and stir in 2 of the 3 chopped green onions, reserving some for garnish. The residual heat will slightly wilt the green onions while maintaining their fresh flavor.",
+      "Transfer the stir-fry immediately to a large serving platter or individual plates over hot jasmine rice, arranging the colorful ingredients attractively.",
+      "Garnish with the remaining chopped green onions, 1 tablespoon toasted sesame seeds, and 1/4 cup fresh cilantro leaves for a professional presentation and added flavor complexity.",
+      "Serve immediately while the vegetables are still crisp and the sauce is hot - the dish should steam slightly when presented at the table, with aromas of garlic, ginger, and Szechuan spices."
     ];
   } else if (isGrill && isChicken) {
     // Grilled chicken instructions
@@ -170,6 +174,23 @@ export function fixRecipeInstructions(recipe: any): any {
   
   // Create a copy of the recipe to avoid modifying the original
   const improvedRecipe = { ...recipe };
+  
+  // Log the improvement being made
+  console.log(`[RECIPE QUALITY] Replacing ${recipe.instructions?.length || 0} instructions with ${newInstructions.length} improved instructions for "${recipe.name}"`);
+  
+  // If the recipe has placeholder instructions like "standard procedures", log them to help with debugging
+  const genericInstructions = recipe.instructions?.filter((instr: string) => 
+    typeof instr === 'string' && (
+      instr.toLowerCase().includes('standard procedure') ||
+      instr.toLowerCase().includes('following standard') ||
+      instr.toLowerCase().includes('ingredients list') ||
+      instr.toLowerCase().includes('as needed')
+    )
+  );
+  
+  if (genericInstructions && genericInstructions.length > 0) {
+    console.log(`[RECIPE QUALITY] Found ${genericInstructions.length} generic instructions:`, genericInstructions);
+  }
   
   // Update the recipe with new instructions and clear the quality flags
   improvedRecipe.instructions = newInstructions;
