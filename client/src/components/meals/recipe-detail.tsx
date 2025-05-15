@@ -148,11 +148,14 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
       )
     );
     
-    // Check if the recipe has too few instructions
+    // Check if the recipe has too few instructions or any instructions are too brief
     const hasTooFewInstructions = meal.instructions && meal.instructions.length <= 5;
+    const hasShortInstructions = meal.instructions?.some((instr: string) => 
+      typeof instr === 'string' && instr.length < 15
+    );
     
     // If it needs improvement, use our recipe quality fixer
-    if (hasGenericInstructions || hasTooFewInstructions || meal._needsRegeneration) {
+    if (hasGenericInstructions || hasTooFewInstructions || hasShortInstructions || meal._needsRegeneration) {
       console.log('[RECIPE DETAIL] Improving low-quality recipe:', meal.name);
       try {
         const fixedMeal = fixRecipeInstructions(meal);

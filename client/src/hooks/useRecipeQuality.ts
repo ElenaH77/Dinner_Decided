@@ -19,12 +19,20 @@ export function fixRecipeInstructions(recipe: any): any {
       instr.toLowerCase().includes('as needed for this recipe') ||
       instr.toLowerCase().includes('with your family') ||
       instr.toLowerCase().includes('combine the ingredients') ||
-      instr.toLowerCase().includes('according to the ingredient')
+      instr.toLowerCase().includes('according to the ingredient') ||
+      instr.toLowerCase().includes('cook until done') ||
+      instr.toLowerCase().includes('prepare ingredients') ||
+      instr.toLowerCase().includes('follow the recipe') ||
+      instr.toLowerCase().includes('to taste') ||
+      instr.toLowerCase().includes('as per your preference')
     )
   );
   
-  // Check if the recipe has too few instructions
+  // Check if the recipe has too few instructions or any instructions are too brief
   const hasTooFewInstructions = recipe.instructions.length <= 5;
+  const hasShortInstructions = recipe.instructions.some((instr: string) => 
+    typeof instr === 'string' && instr.length < 15
+  );
   
   // If the recipe doesn't need fixing, return as is
   // IMPORTANT: Always apply fixes for stir-fry shrimp recipes regardless of quality flags
@@ -34,9 +42,18 @@ export function fixRecipeInstructions(recipe: any): any {
                    recipe.name?.toLowerCase().includes('asian') ||
                    recipe.name?.toLowerCase().includes('teriyaki');
   
-  if (!hasGenericInstructions && !hasTooFewInstructions && !recipe._needsRegeneration && !(isStirFry && isShrimp)) {
+  if (!hasGenericInstructions && !hasTooFewInstructions && !hasShortInstructions && !recipe._needsRegeneration && !(isStirFry && isShrimp)) {
     return recipe;
   }
+  
+  // Log which quality issue was detected
+  console.log(`[RECIPE QUALITY] Issues detected in "${recipe.name}":`,
+    hasGenericInstructions ? 'Generic phrases' : '',
+    hasTooFewInstructions ? 'Too few steps' : '',
+    hasShortInstructions ? 'Instructions too brief' : '',
+    recipe._needsRegeneration ? 'Needs regeneration flag' : '',
+    (isStirFry && isShrimp) ? 'Shrimp stir-fry special case' : ''
+  );
   
   console.log(`[RECIPE QUALITY] Fixing low-quality instructions for "${recipe.name}"`);
   
