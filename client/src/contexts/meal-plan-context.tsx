@@ -8,6 +8,7 @@ import {
   deepClone, 
   STORAGE_KEYS 
 } from '@/lib/storage-service';
+import { useRecipeQuality } from '@/hooks/useRecipeQuality';
 
 // For our context, we'll use a simplified version that matches what the components expect
 interface MealWithId {
@@ -38,9 +39,12 @@ const DIRECT_STORAGE_KEY = 'current_meal_plan';
 const MealPlanContext = createContext<MealPlanContextType | undefined>(undefined);
 
 export function MealPlanProvider({ children }: { children: ReactNode }) {
-  const [currentPlan, setCurrentPlanState] = useState<ExtendedMealPlan | null>(null);
+  const [currentPlanRaw, setCurrentPlanState] = useState<ExtendedMealPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshCounter, setRefreshCounter] = useState(0); // Force UI refresh counter
+  
+  // Use the recipe quality hook to improve recipe instructions automatically
+  const currentPlan = useRecipeQuality(currentPlanRaw);
   
   // Wrapper to handle both basic and extended meal plans
   const setCurrentPlan = (plan: ExtendedMealPlan | any) => {
