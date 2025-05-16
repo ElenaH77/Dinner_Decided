@@ -1,12 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal } from "./openai";
+import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal, validateMealQuality } from "./openai";
 import { z } from "zod";
 import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
 import settingsRouter from "./api/settings";
 import { v4 as uuidv4 } from "uuid";
 import { getWeatherContextForMealPlanning } from "./weather";
+import { improveRecipeInstructions } from "./openai-recipe-improver";
+import { handleRecipeImprovement, handleRecipeValidation } from "./api-helpers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register API sub-routes

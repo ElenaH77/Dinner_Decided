@@ -75,7 +75,8 @@ export async function improveRecipeInstructions(recipe: any, retryCount: number 
     });
 
     // Parse the response
-    const improvedContent = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || "{}";
+    const improvedContent = JSON.parse(content);
     console.log(`[RECIPE IMPROVER] Received response from OpenAI for "${recipe.name}"`);
     
     // Make sure we got back an instructions array
@@ -105,8 +106,9 @@ export async function improveRecipeInstructions(recipe: any, retryCount: number 
     
     console.log(`[RECIPE IMPROVER] Successfully improved instructions for "${recipe.name}"`);
     return improvedRecipe;
-  } catch (error) {
-    console.error("[RECIPE IMPROVER] Error improving recipe instructions:", error.message);
+  } catch (error: any) {
+    console.error("[RECIPE IMPROVER] Error improving recipe instructions:", 
+      error?.message || "Unknown error occurred");
     
     // Implement retry logic
     if (retryCount < 2) {
