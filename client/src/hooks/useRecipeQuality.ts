@@ -1,6 +1,50 @@
 // Custom hook to improve recipe quality on the client side
 import { useState, useEffect, useMemo } from 'react';
 import { validateRecipeInstructions } from '@shared/recipe-validation';
+import { regenerateInstructions } from '@/lib/recipe-generator';
+
+// Function to analyze and fix recipe instructions if they're generic or low quality
+export async function regenerateRecipeInstructions(recipe: any): Promise<any> {
+  if (!recipe || !recipe.name || !recipe.ingredients) {
+    console.error('[RECIPE QUALITY] Cannot regenerate instructions - missing recipe name or ingredients');
+    return recipe;
+  }
+  
+  try {
+    console.log(`[RECIPE QUALITY] Regenerating instructions for "${recipe.name}" using OpenAI`);
+    
+    // Call the OpenAI-based regeneration function
+    const newInstructions = await regenerateInstructions({
+      name: recipe.name,
+      ingredients: recipe.ingredients
+    });
+    
+    if (newInstructions && newInstructions.length > 0) {
+      console.log(`[RECIPE QUALITY] Successfully regenerated ${newInstructions.length} instructions for "${recipe.name}"`);
+      
+      // Create a copy of the recipe with improved instructions
+      const improvedRecipe = { 
+        ...recipe,
+        instructions: newInstructions,
+        directions: newInstructions, // For backward compatibility
+        _needsRegeneration: false,
+        _qualityIssues: [],
+        _instructionsImproved: true,
+        _instructionsSource: 'openai'
+      };
+      
+      return improvedRecipe;
+    } else {
+      console.error('[RECIPE QUALITY] Failed to regenerate instructions - empty result');
+      // Fall back to template-based improvement
+      return fixRecipeInstructions(recipe);
+    }
+  } catch (error) {
+    console.error('[RECIPE QUALITY] Error regenerating instructions:', error);
+    // Fall back to template-based improvement
+    return fixRecipeInstructions(recipe);
+  }
+}
 
 // Function to analyze and fix recipe instructions if they're generic or low quality
 export function fixRecipeInstructions(recipe: any): any {
@@ -224,31 +268,60 @@ export function useRecipeQuality(mealPlan: any) {
     
     console.log('[RECIPE QUALITY] Improving recipe quality for meal plan');
     
-    // Check each meal and improve if needed
-    const improvedMeals = mealPlan.meals.map((meal: any) => {
-      if (!meal || !meal.instructions) {
-        return meal;
+    // Define an async function to process the meal plan with OpenAI
+    const improveMealPlanAsync = async () => {
+      try {
+        // Process each meal, potentially using async OpenAI regeneration
+        const improvedMealsPromises = mealPlan.meals.map(async (meal: any) => {
+          if (!meal || !meal.instructions) {
+            return meal;
+          }
+          
+          // Use the validation utility
+          const validationResult = validateRecipeInstructions(meal.instructions);
+          
+          if (!validationResult.isValid || meal._needsRegeneration) {
+            // First try to use OpenAI to regenerate instructions
+            try {
+              // Only attempt OpenAI regeneration if we have both name and ingredients
+              if (meal.name && meal.ingredients && meal.ingredients.length > 0) {
+                console.log(`[RECIPE QUALITY] Attempting OpenAI regeneration for "${meal.name}"`);
+                const improved = await regenerateRecipeInstructions(meal);
+                return improved;
+              } else {
+                console.log(`[RECIPE QUALITY] Falling back to template for "${meal.name}" - missing required data`);
+                return fixRecipeInstructions(meal);
+              }
+            } catch (error) {
+              console.error('[RECIPE QUALITY] Error with OpenAI regeneration:', error);
+              // Fall back to template-based improvement
+              const improved = fixRecipeInstructions(meal);
+              return improved;
+            }
+          }
+          
+          return meal;
+        });
+        
+        // Wait for all async regenerations to complete
+        const improvedMeals = await Promise.all(improvedMealsPromises);
+        
+        // Create a new meal plan with improved recipes
+        const newMealPlan = {
+          ...mealPlan,
+          meals: improvedMeals
+        };
+        
+        setImprovedMealPlan(newMealPlan);
+      } catch (error) {
+        console.error('[RECIPE QUALITY] Error improving meal plan:', error);
+        // In case of error, use the original meal plan
+        setImprovedMealPlan(mealPlan);
       }
-      
-      // Use the validation utility
-      const validationResult = validateRecipeInstructions(meal.instructions);
-      
-      if (!validationResult.isValid || meal._needsRegeneration) {
-        // Use our improvement function
-        const improved = fixRecipeInstructions(meal);
-        return improved;
-      }
-      
-      return meal;
-    });
-    
-    // Create a new meal plan with improved recipes
-    const newMealPlan = {
-      ...mealPlan,
-      meals: improvedMeals
     };
     
-    setImprovedMealPlan(newMealPlan);
+    // Execute the async function
+    improveMealPlanAsync();
   }, [mealPlan]);
   
   return improvedMealPlan;

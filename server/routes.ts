@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal } from "./openai";
+import { regenerateRecipeInstructions } from "./openai-recipe-generator";
 import { z } from "zod";
 import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
 import settingsRouter from "./api/settings";
@@ -11,6 +12,31 @@ import { getWeatherContextForMealPlanning } from "./weather";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register API sub-routes
   app.use('/api/settings', settingsRouter);
+  
+  // Recipe instruction regeneration endpoint
+  app.post('/api/openai/generate', async (req, res) => {
+    try {
+      const { type, recipe } = req.body;
+      
+      if (type === 'recipe_instructions' && recipe && recipe.title && recipe.ingredients) {
+        // Call OpenAI to regenerate instructions
+        const instructions = await regenerateRecipeInstructions(recipe);
+        res.json({ success: true, result: instructions });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Invalid request format. Please provide type and recipe data.' 
+        });
+      }
+    } catch (error) {
+      console.error('Error generating content with OpenAI:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to generate content' 
+      });
+    }
+  });
+  
   // Chat routes
   app.get("/api/chat/messages", async (req, res) => {
     try {
