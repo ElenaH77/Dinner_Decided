@@ -13,26 +13,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API sub-routes
   app.use('/api/settings', settingsRouter);
   
-  // Recipe instruction regeneration endpoint
+  // General purpose OpenAI generation endpoint
   app.post('/api/openai/generate', async (req, res) => {
     try {
-      const { type, recipe } = req.body;
+      const { prompt, model, temperature, max_tokens } = req.body;
       
-      if (type === 'recipe_instructions' && recipe && recipe.title && recipe.ingredients) {
-        // Call OpenAI to regenerate instructions
-        const instructions = await regenerateRecipeInstructions(recipe);
-        res.json({ success: true, result: instructions });
-      } else {
-        res.status(400).json({ 
-          success: false, 
-          error: 'Invalid request format. Please provide type and recipe data.' 
-        });
-      }
+      // Call the OpenAI API via our service
+      const result = await generateChatResponse([
+        { role: "user", content: prompt }
+      ]);
+      
+      res.json({ success: true, result: result.split('\n').filter(line => line.trim().length > 0) });
     } catch (error) {
       console.error('Error generating content with OpenAI:', error);
       res.status(500).json({ 
         success: false, 
         error: 'Failed to generate content' 
+      });
+    }
+  });
+  
+  // Dedicated recipe instruction regeneration endpoint
+  app.post('/api/regenerate-recipe-instructions', async (req, res) => {
+    try {
+      const { title, ingredients } = req.body;
+      
+      if (!title || !ingredients || !Array.isArray(ingredients)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Invalid request: title and ingredients array are required' 
+        });
+      }
+      
+      console.log(`[RECIPE API] Regenerating instructions for: ${title} with ${ingredients.length} ingredients`);
+      
+      // Call the OpenAI-powered recipe generator
+      const instructions = await regenerateRecipeInstructions({ 
+        title, 
+        ingredients 
+      });
+      
+      return res.json({ 
+        success: true,
+        instructions 
+      });
+    } catch (error) {
+      console.error('Error regenerating recipe instructions:', error);
+      return res.status(500).json({ 
+        success: false,
+        error: 'Failed to regenerate recipe instructions',
+        message: error.message 
       });
     }
   });
