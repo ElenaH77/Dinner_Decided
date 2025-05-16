@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Users, ChefHat, MessageSquare, Check, RefreshCw, Edit } from "lucide-react";
-import { fixRecipeInstructions } from "@/hooks/useRecipeQuality";
+// Removed fixRecipeInstructions import as we're using OpenAI directly
 import { validateRecipeInstructions } from "@shared/recipe-validation";
 
 interface Meal {
@@ -131,56 +131,26 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     }
   };
   
-  // First try to improve the recipe quality if needed
+  // Just use the meal directly - no template-based fallbacks
   const improvedMeal = useMemo(() => {
-    // Skip validation if no instructions are present
-    if (!meal.instructions || !Array.isArray(meal.instructions)) {
-      return meal;
-    }
-    
-    // Use the new standardized recipe validation
-    const validationResult = validateRecipeInstructions(meal.instructions);
-    
-    // Special case for seafood recipes (always improve quality)
-    const isSeafood = meal.name?.toLowerCase().includes('shrimp') || 
-                      meal.name?.toLowerCase().includes('salmon') ||
-                      meal.name?.toLowerCase().includes('fish') ||
-                      (meal.ingredients && meal.ingredients.some((ing: string) => 
-                        ing.toLowerCase().includes('shrimp') || 
-                        ing.toLowerCase().includes('salmon') ||
-                        ing.toLowerCase().includes('fish')
-                      ));
-    
-    const isAsianInspired = meal.name?.toLowerCase().includes('stir') || 
-                           meal.name?.toLowerCase().includes('asian') ||
-                           meal.name?.toLowerCase().includes('teriyaki') ||
-                           meal.name?.toLowerCase().includes('szechuan');
-    
-    // Log validation results
-    console.log('[RECIPE DETAIL] Recipe validation for:', meal.name, {
-      isValid: validationResult.isValid,
-      issuesCount: validationResult.issues.length,
-      needsRegeneration: meal._needsRegeneration,
-      isSeafood,
-      isAsianInspired
-    });
-    
-    if (validationResult.issues.length > 0) {
-      console.log('[RECIPE DETAIL] Validation issues:', validationResult.issues);
-    }
-    
-    // If it needs improvement, use our recipe quality fixer
-    if (!validationResult.isValid || meal._needsRegeneration || (isSeafood && isAsianInspired)) {
-      console.log('[RECIPE DETAIL] Improving low-quality recipe:', meal.name);
-      try {
-        const fixedMeal = fixRecipeInstructions(meal);
-        return fixedMeal;
-      } catch (err) {
-        console.error('[RECIPE DETAIL] Error improving recipe:', err);
-        return meal;
+    // Just log validation status but don't modify the recipe
+    if (meal.instructions && Array.isArray(meal.instructions)) {
+      const validationResult = validateRecipeInstructions(meal.instructions);
+      
+      // Log validation results
+      console.log('[RECIPE DETAIL] Recipe validation for:', meal.name, {
+        isValid: validationResult.isValid,
+        issuesCount: validationResult.issues.length,
+        needsRegeneration: meal._needsRegeneration
+      });
+      
+      if (!validationResult.isValid) {
+        console.log('[RECIPE DETAIL] Validation issues:', validationResult.issues);
       }
     }
     
+    // Always use the original meal from the meal plan - 
+    // any OpenAI improvements would have happened at the meal plan level
     return meal;
   }, [meal, openTimestamp]);
 
