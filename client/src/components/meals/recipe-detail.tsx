@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Users, ChefHat, MessageSquare, Check, RefreshCw, Edit } from "lucide-react";
 import { fixRecipeInstructions } from "@/hooks/useRecipeQuality";
+import { validateRecipeInstructions } from "@shared/recipe-validation";
 
 interface Meal {
   id: string;
@@ -132,49 +133,44 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
   
   // First try to improve the recipe quality if needed
   const improvedMeal = useMemo(() => {
-    // Check if this meal requires improvement
-    const hasGenericInstructions = meal.instructions?.some((instr: string) => 
-      typeof instr === 'string' && (
-        instr.toLowerCase().includes('ingredients list') || 
-        instr.toLowerCase().includes('standard procedure') ||
-        instr.toLowerCase().includes('preheat your oven or stovetop as needed') ||
-        instr.toLowerCase().includes('enjoy with your family') ||
-        instr.toLowerCase().includes('following standard procedures') ||
-        instr.toLowerCase().includes('cook until all components are thoroughly cooked') ||
-        instr.toLowerCase().includes('as needed for this recipe') ||
-        instr.toLowerCase().includes('with your family') ||
-        instr.toLowerCase().includes('combine the ingredients') ||
-        instr.toLowerCase().includes('according to the ingredient')
-      )
-    );
+    // Skip validation if no instructions are present
+    if (!meal.instructions || !Array.isArray(meal.instructions)) {
+      return meal;
+    }
     
-    // Check if the recipe has too few instructions or any instructions are too brief
-    const hasTooFewInstructions = meal.instructions && meal.instructions.length <= 5;
-    const hasShortInstructions = meal.instructions?.some((instr: string) => 
-      typeof instr === 'string' && instr.length < 15
-    );
+    // Use the new standardized recipe validation
+    const validationResult = validateRecipeInstructions(meal.instructions);
     
-    // Special case for shrimp recipes (always improve quality)
-    const isShrimp = meal.name?.toLowerCase().includes('shrimp') || 
-                    (meal.ingredients && meal.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
-    const isStirFry = meal.name?.toLowerCase().includes('stir') || 
-                     meal.name?.toLowerCase().includes('asian') ||
-                     meal.name?.toLowerCase().includes('teriyaki') ||
-                     meal.name?.toLowerCase().includes('szechuan');
+    // Special case for seafood recipes (always improve quality)
+    const isSeafood = meal.name?.toLowerCase().includes('shrimp') || 
+                      meal.name?.toLowerCase().includes('salmon') ||
+                      meal.name?.toLowerCase().includes('fish') ||
+                      (meal.ingredients && meal.ingredients.some((ing: string) => 
+                        ing.toLowerCase().includes('shrimp') || 
+                        ing.toLowerCase().includes('salmon') ||
+                        ing.toLowerCase().includes('fish')
+                      ));
     
-    // Log recipe details
-    console.log('[RECIPE DETAIL] Recipe check:', {
-      name: meal.name,
-      hasGenericInstructions,
-      hasTooFewInstructions,
-      hasShortInstructions,
+    const isAsianInspired = meal.name?.toLowerCase().includes('stir') || 
+                           meal.name?.toLowerCase().includes('asian') ||
+                           meal.name?.toLowerCase().includes('teriyaki') ||
+                           meal.name?.toLowerCase().includes('szechuan');
+    
+    // Log validation results
+    console.log('[RECIPE DETAIL] Recipe validation for:', meal.name, {
+      isValid: validationResult.isValid,
+      issuesCount: validationResult.issues.length,
       needsRegeneration: meal._needsRegeneration,
-      isShrimp,
-      isStirFry
+      isSeafood,
+      isAsianInspired
     });
     
+    if (validationResult.issues.length > 0) {
+      console.log('[RECIPE DETAIL] Validation issues:', validationResult.issues);
+    }
+    
     // If it needs improvement, use our recipe quality fixer
-    if (hasGenericInstructions || hasTooFewInstructions || hasShortInstructions || meal._needsRegeneration || (isShrimp && isStirFry)) {
+    if (!validationResult.isValid || meal._needsRegeneration || (isSeafood && isAsianInspired)) {
       console.log('[RECIPE DETAIL] Improving low-quality recipe:', meal.name);
       try {
         const fixedMeal = fixRecipeInstructions(meal);

@@ -1,5 +1,6 @@
 // Custom hook to improve recipe quality on the client side
 import { useState, useEffect, useMemo } from 'react';
+import { validateRecipeInstructions } from '@shared/recipe-validation';
 
 // Function to analyze and fix recipe instructions if they're generic or low quality
 export function fixRecipeInstructions(recipe: any): any {
@@ -7,83 +8,68 @@ export function fixRecipeInstructions(recipe: any): any {
     return recipe;
   }
 
-  // Check if the recipe has generic instructions
-  const hasGenericInstructions = recipe.instructions.some((instr: string) => 
-    typeof instr === 'string' && (
-      instr.toLowerCase().includes('ingredients list') || 
-      instr.toLowerCase().includes('standard procedure') ||
-      instr.toLowerCase().includes('preheat your oven or stovetop as needed') ||
-      instr.toLowerCase().includes('enjoy with your family') ||
-      instr.toLowerCase().includes('following standard procedures') ||
-      instr.toLowerCase().includes('cook until all components are thoroughly cooked') ||
-      instr.toLowerCase().includes('as needed for this recipe') ||
-      instr.toLowerCase().includes('with your family') ||
-      instr.toLowerCase().includes('combine the ingredients') ||
-      instr.toLowerCase().includes('according to the ingredient') ||
-      instr.toLowerCase().includes('cook until done') ||
-      instr.toLowerCase().includes('prepare ingredients') ||
-      instr.toLowerCase().includes('follow the recipe') ||
-      instr.toLowerCase().includes('to taste') ||
-      instr.toLowerCase().includes('as per your preference')
-    )
-  );
+  // Use standardized validation logic
+  const validationResult = validateRecipeInstructions(recipe.instructions);
   
-  // Check if the recipe has too few instructions or any instructions are too brief
-  const hasTooFewInstructions = recipe.instructions.length <= 5;
-  const hasShortInstructions = recipe.instructions.some((instr: string) => 
-    typeof instr === 'string' && instr.length < 15
-  );
+  // Special case for certain recipe types that need extra care
+  const hasSeafood = recipe.name?.toLowerCase().includes('shrimp') || 
+                   recipe.name?.toLowerCase().includes('fish') ||
+                   recipe.name?.toLowerCase().includes('salmon') ||
+                   (recipe.ingredients && recipe.ingredients.some((ing: string) => 
+                     ing.toLowerCase().includes('shrimp') || 
+                     ing.toLowerCase().includes('fish') || 
+                     ing.toLowerCase().includes('salmon')
+                   ));
+                   
+  const isAsianInspired = recipe.name?.toLowerCase().includes('stir') || 
+                         recipe.name?.toLowerCase().includes('asian') ||
+                         recipe.name?.toLowerCase().includes('teriyaki') ||
+                         recipe.name?.toLowerCase().includes('szechuan');
   
   // If the recipe doesn't need fixing, return as is
-  // IMPORTANT: Always apply fixes for stir-fry shrimp recipes regardless of quality flags
-  const isShrimp = recipe.name?.toLowerCase().includes('shrimp') || 
-                  (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
-  const isStirFry = recipe.name?.toLowerCase().includes('stir') || 
-                   recipe.name?.toLowerCase().includes('asian') ||
-                   recipe.name?.toLowerCase().includes('teriyaki');
-  
-  if (!hasGenericInstructions && !hasTooFewInstructions && !hasShortInstructions && !recipe._needsRegeneration && !(isStirFry && isShrimp)) {
+  if (validationResult.isValid && !recipe._needsRegeneration && !(hasSeafood && isAsianInspired)) {
     return recipe;
   }
   
-  // Log which quality issue was detected
-  console.log(`[RECIPE QUALITY] Issues detected in "${recipe.name}":`,
-    hasGenericInstructions ? 'Generic phrases' : '',
-    hasTooFewInstructions ? 'Too few steps' : '',
-    hasShortInstructions ? 'Instructions too brief' : '',
+  // Log validation issues
+  console.log(`[RECIPE QUALITY] Issues detected in "${recipe.name}":`, 
+    validationResult.issues.length > 0 ? `${validationResult.issues.length} validation issues` : '',
     recipe._needsRegeneration ? 'Needs regeneration flag' : '',
-    (isStirFry && isShrimp) ? 'Shrimp stir-fry special case' : ''
+    (hasSeafood && isAsianInspired) ? 'Special case recipe type' : ''
   );
+  
+  if (validationResult.issues.length > 0) {
+    console.log(`[RECIPE QUALITY] Validation issues:`, validationResult.issues);
+  }
   
   console.log(`[RECIPE QUALITY] Fixing low-quality instructions for "${recipe.name}"`);
   
   // Create improved instructions based on the type of recipe
   let newInstructions: string[] = [];
   
-  // Detect recipe type based on ingredients and name
-  const isChicken = recipe.name.toLowerCase().includes('chicken') || 
-                  (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('chicken')));
+  // Detect recipe type based on ingredients and name for specialized fixes
+  const hasChicken = recipe.name?.toLowerCase().includes('chicken') || 
+                (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('chicken')));
   
-  const isBeef = recipe.name.toLowerCase().includes('beef') || 
+  const hasBeef = recipe.name?.toLowerCase().includes('beef') || 
                (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('beef')));
   
-  const isSeafood = recipe.name.toLowerCase().includes('shrimp') || 
-                   recipe.name.toLowerCase().includes('fish') || 
-                   recipe.name.toLowerCase().includes('salmon') ||
-                   (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp') || 
-                    ing.toLowerCase().includes('fish') || 
-                    ing.toLowerCase().includes('salmon')));
+  const isGrilled = recipe.name?.toLowerCase().includes('grill') || 
+                recipe.name?.toLowerCase().includes('bbq') ||
+                recipe.name?.toLowerCase().includes('skewer');
   
-  const isGrill = recipe.name.toLowerCase().includes('grill') || 
-                recipe.name.toLowerCase().includes('bbq') ||
-                recipe.name.toLowerCase().includes('skewer');
-  
-  const isPasta = recipe.name.toLowerCase().includes('pasta') || 
+  const hasPasta = recipe.name?.toLowerCase().includes('pasta') || 
                 (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('pasta') || 
                  ing.toLowerCase().includes('spaghetti')));
 
-  // Create appropriate instructions based on recipe type
-  if (isStirFry && isShrimp) {
+  const hasSalmon = recipe.name?.toLowerCase().includes('salmon') ||
+                 (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('salmon')));
+                 
+  const hasShrimp = recipe.name?.toLowerCase().includes('shrimp') ||
+                 (recipe.ingredients && recipe.ingredients.some((ing: string) => ing.toLowerCase().includes('shrimp')));
+
+  // Select the right template based on recipe type
+  if (isAsianInspired && hasShrimp) {
     // Enhanced shrimp stir fry instructions with Szechuan specifics
     newInstructions = [
       "Prepare all ingredients before starting: ensure shrimp are completely peeled, deveined, and patted dry with paper towels (moisture will prevent proper searing); slice bell peppers into 1/4-inch strips; trim snow peas; and mince garlic and ginger finely.",
@@ -106,7 +92,7 @@ export function fixRecipeInstructions(recipe: any): any {
       "Garnish with the remaining chopped green onions, 1 tablespoon toasted sesame seeds, and 1/4 cup fresh cilantro leaves for a professional presentation and added flavor complexity.",
       "Serve immediately while the vegetables are still crisp and the sauce is hot - the dish should steam slightly when presented at the table, with aromas of garlic, ginger, and Szechuan spices."
     ];
-  } else if (isGrill && isChicken) {
+  } else if (isGrilled && hasChicken) {
     // Grilled chicken instructions
     newInstructions = [
       "Preheat your grill to medium-high heat (approximately 375-400°F) for 10-15 minutes, ensuring the grates are clean and lightly oiled to prevent sticking.",
@@ -122,7 +108,7 @@ export function fixRecipeInstructions(recipe: any): any {
       "Sprinkle the hot skewers with freshly chopped parsley for a pop of color and fresh flavor just before serving to your family.",
       "Serve immediately while hot, offering additional lemon wedges on the side for those who prefer an extra citrus tang with their meal."
     ];
-  } else if (isStirFry && isChicken) {
+  } else if (isAsianInspired && hasChicken) {
     // Stir fry instructions
     newInstructions = [
       "Prepare all ingredients by washing vegetables, patting them dry with paper towels, and cutting everything into uniform pieces as specified in the ingredients list.",
@@ -138,7 +124,7 @@ export function fixRecipeInstructions(recipe: any): any {
       "Sprinkle with sesame seeds and sliced green onions just before removing from heat, giving one final gentle toss to distribute the garnishes throughout the dish.",
       "Serve immediately over hot cooked rice, ensuring each portion has a good balance of chicken, vegetables, and sauce for the complete experience."
     ];
-  } else if (isPasta && isSeafood) {
+  } else if (hasPasta && hasSeafood) {
     // Seafood pasta instructions
     newInstructions = [
       "Bring a large pot of water to a rolling boil over high heat, then add 1 tablespoon of salt to the water (it should taste like seawater).",
@@ -153,6 +139,28 @@ export function fixRecipeInstructions(recipe: any): any {
       "Remove the skillet from heat and stir in the chopped fresh parsley and grated Parmesan cheese, tossing until the cheese melts slightly and incorporates into the light sauce.",
       "Taste and adjust seasoning with additional salt and pepper if needed, keeping in mind that Parmesan cheese adds saltiness to the dish.",
       "Serve immediately in warmed bowls, transferring pasta with tongs to create a neat mound, ensuring each portion has an equal distribution of shrimp and garnish with extra Parmesan if desired."
+    ];
+  } else if (isAsianInspired && hasSalmon) {
+    // Teriyaki salmon instructions
+    newInstructions = [
+      "Preheat your oven to exactly 400°F (205°C) and position the rack in the middle of the oven. Allow at least 15 minutes for proper preheating to ensure consistent cooking temperature.",
+      "Line a rimmed baking sheet with aluminum foil or parchment paper for easy cleanup, then lightly brush with 1 teaspoon of vegetable oil to prevent sticking.",
+      "Pat the salmon fillets completely dry with paper towels - this crucial step ensures proper caramelization of the teriyaki glaze and prevents excess moisture that would steam rather than roast the fish.",
+      "Season each salmon fillet with 1/4 teaspoon of salt and 1/8 teaspoon of freshly ground black pepper, applying evenly to both sides but concentrating more on the flesh side.",
+      "In a small saucepan, combine 1/2 cup teriyaki sauce, 2 tablespoons soy sauce, 1 tablespoon honey, and 1 tablespoon rice vinegar. Heat over medium-low heat while whisking occasionally.",
+      "Simmer the teriyaki mixture for exactly 5 minutes until it reduces slightly and becomes syrupy, but watch carefully as the sugars in the honey can burn quickly if the heat is too high.",
+      "Arrange the seasoned salmon fillets skin-side down on the prepared baking sheet, leaving at least 1 inch between each piece to promote even heat circulation and proper browning.",
+      "Brush half of the teriyaki glaze generously over the tops and sides of the salmon fillets, ensuring even coverage with approximately 1 tablespoon of glaze per fillet.",
+      "Meanwhile, in a separate large skillet, heat 1 tablespoon of sesame oil over medium-high heat until shimmering but not smoking, about 30 seconds.",
+      "Add the minced garlic and grated ginger to the hot oil and stir constantly for exactly 30 seconds until fragrant but not browned, as burning will create bitter flavors.",
+      "Add the broccoli florets to the skillet and stir-fry for 2 minutes, then add 2 tablespoons of water and immediately cover the pan with a lid to create steam.",
+      "Steam the broccoli for 3 minutes until bright green and crisp-tender, then uncover and continue cooking for 1 minute to evaporate any remaining water.",
+      "Place the salmon in the preheated oven and roast for exactly 12-14 minutes for 1-inch thick fillets, or until the internal temperature reaches 145°F (63°C) when measured with an instant-read thermometer inserted into the thickest part.",
+      "During the last 2 minutes of cooking, brush the remaining teriyaki glaze over the salmon to create a glossy, caramelized finish. The salmon is done when it flakes easily with a fork but still maintains a slightly translucent center.",
+      "Remove the salmon from the oven and let rest for 2 minutes to allow the juices to redistribute throughout the fish while you finish the broccoli.",
+      "Season the broccoli with 1/4 teaspoon salt and a drizzle of the teriyaki sauce, tossing to coat evenly. The broccoli should remain vibrant green with a slight crunch.",
+      "Serve each salmon fillet immediately on warmed plates alongside a portion of the teriyaki broccoli, spooning any remaining glaze from the baking sheet over the fish.",
+      "Garnish with thinly sliced green onions and a sprinkle of sesame seeds for visual appeal and textural contrast, positioning them decoratively across the top of the salmon."
     ];
   } else {
     // Generic better instructions
@@ -204,52 +212,44 @@ export function fixRecipeInstructions(recipe: any): any {
   return improvedRecipe;
 }
 
-// Hook to fix recipes in a meal plan
+// Custom hook for checking recipe quality throughout the app
 export function useRecipeQuality(mealPlan: any) {
-  // Use memoization instead of state to avoid unnecessary re-renders
-  return useMemo(() => {
+  const [improvedMealPlan, setImprovedMealPlan] = useState(mealPlan);
+  
+  // Whenever the meal plan changes, check if any recipes need quality improvements
+  useEffect(() => {
     if (!mealPlan || !mealPlan.meals || !Array.isArray(mealPlan.meals)) {
-      return mealPlan;
+      return;
     }
     
-    // Check if any recipes need fixing
-    const needsImprovement = mealPlan.meals.some((meal: any) => {
-      // Check for generic instructions
-      if (!meal.instructions) return false;
+    console.log('[RECIPE QUALITY] Improving recipe quality for meal plan');
+    
+    // Check each meal and improve if needed
+    const improvedMeals = mealPlan.meals.map((meal: any) => {
+      if (!meal || !meal.instructions) {
+        return meal;
+      }
       
-      const hasGenericInstructions = meal.instructions.some((instr: string) => 
-        typeof instr === 'string' && (
-          instr.toLowerCase().includes('ingredients list') || 
-          instr.toLowerCase().includes('standard procedure') ||
-          instr.toLowerCase().includes('preheat your oven or stovetop as needed') ||
-          instr.toLowerCase().includes('enjoy with your family') ||
-          instr.toLowerCase().includes('following standard procedures') ||
-          instr.toLowerCase().includes('cook until all components are thoroughly cooked')
-        )
-      );
+      // Use the validation utility
+      const validationResult = validateRecipeInstructions(meal.instructions);
       
-      // Check if the recipe has too few instructions
-      const hasTooFewInstructions = meal.instructions && meal.instructions.length <= 5;
+      if (!validationResult.isValid || meal._needsRegeneration) {
+        // Use our improvement function
+        const improved = fixRecipeInstructions(meal);
+        return improved;
+      }
       
-      // Also check for _needsRegeneration flag
-      return hasGenericInstructions || hasTooFewInstructions || meal._needsRegeneration;
+      return meal;
     });
     
-    if (needsImprovement) {
-      console.log('[RECIPE QUALITY] Improving recipe quality for meal plan');
-      
-      // Create a deep copy to avoid mutation issues
-      const updatedMealPlan = { ...mealPlan };
-      
-      // Fix each recipe that needs improvement
-      updatedMealPlan.meals = mealPlan.meals.map((meal: any) => fixRecipeInstructions(meal));
-      
-      return updatedMealPlan;
-    } else {
-      // If no improvements needed, just use the original meal plan
-      return mealPlan;
-    }
+    // Create a new meal plan with improved recipes
+    const newMealPlan = {
+      ...mealPlan,
+      meals: improvedMeals
+    };
+    
+    setImprovedMealPlan(newMealPlan);
   }, [mealPlan]);
+  
+  return improvedMealPlan;
 }
-
-export default useRecipeQuality;
