@@ -266,11 +266,14 @@ export function useRecipeQuality(mealPlan: any) {
       return;
     }
     
-    console.log('[RECIPE QUALITY] Improving recipe quality for meal plan');
+    console.log('[RECIPE QUALITY] Checking recipe quality for meal plan');
     
     // Define an async function to process the meal plan with OpenAI
     const improveMealPlanAsync = async () => {
       try {
+        // Track whether any improvements are needed
+        let needsImprovement = false;
+        
         // Process each meal, potentially using async OpenAI regeneration
         const improvedMealsPromises = mealPlan.meals.map(async (meal: any) => {
           if (!meal || !meal.instructions) {
@@ -280,24 +283,46 @@ export function useRecipeQuality(mealPlan: any) {
           // Use the validation utility
           const validationResult = validateRecipeInstructions(meal.instructions);
           
+          // Only regenerate if there are actual issues
           if (!validationResult.isValid || meal._needsRegeneration) {
-            // First try to use OpenAI to regenerate instructions
-            try {
-              // Only attempt OpenAI regeneration if we have both name and ingredients
-              if (meal.name && meal.ingredients && meal.ingredients.length > 0) {
-                console.log(`[RECIPE QUALITY] Attempting OpenAI regeneration for "${meal.name}"`);
-                const improved = await regenerateRecipeInstructions(meal);
-                return improved;
-              } else {
-                console.log(`[RECIPE QUALITY] Falling back to template for "${meal.name}" - missing required data`);
-                return fixRecipeInstructions(meal);
+            needsImprovement = true;
+            console.log(`[RECIPE QUALITY] Issues found in "${meal.name}":`, validationResult.issues);
+            
+            // Only attempt OpenAI regeneration if we have both name and ingredients
+            if (meal.name && meal.ingredients && meal.ingredients.length > 0) {
+              try {
+                console.log(`[RECIPE QUALITY] Regenerating instructions for "${meal.name}" via OpenAI API`);
+                
+                // Call the API to get new instructions
+                const newInstructions = await regenerateInstructions({
+                  name: meal.name,
+                  ingredients: meal.ingredients
+                });
+                
+                if (newInstructions && newInstructions.length >= 8) {
+                  console.log(`[RECIPE QUALITY] Successfully regenerated ${newInstructions.length} instructions for "${meal.name}"`);
+                  
+                  // Create an improved recipe with the new instructions
+                  return {
+                    ...meal,
+                    instructions: newInstructions,
+                    directions: newInstructions, // For backward compatibility
+                    _needsRegeneration: false,
+                    _qualityIssues: [],
+                    _instructionsImproved: true,
+                    _regeneratedAt: new Date().toISOString()
+                  };
+                } else {
+                  console.log(`[RECIPE QUALITY] Failed to get valid instructions from API for "${meal.name}"`);
+                }
+              } catch (error) {
+                console.error(`[RECIPE QUALITY] API error while regenerating "${meal.name}":`, error);
               }
-            } catch (error) {
-              console.error('[RECIPE QUALITY] Error with OpenAI regeneration:', error);
-              // Fall back to template-based improvement
-              const improved = fixRecipeInstructions(meal);
-              return improved;
             }
+            
+            // If OpenAI regeneration failed or wasn't possible, use our template system
+            console.log(`[RECIPE QUALITY] Using template system for "${meal.name}"`);
+            return fixRecipeInstructions(meal);
           }
           
           return meal;
@@ -306,13 +331,21 @@ export function useRecipeQuality(mealPlan: any) {
         // Wait for all async regenerations to complete
         const improvedMeals = await Promise.all(improvedMealsPromises);
         
-        // Create a new meal plan with improved recipes
-        const newMealPlan = {
-          ...mealPlan,
-          meals: improvedMeals
-        };
-        
-        setImprovedMealPlan(newMealPlan);
+        // Only update if we actually made improvements
+        if (needsImprovement) {
+          // Create a new meal plan with improved recipes
+          const newMealPlan = {
+            ...mealPlan,
+            meals: improvedMeals,
+            lastQualityCheck: new Date().toISOString()
+          };
+          
+          console.log('[RECIPE QUALITY] Setting improved meal plan with fixed recipes');
+          setImprovedMealPlan(newMealPlan);
+        } else {
+          console.log('[RECIPE QUALITY] No quality issues found in meal plan');
+          setImprovedMealPlan(mealPlan);
+        }
       } catch (error) {
         console.error('[RECIPE QUALITY] Error improving meal plan:', error);
         // In case of error, use the original meal plan

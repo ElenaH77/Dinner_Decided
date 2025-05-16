@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal } from "./openai";
-import { regenerateRecipeInstructions } from "./openai-recipe-generator";
+import { regenerateRecipeInstructions } from "./recipe-generator";
 import { z } from "zod";
 import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } from "@shared/schema";
 import settingsRouter from "./api/settings";

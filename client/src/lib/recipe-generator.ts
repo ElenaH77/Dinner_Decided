@@ -1,62 +1,53 @@
-// Recipe instruction generation using OpenAI
-import { OpenAI } from 'openai';
+/**
+ * Client-side interface to the server's recipe instruction regeneration API
+ */
 
-// Initialize OpenAI client - in client-side, we'll use the API proxy
-async function getOpenAIClient() {
-  // Use the server API endpoint to proxy our OpenAI requests
-  const apiUrl = '/api/openai/generate';
-  
-  // Return a simplified client object that proxies to the server
-  return {
-    async regenerateInstructions(recipe: {
-      name: string;
-      ingredients: string[];
-    }): Promise<string[]> {
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'recipe_instructions',
-            recipe: {
-              title: recipe.name,
-              ingredients: recipe.ingredients
-            }
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to generate instructions: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        if (!data.success || !data.result) {
-          throw new Error('Invalid response from instruction generator');
-        }
-        
-        // Parse the returned instructions into an array
-        return Array.isArray(data.result) ? data.result : data.result.split('\n').filter(line => line.trim());
-      } catch (error) {
-        console.error('[RECIPE GENERATOR] Error generating instructions:', error);
-        throw error;
-      }
-    }
-  };
-}
+// Base API URL for API calls
+const API_BASE_URL = '/api';
 
-// Export the function to regenerate instructions
+/**
+ * Request to regenerate recipe instructions
+ * @param recipe Object containing recipe title and ingredients
+ * @returns Array of regenerated instructions
+ */
 export async function regenerateInstructions(recipe: {
   name: string;
   ingredients: string[];
 }): Promise<string[]> {
   try {
-    const client = await getOpenAIClient();
-    return await client.regenerateInstructions(recipe);
+    console.log(`[RECIPE GENERATOR] Requesting regenerated instructions for: ${recipe.name}`);
+    
+    // Make API call to the server endpoint
+    const response = await fetch(`${API_BASE_URL}/regenerate-recipe-instructions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: recipe.name,
+        ingredients: recipe.ingredients,
+      }),
+    });
+    
+    // Check for successful response
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    // Parse the response JSON
+    const data = await response.json();
+    
+    // Ensure the response contains instructions
+    if (!data || !data.instructions || !Array.isArray(data.instructions)) {
+      console.error('[RECIPE GENERATOR] Invalid response format:', data);
+      throw new Error('Invalid response format from server');
+    }
+    
+    // Return the instructions array
+    return data.instructions.filter((line: string) => typeof line === 'string' && line.trim().length > 0);
+    
   } catch (error) {
     console.error('[RECIPE GENERATOR] Failed to regenerate instructions:', error);
-    // Return empty array on error - caller should handle this gracefully
-    return [];
+    throw error;
   }
 }
