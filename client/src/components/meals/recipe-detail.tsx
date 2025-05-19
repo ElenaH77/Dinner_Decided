@@ -291,6 +291,21 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
                 </p>
               )}
               
+              {/* Regenerate Instructions Button */}
+              <div className="mt-4">
+                <Button 
+                  onClick={handleRegenerateInstructions}
+                  disabled={isRegenerating || isRegeneratingMeal(meal.id)}
+                  variant="outline"
+                  className="w-full text-[#21706D] border-[#21706D] hover:bg-[#21706D]/10"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${(isRegenerating || isRegeneratingMeal(meal.id)) ? 'animate-spin' : ''}`} />
+                  {isRegenerating || isRegeneratingMeal(meal.id) 
+                    ? 'Regenerating Instructions...' 
+                    : 'Regenerate Cooking Instructions'}
+                </Button>
+              </div>
+              
               {/* Show meal prep tips if available */}
               {meal.mealPrepTips && (
                 <div className="mt-4 bg-[#F9F9F9] p-3 rounded-md border border-[#E2E2E2]">
