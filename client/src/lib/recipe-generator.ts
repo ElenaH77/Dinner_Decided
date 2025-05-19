@@ -8,12 +8,12 @@ const API_BASE_URL = '/api';
 /**
  * Request to regenerate recipe instructions
  * @param recipe Object containing recipe title and ingredients
- * @returns Array of regenerated instructions
+ * @returns Array of regenerated instructions or null if regeneration fails
  */
 export async function regenerateInstructions(recipe: {
   name: string;
   ingredients: string[];
-}): Promise<string[]> {
+}): Promise<string[] | null> {
   try {
     console.log(`[RECIPE GENERATOR] Requesting regenerated instructions for: ${recipe.name}`);
     
@@ -31,23 +31,34 @@ export async function regenerateInstructions(recipe: {
     
     // Check for successful response
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      console.error(`[RECIPE GENERATOR] API error: ${response.status} ${response.statusText}`);
+      return null;
     }
     
     // Parse the response JSON
     const data = await response.json();
     
     // Ensure the response contains instructions
-    if (!data || !data.instructions || !Array.isArray(data.instructions)) {
+    if (!data || data.success === false || !data.instructions || !Array.isArray(data.instructions)) {
       console.error('[RECIPE GENERATOR] Invalid response format:', data);
-      throw new Error('Invalid response format from server');
+      return null;
     }
     
     // Return the instructions array
-    return data.instructions.filter((line: string) => typeof line === 'string' && line.trim().length > 0);
+    const validInstructions = data.instructions.filter((line: string) => 
+      typeof line === 'string' && line.trim().length > 0
+    );
+    
+    // Final validation check - don't return very short instruction sets
+    if (validInstructions.length < 5) {
+      console.error(`[RECIPE GENERATOR] Not enough valid instructions (${validInstructions.length})`);
+      return null;
+    }
+    
+    return validInstructions;
     
   } catch (error) {
     console.error('[RECIPE GENERATOR] Failed to regenerate instructions:', error);
-    throw error;
+    return null;
   }
 }
