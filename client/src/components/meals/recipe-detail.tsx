@@ -131,10 +131,20 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     }
   };
   
-  // Always use the meal from the meal plan context - no template fallbacks
+  // Always use the meal as is from the meal plan context - all improvements are in the meal object already
   const improvedMeal = useMemo(() => {
     // Log the exact meal object we received for debugging
-    console.log('[RECIPE DETAIL] Received meal object:', meal);
+    console.log('[RECIPE DETAIL] Received meal object:', JSON.stringify(meal));
+    
+    // Special debug check for instructions
+    if (meal.instructions && Array.isArray(meal.instructions)) {
+      console.log('[RECIPE DETAIL] Showing instructions from meal object: First 3 of', meal.instructions.length, 
+        'instructions:', meal.instructions.slice(0, 3));
+    }
+    
+    if (meal.directions && Array.isArray(meal.directions)) {
+      console.log('[RECIPE DETAIL] Directions field exists with', meal.directions.length, 'items');
+    }
     
     // Log validation status for diagnostics
     if (meal.instructions && Array.isArray(meal.instructions)) {
@@ -171,11 +181,25 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
       // Use the improved meal instead of the original
       const mealToProcess = improvedMeal || meal;
       
-      // Log raw data for debugging
-      console.log('Raw Instructions:', JSON.stringify(mealToProcess.instructions || []));
+      // Detailed logging for debugging the directions/instructions issue
+      console.log('[RECIPE DETAIL] Processing instructions for meal:', mealToProcess.name);
+      console.log('[RECIPE DETAIL] Raw Instructions:', JSON.stringify(mealToProcess.instructions || []));
+      console.log('[RECIPE DETAIL] Raw Directions:', JSON.stringify(mealToProcess.directions || []));
       
-      if (!mealToProcess.instructions) {
-        console.log('[RECIPE DETAIL] No instructions found, showing error state instead of using fallback templates');
+      // Prioritize instructions over directions
+      // OpenAI regenerated instructions are stored in meal.instructions
+      if (mealToProcess.instructions && Array.isArray(mealToProcess.instructions) && mealToProcess.instructions.length > 0) {
+        console.log('[RECIPE DETAIL] Using instructions field with', mealToProcess.instructions.length, 'steps');
+      } 
+      // Fallback to directions if instructions are missing
+      else if (mealToProcess.directions && Array.isArray(mealToProcess.directions) && mealToProcess.directions.length > 0) {
+        console.log('[RECIPE DETAIL] Using directions field with', mealToProcess.directions.length, 'steps');
+        // Copy directions to instructions
+        mealToProcess.instructions = mealToProcess.directions;
+      }
+      // Show error message if no instructions/directions are available
+      else if (!mealToProcess.instructions) {
+        console.log('[RECIPE DETAIL] No instructions or directions found, showing error state');
         return [
           `Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`
         ];
