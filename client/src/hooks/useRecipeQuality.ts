@@ -72,11 +72,19 @@ export function useRecipeQuality(mealPlan: any) {
                 }
               } catch (error) {
                 console.error(`[RECIPE QUALITY] API error while regenerating "${meal.name}":`, error);
+                // Return the original meal with _needsRegeneration: true if parsing fails
+                return {
+                  ...meal,
+                  _needsRegeneration: true,
+                  _qualityIssues: [...(meal._qualityIssues || []), "Error parsing OpenAI response"],
+                  _regenerationFailed: true,
+                  _regenerationError: error.message
+                };
               }
             }
             
-            // If OpenAI regeneration failed, add a note but don't modify the recipe
-            console.log(`[RECIPE QUALITY] No instructions regenerated for "${meal.name}"`);
+            // If we can't attempt regeneration (no name or ingredients), just flag it
+            console.log(`[RECIPE QUALITY] Cannot regenerate instructions for "${meal?.name}" - missing data`);
             return {
               ...meal,
               _needsRegeneration: true,

@@ -35,12 +35,25 @@ export async function regenerateInstructions(recipe: {
       return null;
     }
     
-    // Parse the response JSON
-    const data = await response.json();
-    
-    // Ensure the response contains instructions
-    if (!data || data.success === false || !data.instructions || !Array.isArray(data.instructions)) {
-      console.error('[RECIPE GENERATOR] Invalid response format:', data);
+    // Parse the response JSON with improved error handling
+    let data;
+    try {
+      const openAiResponse = await response.text();
+      
+      // Parse the JSON response with error handling
+      try {
+        data = JSON.parse(openAiResponse);
+        // validate structure
+        if (!data || data.success === false || !data.instructions || !Array.isArray(data.instructions)) {
+          console.error('[RECIPE GENERATOR] Invalid response format:', data);
+          return null;
+        }
+      } catch (e) {
+        console.error("Failed to parse OpenAI instruction response:", e);
+        return null;
+      }
+    } catch (error) {
+      console.error('[RECIPE GENERATOR] Failed to read response:', error);
       return null;
     }
     
