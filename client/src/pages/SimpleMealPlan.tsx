@@ -350,18 +350,17 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
               )}
               
               <h3 className="font-medium text-lg mb-2">Directions</h3>
-              {meal.directions?.length > 0 ? (
+              {/* Check for either directions or instructions array */}
+              {(meal.directions?.length > 0 || meal.instructions?.length > 0) ? (
                 <ol className="list-decimal pl-5 mb-4 space-y-2">
-                  {meal.directions.map((step: string, i: number) => (
+                  {/* First show instructions if available, fall back to directions if needed */}
+                  {(meal.instructions?.length > 0 ? meal.instructions : meal.directions).map((step: string, i: number) => (
                     <li key={i} className="text-sm text-gray-600">{step}</li>
                   ))}
                 </ol>
               ) : (
-                <div className="space-y-2 mb-4">
-                  <p className="text-sm text-gray-600">1. Preheat your oven or stovetop as needed for this recipe.</p>
-                  <p className="text-sm text-gray-600">2. Prepare all ingredients according to the ingredients list.</p>
-                  <p className="text-sm text-gray-600">3. Cook following standard procedures for this type of dish.</p>
-                  <p className="text-sm text-gray-600">4. Serve hot and enjoy with your family!</p>
+                <div className="text-sm text-gray-600 italic mb-4">
+                  <p>Instructions not available. This recipe needs to be regenerated.</p>
                 </div>
               )}
               
