@@ -31,6 +31,8 @@ interface MealPlanContextType {
   refreshUI: () => void; // Force UI refresh without refetching
   isLoading: boolean;
   refetchMealPlan: () => Promise<void>;
+  regenerateMealInstructions: (mealId: string) => Promise<boolean>; // Regenerate instructions for a specific meal
+  isRegeneratingMeal: (mealId: string) => boolean; // Check if a meal is currently being regenerated
 }
 
 const STORAGE_KEY = 'meal_plan_cache';
@@ -44,7 +46,8 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   const [refreshCounter, setRefreshCounter] = useState(0); // Force UI refresh counter
   
   // Use the recipe quality hook to improve recipe instructions automatically
-  const currentPlan = useRecipeQuality(currentPlanRaw);
+  const qualityHook = useRecipeQuality(currentPlanRaw);
+  const improvedMealPlan = qualityHook.mealPlan;
   
   // Wrapper to handle both basic and extended meal plans
   const setCurrentPlan = (plan: ExtendedMealPlan | any) => {
