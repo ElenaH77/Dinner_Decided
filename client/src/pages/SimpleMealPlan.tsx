@@ -146,44 +146,9 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
     }
   }
   
-  // Add placeholder directions if missing
-  if (!meal.directions || !meal.directions.length) {
-    meal.directions = [];
-    
-    // Common steps for most recipes
-    meal.directions.push('Prepare all ingredients according to the ingredients list - wash, chop, and measure everything before starting.');
-    
-    // Add specific directions based on dish type
-    if (meal.name && typeof meal.name === 'string') {
-      const dishName = meal.name.toLowerCase();
-      if (dishName.includes('pasta')) {
-        meal.directions.push('Bring a large pot of salted water to a boil and cook pasta according to package directions until al dente.');
-        meal.directions.push('While pasta is cooking, prepare the sauce by combining remaining ingredients in a large pan.');
-        meal.directions.push('Drain the pasta and combine with sauce. Toss well to coat evenly.');
-        meal.directions.push('Serve hot with grated cheese and fresh herbs if desired.');
-      } else if (dishName.includes('chicken') && (dishName.includes('bake') || dishName.includes('roast') || dishName.includes('oven'))) {
-        meal.directions.push('Preheat your oven to 375°F (190°C).');
-        meal.directions.push('Season chicken with salt, pepper, and other spices as per the ingredients list.');
-        meal.directions.push('Place in a baking dish with vegetables surrounding the chicken.');
-        meal.directions.push('Bake for 25-30 minutes until chicken reaches an internal temperature of 165°F (74°C).');
-      } else if (dishName.includes('soup') || dishName.includes('stew')) {
-        meal.directions.push('In a large pot, heat oil over medium heat. Add onions, carrots, and celery, cooking until softened.');
-        meal.directions.push('Add garlic and other aromatics, cooking for another minute until fragrant.');
-        meal.directions.push('Pour in broth and add main ingredients. Bring to a boil, then reduce to a simmer.');
-        meal.directions.push('Simmer covered for 20-30 minutes until all ingredients are tender and flavors have melded.');
-      } else if (dishName.includes('slow cooker') || dishName.includes('crockpot')) {
-        meal.directions.push('Add all ingredients to your slow cooker in the morning, starting with liquids at the bottom.');
-        meal.directions.push('Cover and cook on low for 6-8 hours or on high for 3-4 hours.');
-        meal.directions.push('About 30 minutes before serving, check seasoning and adjust as needed.');
-        meal.directions.push('Serve directly from the slow cooker or transfer to a serving dish.');
-      } else {
-        meal.directions.push('Preheat your oven or stovetop as needed for this recipe.');
-        meal.directions.push('Combine the ingredients according to the main ingredients list.');
-        meal.directions.push('Cook following standard procedures for this type of dish until all components are thoroughly cooked.');
-        meal.directions.push('Serve hot and enjoy with your family!');
-      }
-    }
-  }
+  // Do not add placeholder directions - allow OpenAI to generate high-quality instructions
+  // No fallback template should be added here
+  // The system will request regeneration of instructions if they're needed
   
   // Dialog states
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
