@@ -212,7 +212,7 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
             return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
           });
           
-        return steps.length > 0 ? steps : [`Prepare the ${mealToProcess.name}.`];
+        return steps.length > 0 ? steps : [`Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`];
       } else if (typeof mealToProcess.instructions === 'object' && mealToProcess.instructions !== null) {
         // If it's an object, extract steps
         const steps = [];
@@ -253,21 +253,19 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
           });
         }
         
-        return steps.length > 0 ? steps : [`Prepare the ${mealToProcess.name}.`];
+        return steps.length > 0 ? steps : [`Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`];
       }
       
-      // Default fallback
+      // Show error message instead of generic fallback
       return [
-        `1. Prepare all ingredients for ${mealToProcess.name}.`,
-        `2. Cook according to your preference and family's tastes.`,
-        `3. Serve hot and enjoy!`
+        `Instructions not available for ${mealToProcess.name}.`,
+        `Please try regenerating this recipe.`
       ];
     } catch (error) {
       console.error('Error processing instructions:', error);
       return [
-        `1. Prepare all ingredients for ${meal.name}.`,
-        `2. Cook according to your preference and family's tastes.`,
-        `3. Serve hot and enjoy!`
+        `Instructions not available for ${meal.name}.`,
+        `Please try regenerating this recipe.`
       ];
     }
   };
