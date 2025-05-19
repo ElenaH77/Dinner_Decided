@@ -363,11 +363,19 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
             
             <TabsContent value="instructions" className="mt-4">
               <h3 className="font-medium text-base mb-2">Cooking Instructions:</h3>
-              <ol className="space-y-3 list-decimal ml-4">
-                {instructions.map((step, index) => (
-                  <li key={index} className="text-sm">{step}</li>
-                ))}
-              </ol>
+              
+              {/* Use the new instructions rendering logic */}
+              {(Array.isArray(meal.instructions) && meal.instructions.length > 0) ? (
+                <ol className="space-y-3 list-decimal ml-4">
+                  {meal.instructions.map((step, index) => (
+                    <li key={index} className="text-sm">{step}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="instructions-fallback mb-4" style={{ color: "#666", fontStyle: "italic" }}>
+                  Instructions are not available for this recipe. Please try regenerating.
+                </p>
+              )}
               
               {/* Show meal prep tips if available */}
               {meal.mealPrepTips && (
