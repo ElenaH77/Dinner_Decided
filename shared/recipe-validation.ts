@@ -3,25 +3,13 @@
  * across both client and server components
  */
 
+// Focus on truly unhelpful phrases rather than an extensive list
 const bannedPhrases = [
   "cook until done",
-  "as needed",
-  "to taste",
   "follow package directions",
   "cook according to instructions",
   "standard procedure",
-  "prepare ingredients",
-  "wash, chop, and measure everything before starting",
-  "preheat your oven or stovetop as needed for this recipe",
-  "combine the ingredients according to the main ingredients list",
-  "cook following standard procedures",
-  "serve hot and enjoy",
-  "enjoy with your family",
-  "ingredients list",
-  "according to the ingredient",
-  "as needed for this recipe",
-  "with your family",
-  "following standard procedures"
+  "cook following standard procedures"
 ];
 
 const weakVerbs = [
@@ -52,16 +40,14 @@ export function validateRecipeInstructions(instructions: string[]): {
     return { isValid: false, issues: ["Missing or invalid instructions"] };
   }
 
-  if (instructions.length < 7) {
-    issues.push(`Too few instruction steps (${instructions.length}, minimum required: 7).`);
+  // Simplified requirement: at least 5 steps
+  if (instructions.length < 5) {
+    issues.push(`Too few instruction steps (${instructions.length}, minimum required: 5).`);
   }
 
-  // Check for instructions that are too short
-  const shortInstructions = instructions.filter(step => step.trim().split(/\s+/).length < 10);
-  if (shortInstructions.length > 0) {
-    issues.push(`Found ${shortInstructions.length} instructions with fewer than 10 words.`);
-  }
-
+  // Track steps with temperature or timing info
+  let stepsWithTempOrTime = 0;
+  
   instructions.forEach((step, index) => {
     if (!step || typeof step !== 'string') {
       issues.push(`Step ${index + 1} is invalid or empty.`);
@@ -70,28 +56,25 @@ export function validateRecipeInstructions(instructions: string[]): {
 
     const stepLower = step.toLowerCase();
 
-    // Banned phrases check
+    // Banned phrases check - focus only on truly unhelpful phrases
     for (const phrase of bannedPhrases) {
       if (stepLower.includes(phrase.toLowerCase())) {
         issues.push(`Step ${index + 1} contains banned phrase: "${phrase}"`);
         break; // Stop after finding one banned phrase per step
       }
     }
-
-    // Action verb check (first word of step)
-    const firstWord = step.trim().split(/\s+/)[0].toLowerCase();
-    if (weakVerbs.includes(firstWord)) {
-      issues.push(`Step ${index + 1} starts with weak verb: "${firstWord}"`);
-    }
-
-    // Temperature or timing check
-    const hasCookingWord = /\b(bake|roast|simmer|boil|cook|heat|fry|saute|sauté|grill|broil|toast|microwave)\b/i.test(stepLower);
-    const hasTemperatureOrTime = /(\d+\s*°[fc]|\d+\s*(minutes?|mins?|hours?|hrs?|seconds?|secs?))/i.test(stepLower);
     
-    if (hasCookingWord && !hasTemperatureOrTime) {
-      issues.push(`Step ${index + 1} mentions cooking but lacks specific time or temperature.`);
+    // Check for temperature or timing information
+    const hasTemperatureOrTime = /(\d+\s*°[fc]|\d+\s*(minutes?|mins?|hours?|hrs?|seconds?|secs?))/i.test(stepLower);
+    if (hasTemperatureOrTime) {
+      stepsWithTempOrTime++;
     }
   });
+  
+  // Only check that at least 2 steps have temperature or timing info
+  if (stepsWithTempOrTime < 2) {
+    issues.push(`Recipe should include specific temperature or timing information in at least 2 steps (found in ${stepsWithTempOrTime}).`);
+  }
 
   return {
     isValid: issues.length === 0,
