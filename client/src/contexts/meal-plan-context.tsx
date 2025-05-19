@@ -49,6 +49,9 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   const qualityHook = useRecipeQuality(currentPlanRaw);
   const improvedMealPlan = qualityHook.mealPlan;
   
+  // Make a consistent reference to use throughout the component
+  const currentPlan = improvedMealPlan;
+  
   // Wrapper to handle both basic and extended meal plans
   const setCurrentPlan = (plan: ExtendedMealPlan | any) => {
     if (!plan) return;
@@ -441,7 +444,9 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       updateMeal,
       refreshUI,
       isLoading,
-      refetchMealPlan
+      refetchMealPlan,
+      regenerateMealInstructions: qualityHook.regenerateMealInstructions,
+      isRegeneratingMeal: qualityHook.isRegenerating
     }}>
       
       {children}

@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Users, ChefHat, MessageSquare, Check, RefreshCw, Edit } from "lucide-react";
 // Removed fixRecipeInstructions import as we're using OpenAI directly
 import { validateRecipeInstructions } from "@shared/recipe-validation";
+import { useMealPlan } from "@/contexts/meal-plan-context";
 
 interface Meal {
   id: string;
@@ -42,6 +43,10 @@ interface RecipeDetailProps {
 
 export default function RecipeDetail({ meal, isOpen, onClose, onModify }: RecipeDetailProps) {
   const [activeTab, setActiveTab] = useState("ingredients");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  
+  // Get regenerate function from meal plan context
+  const { regenerateMealInstructions, isRegeneratingMeal } = useMealPlan();
 
   // Track when the modal is opened to force re-processing of data
   const [openTimestamp, setOpenTimestamp] = useState<number>(Date.now());
@@ -53,6 +58,27 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
       console.log('Recipe detail opened, processing data at:', Date.now());
     }
   }, [isOpen]);
+  
+  // Handle regeneration of instructions for this specific meal
+  const handleRegenerateInstructions = async () => {
+    if (!meal.id) return;
+    
+    setIsRegenerating(true);
+    try {
+      console.log(`Requesting regeneration for meal: ${meal.name} (${meal.id})`);
+      const success = await regenerateMealInstructions(meal.id);
+      
+      if (success) {
+        console.log(`Successfully regenerated instructions for ${meal.name}`);
+      } else {
+        console.error(`Failed to regenerate instructions for ${meal.name}`);
+      }
+    } catch (error) {
+      console.error("Error regenerating instructions:", error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   // Format the ingredients into a list with checkboxes
   // Handle both string arrays and object arrays with item/quantity properties
