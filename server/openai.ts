@@ -1473,128 +1473,52 @@ export function validateMealQuality(meal: any): { isValid: boolean; issues: stri
   // Validate ingredients
   if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
     issues.push("Missing ingredients array");
-  } else {
-    // Check ingredient count
-    if (meal.ingredients.length < 10) {
-      issues.push(`Too few ingredients (${meal.ingredients.length}). Need at least 10 ingredients.`);
-    }
-    
-    // Check for overly generic or incomplete ingredients
-    const genericIngredients = meal.ingredients.filter((ingredient: string) => 
-      typeof ingredient === 'string' && (
-        ingredient.toLowerCase().includes('salt and pepper to taste') ||
-        ingredient.toLowerCase().includes('seasonings as desired') ||
-        ingredient.toLowerCase().includes('to taste') ||
-        ingredient.toLowerCase().includes('as needed') ||
-        !ingredient.match(/\d/) // no numbers = no quantities
-      )
-    );
-    
-    if (genericIngredients.length > 0) {
-      issues.push(`Has ${genericIngredients.length} generic ingredients without specific quantities. Every ingredient must have exact measurements.`);
-    }
   }
   
-  // Validate instructions
+  // Validate instructions - using simplified criteria
   if (!meal.instructions || !Array.isArray(meal.instructions)) {
     issues.push("Missing instructions array");
   } else {
-    // Check instruction count
-    if (meal.instructions.length < 10) {
-      issues.push(`Too few instructions (${meal.instructions.length}). Need at least 10 detailed steps.`);
+    // 1. Check for minimum steps (at least 5)
+    if (meal.instructions.length < 5) {
+      issues.push(`Too few instruction steps (${meal.instructions.length}). Need at least 5 steps.`);
     }
     
-    // Check for short, generic, or incomplete instructions
-    let shortInstructions = 0;
-    let genericInstructions = 0;
-    let missingActionVerbs = 0;
-    let missingTempTime = 0;
+    // Check temperature/timing information across all instructions
+    let stepsWithTempOrTime = 0;
+    let bannedPhraseFound = false;
     
-    const ACTION_VERBS = [
-      "heat", "stir", "mix", "combine", "add", "place", "pour", "transfer", "remove", 
-      "cook", "bake", "boil", "simmer", "sauté", "chop", "dice", "slice", "mince", 
-      "grate", "drain", "rinse", "serve", "garnish", "sprinkle", "season", "whisk", 
-      "fold", "roll", "spread", "arrange", "layer", "top", "cover", "uncover"
-    ];
-    
+    // 2 & 3. Check for banned phrases and temperature/timing
     meal.instructions.forEach((instruction: string) => {
       if (typeof instruction !== 'string') return;
       
-      // Check for short instructions
-      if (instruction.length < 25) { // Stricter length requirement
-        shortInstructions++;
-      }
+      // Check for truly unhelpful banned phrases
+      const bannedPhrases = [
+        "cook until done",
+        "follow package directions",
+        "cook according to instructions",
+        "standard procedure",
+        "cook following standard procedures"
+      ];
       
-      // Check for missing action verbs at beginning
-      const firstWord = instruction.trim().split(' ')[0].toLowerCase();
-      if (!ACTION_VERBS.includes(firstWord)) {
-        missingActionVerbs++;
-      }
-      
-      // Check for missing temperature or time specifics
-      if (!instruction.match(/\d+\s*(?:degree|°F|°C|minutes?|mins?|hours?|hrs?|seconds?|secs?)/i)) {
-        // Only count this for cooking steps
-        if (instruction.toLowerCase().match(/cook|bake|roast|simmer|boil|sauté|fry|grill|heat|warm/)) {
-          missingTempTime++;
+      for (const phrase of bannedPhrases) {
+        if (instruction.toLowerCase().includes(phrase.toLowerCase())) {
+          issues.push(`Recipe contains unhelpful phrase: "${phrase}"`);
+          bannedPhraseFound = true;
+          break;
         }
       }
       
-      // Check for generic instructions - more comprehensive patterns
-      if (instruction.toLowerCase().includes('cook according to') ||
-          instruction.toLowerCase().includes('follow package instructions') ||
-          instruction.toLowerCase().includes('to taste') ||
-          instruction.toLowerCase().includes('salt and pepper to taste') ||
-          instruction.toLowerCase().includes('as needed') ||
-          instruction.toLowerCase().includes('standard procedure') ||
-          instruction.toLowerCase().includes('according to the ingredients list') ||
-          instruction.toLowerCase().includes('as needed for this recipe') ||
-          instruction.toLowerCase().includes('following standard procedures') ||
-          instruction.toLowerCase().includes('enjoy with your family')) {
-        genericInstructions++;
+      // Check for temperature or timing information
+      const hasTemperatureOrTime = /(\d+\s*°[fc]|\d+\s*(minutes?|mins?|hours?|hrs?|seconds?|secs?))/i.test(instruction);
+      if (hasTemperatureOrTime) {
+        stepsWithTempOrTime++;
       }
     });
     
-    if (shortInstructions > 0) {
-      issues.push(`Has ${shortInstructions} too-brief instructions. Each step should be a detailed sentence of at least 25 characters.`);
-    }
-    
-    if (missingActionVerbs > 0) {
-      issues.push(`Found ${missingActionVerbs} instructions that don't start with an action verb. Each step must begin with a clear action verb.`);
-    }
-    
-    if (missingTempTime > 0) {
-      issues.push(`Found ${missingTempTime} cooking steps without specific temperatures or times. All cooking steps must include precise numbers.`);
-    }
-    
-    if (genericInstructions > 0) {
-      issues.push(`Found ${genericInstructions} generic instructions. Each step must be specific with exact times, temperatures, and methods.`);
-    }
-    
-    // Check for generic placeholder instructions
-    const genericPhrases = [
-      'according to the ingredients list',
-      'as needed for this recipe',
-      'following standard procedures',
-      'enjoy with your family',
-      'standard procedure',
-      'preheat your oven or stovetop as needed',
-      'cook until all components are thoroughly cooked',
-      'combine the ingredients according to',
-      'prepare all ingredients'
-    ];
-    
-    const hasGenericInstructions = meal.instructions.some((instr: string) => 
-      typeof instr === 'string' && 
-      genericPhrases.some(phrase => instr.toLowerCase().includes(phrase))
-    );
-    
-    if (hasGenericInstructions) {
-      issues.push(`Recipe contains generic placeholder instructions. Each step must be detailed and specific with exact times and temperatures.`);
-    }
-    
-    // Check if instructions look like placeholders by examining length and patterns
-    if (meal.instructions.length <= 5) {
-      issues.push(`Recipe has too few instructions (${meal.instructions.length}). Each recipe must have at least 10 detailed steps.`);
+    // Ensure at least 2 steps have temperature or timing info
+    if (stepsWithTempOrTime < 2 && !bannedPhraseFound) {
+      issues.push(`Recipe should include specific temperature or timing information in at least 2 steps (found in ${stepsWithTempOrTime}).`);
     }
   }
   

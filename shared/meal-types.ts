@@ -33,19 +33,13 @@ export interface MealValidationResult {
 }
 
 export const MINIMUM_REQUIREMENTS = {
-  INGREDIENTS_COUNT: 8,
-  INSTRUCTIONS_COUNT: 7,
-  DETAIL_LENGTH: 50, // Minimum characters for each instruction
+  INSTRUCTIONS_COUNT: 5, // Simplified requirement - just need 5 steps
 };
 
 export const GENERIC_PHRASES = [
-  "cook following standard procedures",
-  "cook according to standard procedure",
-  "cook using standard methods",
-  "following package directions",
-  "prepare according to instructions",
-  "cook as you normally would",
   "cook until done",
-  "cook until ready",
-  "cook until finished"
+  "follow package directions",
+  "cook according to instructions",
+  "standard procedure",
+  "cook following standard procedures"
 ];
