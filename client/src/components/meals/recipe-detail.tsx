@@ -364,13 +364,26 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
             <TabsContent value="instructions" className="mt-4">
               <h3 className="font-medium text-base mb-2">Cooking Instructions:</h3>
               
-              {/* Use the new instructions rendering logic */}
-              {(Array.isArray(meal.instructions) && meal.instructions.length > 0) ? (
-                <ol className="space-y-3 list-decimal ml-4">
-                  {meal.instructions.map((step, index) => (
-                    <li key={index} className="text-sm">{step}</li>
-                  ))}
-                </ol>
+              {/* Use the exact instructions from the meal object with minimal processing */}
+              {(Array.isArray(improvedMeal.instructions) && improvedMeal.instructions.length > 0) ? (
+                <>
+                  <ol className="space-y-3 list-decimal ml-4">
+                    {improvedMeal.instructions.map((step, index) => (
+                      <li key={index} className="text-sm">
+                        {/* Remove step number if it starts with one to avoid duplication */}
+                        {typeof step === 'string' ? 
+                          (step.match(/^\d+\.\s/) ? step.replace(/^\d+\.\s/, '') : step) 
+                          : String(step)}
+                      </li>
+                    ))}
+                  </ol>
+                  {/* Debug info to verify what's being displayed */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-4 text-xs text-gray-400">
+                      {improvedMeal.instructions.length} instruction steps loaded directly from meal object
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="instructions-fallback mb-4" style={{ color: "#666", fontStyle: "italic" }}>
                   Instructions are not available for this recipe. Please try regenerating.
