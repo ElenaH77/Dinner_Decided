@@ -175,130 +175,18 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     return meal;
   }, [meal, openTimestamp]);
 
-  // Process instructions which could be a string array, string or object format
-  const processInstructions = () => {
-    try {
-      // Use the improved meal instead of the original
-      const mealToProcess = improvedMeal || meal;
-      
-      // Detailed logging for debugging the directions/instructions issue
-      console.log('[RECIPE DETAIL] Processing instructions for meal:', mealToProcess.name);
-      console.log('[RECIPE DETAIL] Raw Instructions:', JSON.stringify(mealToProcess.instructions || []));
-      console.log('[RECIPE DETAIL] Raw Directions:', JSON.stringify(mealToProcess.directions || []));
-      
-      // Prioritize instructions over directions
-      // OpenAI regenerated instructions are stored in meal.instructions
-      if (mealToProcess.instructions && Array.isArray(mealToProcess.instructions) && mealToProcess.instructions.length > 0) {
-        console.log('[RECIPE DETAIL] Using instructions field with', mealToProcess.instructions.length, 'steps');
-      } 
-      // Fallback to directions if instructions are missing
-      else if (mealToProcess.directions && Array.isArray(mealToProcess.directions) && mealToProcess.directions.length > 0) {
-        console.log('[RECIPE DETAIL] Using directions field with', mealToProcess.directions.length, 'steps');
-        // Copy directions to instructions
-        mealToProcess.instructions = mealToProcess.directions;
-      }
-      // Show error message if no instructions/directions are available
-      else if (!mealToProcess.instructions) {
-        console.log('[RECIPE DETAIL] No instructions or directions found, showing error state');
-        return [
-          `Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`
-        ];
-      }
-      
-      // If instructions exist, process them based on type
-      if (Array.isArray(mealToProcess.instructions)) {
-        // If it's already an array, ensure each item is properly formatted
-        const formattedInstructions = mealToProcess.instructions.map((step, index) => {
-          if (typeof step !== 'string') {
-            // Handle non-string items in the array
-            return `Step ${index+1}: ${JSON.stringify(step).replace(/[{}"\']/g, '').replace(/,/g, ', ').replace(/:/g, ': ')}`;
-          }
-          
-          // Add step numbers if they're not already there
-          if (!step.match(/^\d+\.\s/) && !step.match(/^Step\s\d+:/) && index < 20) {
-            return `${index+1}. ${step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`}`;
-          }
-          
-          return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
-        });
-        
-        return formattedInstructions.length > 0 ? formattedInstructions : [`Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`];
-      } else if (typeof mealToProcess.instructions === 'string') {
-        // If it's a string, split by newlines or periods to create steps
-        const steps = mealToProcess.instructions
-          .split(/\n|\. /)
-          .filter(step => step.trim().length > 0)
-          .map((step, index) => {
-            // Add step numbers if they don't already exist
-            if (!step.match(/^\d+\.\s/) && !step.match(/^Step\s\d+:/) && index < 20) {
-              return `${index+1}. ${step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`}`;
-            }
-            return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
-          });
-          
-        return steps.length > 0 ? steps : [`Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`];
-      } else if (typeof mealToProcess.instructions === 'object' && mealToProcess.instructions !== null) {
-        // If it's an object, extract steps
-        const steps = [];
-        const entries = Object.entries(mealToProcess.instructions);
-        
-        // First try to extract step-like keys (step1, step 2, etc.)
-        const stepEntries = entries.filter(([key]) => 
-          key.toLowerCase().includes('step') || /^\d+$/.test(key) || key.match(/^step\d+$/))
-          .sort((a, b) => {
-            // Try to sort by step number if possible
-            const numA = parseInt(a[0].replace(/\D/g, ''));
-            const numB = parseInt(b[0].replace(/\D/g, ''));
-            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-            return a[0].localeCompare(b[0]);
-          });
-          
-        if (stepEntries.length > 0) {
-          // Use step-like entries if found
-          stepEntries.forEach(([key, value], index) => {
-            if (typeof value === 'string') {
-              // Add step numbers if they don't already exist
-              if (!value.match(/^\d+\.\s/) && !value.match(/^Step\s\d+:/)) {
-                steps.push(`${index+1}. ${value.trim().endsWith('.') ? value.trim() : `${value.trim()}.`}`);
-              } else {
-                steps.push(value.trim().endsWith('.') ? value.trim() : `${value.trim()}.`);
-              }
-            } else if (value !== null && value !== undefined) {
-              // Handle non-string values
-              steps.push(`${index+1}. ${String(value)}${String(value).endsWith('.') ? '' : '.'}`);
-            }
-          });
-        } else {
-          // If no step-like keys, use all string values from the object
-          entries.forEach(([key, value], index) => {
-            if (typeof value === 'string' && value.trim().length > 0) {
-              steps.push(`${index+1}. ${value.trim().endsWith('.') ? value.trim() : `${value.trim()}.`}`);
-            }
-          });
-        }
-        
-        return steps.length > 0 ? steps : [`Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`];
-      }
-      
-      // Show error message instead of generic fallback
-      return [
-        `Instructions not available for ${mealToProcess.name}.`,
-        `Please try regenerating this recipe.`
-      ];
-    } catch (error) {
-      console.error('Error processing instructions:', error);
-      return [
-        `Instructions not available for ${meal.name}.`,
-        `Please try regenerating this recipe.`
-      ];
-    }
-  };
+  // Just log the raw instructions for debugging
+  console.log('[RECIPE DETAIL] Raw Instructions:', JSON.stringify(meal.instructions || []));
   
-  // Process ingredients and instructions when the component renders or meal changes
+  // If directions exist but instructions don't, copy directions to instructions
+  if ((!meal.instructions || !Array.isArray(meal.instructions) || meal.instructions.length === 0) && 
+      meal.directions && Array.isArray(meal.directions) && meal.directions.length > 0) {
+    console.log('[RECIPE DETAIL] Using directions field as fallback');
+    meal.instructions = meal.directions;
+  }
+  
+  // Process ingredients when the component renders or meal changes
   const ingredientsList = processIngredients();
-  const instructions = processInstructions();
-  
-  console.log('Processed instructions:', instructions);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -364,29 +252,16 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
             <TabsContent value="instructions" className="mt-4">
               <h3 className="font-medium text-base mb-2">Cooking Instructions:</h3>
               
-              {/* Use the exact instructions from the meal object with minimal processing */}
-              {(Array.isArray(improvedMeal.instructions) && improvedMeal.instructions.length > 0) ? (
-                <>
-                  <ol className="space-y-3 list-decimal ml-4">
-                    {improvedMeal.instructions.map((step, index) => (
-                      <li key={index} className="text-sm">
-                        {/* Remove step number if it starts with one to avoid duplication */}
-                        {typeof step === 'string' ? 
-                          (step.match(/^\d+\.\s/) ? step.replace(/^\d+\.\s/, '') : step) 
-                          : String(step)}
-                      </li>
-                    ))}
-                  </ol>
-                  {/* Debug info to verify what's being displayed */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 text-xs text-gray-400">
-                      {improvedMeal.instructions.length} instruction steps loaded directly from meal object
-                    </div>
-                  )}
-                </>
+              {/* Ultra simple rendering - just show the instructions if they exist */}
+              {Array.isArray(meal.instructions) && meal.instructions.length > 0 ? (
+                <ol className="space-y-3 list-decimal ml-4">
+                  {meal.instructions.map((step, i) => (
+                    <li key={i} className="text-sm">{step}</li>
+                  ))}
+                </ol>
               ) : (
                 <p className="instructions-fallback mb-4" style={{ color: "#666", fontStyle: "italic" }}>
-                  Instructions are not available for this recipe. Please try regenerating.
+                  Instructions not available. Try regenerating this recipe.
                 </p>
               )}
               
