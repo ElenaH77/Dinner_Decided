@@ -1416,21 +1416,8 @@ function improveRecipeInstructions(recipe: any): any {
     improved = improved.replace(/(\d+)\s+tbsp/gi, '$1 tablespoons');
     improved = improved.replace(/(\d+)\s+tsp/gi, '$1 teaspoons');
     
-    // Ensure a strong action verb at the beginning
-    const startWithVerb = /^(Preheat|Heat|Stir|Mix|Combine|Add|Place|Pour|Transfer|Remove|Cook|Bake|Boil|Simmer|Sauté|Chop|Dice|Slice|Mince|Grate|Drain|Rinse|Serve|Garnish|Sprinkle|Season|Whisk|Fold|Roll|Spread|Arrange|Layer|Top|Cover|Uncover|Check|Test|Taste|Adjust)/i;
-    
-    if (!startWithVerb.test(improved)) {
-      // Prefix with a relevant action verb based on context
-      if (improved.toLowerCase().includes('oven')) {
-        improved = 'Preheat ' + improved;
-      } else if (improved.toLowerCase().includes('stir') || improved.toLowerCase().includes('mix')) {
-        improved = 'Combine ' + improved;
-      } else if (improved.toLowerCase().includes('cook') || improved.toLowerCase().includes('heat')) {
-        improved = 'Heat ' + improved;
-      } else {
-        improved = 'Prepare ' + improved;
-      }
-    }
+    // No longer forcing action verbs at the beginning of each step
+    // Removed the automatic action verb prefixing to allow for more natural instructions
     
     // If instruction is still too short, add more detail
     if (improved.length < 25) {
