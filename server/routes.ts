@@ -47,11 +47,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[RECIPE API] Regenerating instructions for: ${title} with ${ingredients.length} ingredients`);
       
-      // Call the OpenAI-powered recipe generator
+      // Call the OpenAI-powered recipe generator (now returns null if it fails)
       const instructions = await regenerateRecipeInstructions({ 
         title, 
         ingredients 
       });
+      
+      // Handle case where instructions could not be generated
+      if (!instructions) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to generate valid instructions for this recipe',
+          message: 'The AI could not generate appropriate instructions'
+        });
+      }
       
       return res.json({ 
         success: true,
