@@ -131,26 +131,37 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
     }
   };
   
-  // Just use the meal directly - no template-based fallbacks
+  // Always use the meal from the meal plan context - no template fallbacks
   const improvedMeal = useMemo(() => {
-    // Just log validation status but don't modify the recipe
+    // Log the exact meal object we received for debugging
+    console.log('[RECIPE DETAIL] Received meal object:', meal);
+    
+    // Log validation status for diagnostics
     if (meal.instructions && Array.isArray(meal.instructions)) {
       const validationResult = validateRecipeInstructions(meal.instructions);
       
-      // Log validation results
+      // Log validation details
       console.log('[RECIPE DETAIL] Recipe validation for:', meal.name, {
         isValid: validationResult.isValid,
         issuesCount: validationResult.issues.length,
+        instructionsCount: meal.instructions.length,
         needsRegeneration: meal._needsRegeneration
       });
       
       if (!validationResult.isValid) {
         console.log('[RECIPE DETAIL] Validation issues:', validationResult.issues);
       }
+    } else {
+      // Important debugging info if instructions are missing
+      console.log('[RECIPE DETAIL] Missing or invalid instructions for:', meal.name, {
+        instructionsType: typeof meal.instructions,
+        hasInstructions: !!meal.instructions,
+        directionsType: typeof meal.directions, 
+        hasDirections: !!meal.directions
+      });
     }
     
-    // Always use the original meal from the meal plan - 
-    // any OpenAI improvements would have happened at the meal plan level
+    // Always use the original meal - improvements happen at the meal plan level
     return meal;
   }, [meal, openTimestamp]);
 
@@ -164,10 +175,9 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
       console.log('Raw Instructions:', JSON.stringify(mealToProcess.instructions || []));
       
       if (!mealToProcess.instructions) {
+        console.log('[RECIPE DETAIL] No instructions found, showing error state instead of using fallback templates');
         return [
-          `1. Prepare all ingredients for ${mealToProcess.name}.`,
-          `2. Cook according to your preference and family's tastes.`,
-          `3. Serve hot and enjoy!`
+          `Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`
         ];
       }
       
@@ -188,7 +198,7 @@ export default function RecipeDetail({ meal, isOpen, onClose, onModify }: Recipe
           return step.trim().endsWith('.') ? step.trim() : `${step.trim()}.`;
         });
         
-        return formattedInstructions.length > 0 ? formattedInstructions : [`Prepare the ${mealToProcess.name}.`];
+        return formattedInstructions.length > 0 ? formattedInstructions : [`Instructions not available for ${mealToProcess.name}. Please try regenerating this recipe.`];
       } else if (typeof mealToProcess.instructions === 'string') {
         // If it's a string, split by newlines or periods to create steps
         const steps = mealToProcess.instructions
