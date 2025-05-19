@@ -23,16 +23,21 @@ export async function regenerateRecipeInstructions(recipe: {
   const { title, ingredients } = recipe;
 
   const systemPrompt = `
-You are a detail-oriented recipe assistant. Your task is to generate crystal-clear, precise, step-by-step cooking instructions for home cooks.
+You are a professional culinary instructor creating detailed recipe instructions for an upscale cookbook. Your instructions must be precise, specific, and educational for home cooks of all skill levels.
 
-Guidelines:
-- Provide 8–10 numbered steps
-- Each step must begin with a strong action verb (e.g. Preheat, Add, Stir, Roast)
-- Mention specific ingredient names and amounts where possible
-- Include exact cooking times and temperatures (e.g. Bake at 375°F for 25 minutes)
-- Break complex steps into smaller steps
-- Avoid vague phrases like "cook until done," "prepare ingredients," or "combine everything"
-- Do not assume prior cooking knowledge
+STRICT REQUIREMENTS:
+1. Generate EXACTLY 10-12 numbered steps
+2. Each step MUST begin with a strong action verb (e.g. Slice, Sauté, Whisk, Simmer) - NEVER use weak verbs like "add", "mix", "combine", "prepare", or "cook" by themselves 
+3. Include SPECIFIC quantities for every ingredient mentioned (e.g. "2 tablespoons olive oil" not just "olive oil")
+4. Provide EXACT cooking times with precise numbers (e.g. "for 12-15 minutes" not "until done")
+5. Include SPECIFIC cooking temperatures with precise numbers (e.g. "at 375°F" or "over medium-high heat")
+6. For meat dishes, specify INTERNAL temperature targets (e.g. "until internal temperature reaches 165°F for chicken")
+7. Include multiple SENSORY descriptions to indicate doneness (e.g. "until golden brown and fragrant")
+8. When using specialized techniques, briefly explain them (e.g. "Deglaze the pan by pouring in wine and scraping up browned bits")
+9. Each instruction step should be 15-30 words and contain detailed guidance
+10. NEVER use generic phrases like "to taste", "until done", "cook as directed", or "follow package directions"
+
+You are writing for an award-winning cookbook. Every instruction must be detailed, precise, and educational.
 `;
 
   const userPrompt = `
@@ -74,9 +79,29 @@ Only return the instructions in a numbered list format. Do not include ingredien
       .map(line => line.replace(/^\d+\.\s*/, "").trim())
       .filter(line => line.length > 0);
 
+    // Validate overall instruction quality
     if (steps.length < 6) {
       log(`[RECIPE GENERATOR] OpenAI returned too few steps (${steps.length}) for ${title}`, "openai");
       return null;
+    }
+    
+    // Check for steps that are too short (less than 10 characters)
+    const shortSteps = steps.filter(step => step.length < 10);
+    if (shortSteps.length > 0) {
+      log(`[RECIPE GENERATOR] OpenAI returned ${shortSteps.length} steps that are too short for ${title}`, "openai");
+      return null;
+    }
+    
+    // Check for weak starting verbs that should be avoided
+    const weakVerbs = ['add', 'combine', 'mix', 'cook', 'prepare'];
+    const stepsWithWeakVerbs = steps.filter(step => {
+      const firstWord = step.split(' ')[0].toLowerCase();
+      return weakVerbs.includes(firstWord);
+    });
+    
+    if (stepsWithWeakVerbs.length > 3) {
+      log(`[RECIPE GENERATOR] OpenAI returned too many steps (${stepsWithWeakVerbs.length}) with weak verbs for ${title}`, "openai");
+      // We don't return null here, just log it - we can still use the instructions
     }
 
     log(`[RECIPE GENERATOR] Successfully generated ${steps.length} instructions for ${title}`, "openai");
