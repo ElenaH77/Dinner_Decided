@@ -171,7 +171,10 @@ export default function GroceryList() {
       setOrganizingItems(true);
       
       // Get current list
-      if (!groceryList?.sections || groceryList.sections.length === 0) {
+      const sectionsEmpty = !groceryList?.sections || 
+        (Array.isArray(groceryList.sections) ? groceryList.sections.length === 0 : Object.keys(groceryList.sections).length === 0);
+        
+      if (sectionsEmpty) {
         toast({
           title: "No items to organize",
           description: "Your grocery list doesn't have any items to organize.",
@@ -304,10 +307,23 @@ export default function GroceryList() {
     
     // Get all unchecked items from all sections
     const allUncheckedItems = [];
-    groceryList.sections.forEach(section => {
-      const uncheckedItems = section.items.filter(item => !checkedItems[item.id]);
-      allUncheckedItems.push(...uncheckedItems);
-    });
+    
+    // Handle both array and object formats for sections
+    if (Array.isArray(groceryList.sections)) {
+      // If sections is an array, use forEach
+      groceryList.sections.forEach(section => {
+        const uncheckedItems = section.items.filter(item => !checkedItems[item.id]);
+        allUncheckedItems.push(...uncheckedItems);
+      });
+    } else {
+      // If sections is an object, iterate through its values
+      Object.values(groceryList.sections).forEach(section => {
+        if (section && section.items && Array.isArray(section.items)) {
+          const uncheckedItems = section.items.filter(item => !checkedItems[item.id]);
+          allUncheckedItems.push(...uncheckedItems);
+        }
+      });
+    }
     
     // Just list all items without categories or bullets
     allUncheckedItems.forEach(item => {
@@ -339,26 +355,52 @@ export default function GroceryList() {
     const activeSections = [];
     const completedItems = [];
     
-    groceryList.sections.forEach(section => {
-      const activeItems = section.items.filter(item => !checkedItems[item.id]);
-      const checkedSectionItems = section.items.filter(item => checkedItems[item.id]);
-      
-      if (activeItems.length > 0) {
-        activeSections.push({
-          name: section.name,
-          items: activeItems
-        });
-      }
-      
-      completedItems.push(...checkedSectionItems);
-    });
+    // Handle both array and object formats for sections
+    if (Array.isArray(groceryList.sections)) {
+      // If sections is an array, use forEach
+      groceryList.sections.forEach(section => {
+        const activeItems = section.items.filter(item => !checkedItems[item.id]);
+        const checkedSectionItems = section.items.filter(item => checkedItems[item.id]);
+        
+        if (activeItems.length > 0) {
+          activeSections.push({
+            name: section.name,
+            items: activeItems
+          });
+        }
+        
+        completedItems.push(...checkedSectionItems);
+      });
+    } else {
+      // If sections is an object, iterate through its values
+      Object.values(groceryList.sections).forEach(section => {
+        if (section && section.items && Array.isArray(section.items)) {
+          const activeItems = section.items.filter(item => !checkedItems[item.id]);
+          const checkedSectionItems = section.items.filter(item => checkedItems[item.id]);
+          
+          if (activeItems.length > 0) {
+            activeSections.push({
+              name: section.name,
+              items: activeItems
+            });
+          }
+          
+          completedItems.push(...checkedSectionItems);
+        }
+      });
+    }
     
     return { activeSections, completedItems };
   };
   
   const { activeSections, completedItems } = separateCheckedItems();
   const hasCompletedItems = completedItems.length > 0;
-  const allChecked = activeSections.length === 0 && groceryList?.sections?.length > 0;
+  
+  // Check if all items are checked in a way that works for both array and object formats
+  const sectionsExist = groceryList?.sections ? 
+    (Array.isArray(groceryList.sections) ? groceryList.sections.length > 0 : Object.keys(groceryList.sections).length > 0) : 
+    false;
+  const allChecked = activeSections.length === 0 && sectionsExist;
 
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">
