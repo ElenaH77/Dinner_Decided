@@ -939,8 +939,8 @@ export async function modifyMeal(meal: any, modificationRequest: string, retryCo
       
       console.log(`[MODIFY] Successfully modified meal: ${modifiedMeal.name}`);
       
-      // Add unique ID and preserve original ID for reference
-      modifiedMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      // Preserve the original meal ID for proper UI updates
+      modifiedMeal.id = meal.id;
       modifiedMeal.modifiedFrom = meal.name;
       modifiedMeal.originalId = meal.id;
       
