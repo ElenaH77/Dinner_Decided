@@ -979,7 +979,18 @@ export class DatabaseStorage implements IStorage {
     console.log('[GROCERY DB] Processing', meal.ingredients.length, 'ingredients');
 
     // Initialize sections if they don't exist
-    const updatedSections = groceryList.sections ? [...groceryList.sections] : [];
+    let updatedSections = [];
+    
+    if (groceryList.sections) {
+      // Handle both array and object formats for sections
+      if (Array.isArray(groceryList.sections)) {
+        updatedSections = [...groceryList.sections];
+      } else {
+        // If it's an object, convert to array first
+        updatedSections = Object.values(groceryList.sections);
+      }
+    }
+    
     console.log('[GROCERY DB] Starting with', updatedSections.length, 'sections');
 
     // Process each ingredient and add it to the appropriate section
