@@ -143,6 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userMessage) {
         const messageToSave = {
           ...userMessage,
+          // Generate a new unique ID for each user message to prevent duplicates
+          id: uuidv4(),
           householdId: household.id,
           timestamp: new Date(userMessage.timestamp)
         };
