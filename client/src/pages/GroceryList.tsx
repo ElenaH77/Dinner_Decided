@@ -207,15 +207,35 @@ export default function GroceryList() {
       
       // Collect all unchecked items from all sections
       const allItems = [];
-      groceryList.sections.forEach(section => {
-        section.items.forEach(item => {
-          // If item is checked, skip it
-          if (checkedItems[item.id]) {
-            return;
+      
+      // Handle both array and object formats for sections
+      if (Array.isArray(groceryList.sections)) {
+        // If sections is an array, use forEach
+        groceryList.sections.forEach(section => {
+          if (section && section.items && Array.isArray(section.items)) {
+            section.items.forEach(item => {
+              // If item is checked, skip it
+              if (checkedItems[item.id]) {
+                return;
+              }
+              allItems.push(item);
+            });
           }
-          allItems.push(item);
         });
-      });
+      } else {
+        // If sections is an object, iterate through its values
+        Object.values(groceryList.sections).forEach(section => {
+          if (section && section.items && Array.isArray(section.items)) {
+            section.items.forEach(item => {
+              // If item is checked, skip it
+              if (checkedItems[item.id]) {
+                return;
+              }
+              allItems.push(item);
+            });
+          }
+        });
+      }
       
       // Assign items to departments
       allItems.forEach(item => {
@@ -250,13 +270,29 @@ export default function GroceryList() {
       
       // Add checked items section if there are any
       const checkedItemsList = [];
-      groceryList.sections.forEach(section => {
-        section.items.forEach(item => {
-          if (checkedItems[item.id]) {
-            checkedItemsList.push(item);
+      
+      // Handle both array and object formats for sections
+      if (Array.isArray(groceryList.sections)) {
+        groceryList.sections.forEach(section => {
+          if (section && section.items && Array.isArray(section.items)) {
+            section.items.forEach(item => {
+              if (checkedItems[item.id]) {
+                checkedItemsList.push(item);
+              }
+            });
           }
         });
-      });
+      } else {
+        Object.values(groceryList.sections).forEach(section => {
+          if (section && section.items && Array.isArray(section.items)) {
+            section.items.forEach(item => {
+              if (checkedItems[item.id]) {
+                checkedItemsList.push(item);
+              }
+            });
+          }
+        });
+      }
       
       if (checkedItemsList.length > 0) {
         newSections.push({
