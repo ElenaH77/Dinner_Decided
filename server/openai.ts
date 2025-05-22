@@ -61,7 +61,7 @@ const openai = new OpenAI({
 })();
 
 // Generate a response for the chat conversation
-export async function generateChatResponse(messages: Message[]): Promise<string> {
+export async function generateChatResponse(messages: Message[], household?: any): Promise<string> {
   try {
     // For demo purposes with no valid API key, return a canned response
     if (!hasValidApiKey()) {
@@ -76,7 +76,10 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
     }));
     
     // Determine if we're in onboarding or chat mode based on household completion status
+    console.log('[CHAT] Household data received:', household);
+    console.log('[CHAT] Household onboardingComplete:', household?.onboardingComplete);
     const isOnboarding = household && !household.onboardingComplete;
+    console.log('[CHAT] Is onboarding mode:', isOnboarding);
     
     // Use different system prompts for onboarding vs. DinnerBot
     if (isOnboarding) {
