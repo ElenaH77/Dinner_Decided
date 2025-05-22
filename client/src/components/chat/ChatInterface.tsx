@@ -138,23 +138,16 @@ export default function ChatInterface() {
             timestamp: new Date().toISOString(),
           });
           
-          // Create a loading state simulation
-          const newIsGenerating = true;
-          setIsGenerating(newIsGenerating);
+          // Instead of using setTimeout with state changes, let's use a simpler approach
+          // First add the user message, then immediately add the bot response
           
-          // Add a simple assistant response for image uploads after a short delay
-          setTimeout(() => {
-            // Add the bot response
-            addMessage({
-              id: `assistant-${Date.now()}`,
-              role: "assistant",
-              content: "I see the image you shared! What would you like to know about it?",
-              timestamp: new Date().toISOString(),
-            });
-            
-            // Reset the loading state
-            setIsGenerating(false);
-          }, 1000);
+          // Add the bot response right away
+          addMessage({
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: "I see the image you shared! What would you like to know about it?",
+            timestamp: new Date().toISOString(),
+          });
           
           // Clear the input and file
           setInput("");
