@@ -1,5 +1,5 @@
-import { useRef, useEffect, FormEvent, useState, KeyboardEvent } from "react";
-import { Info, Settings, Layers, Paperclip, RefreshCw } from "lucide-react";
+import { useRef, useEffect, FormEvent, useState, KeyboardEvent, ChangeEvent } from "react";
+import { Info, Settings, Layers, Paperclip, RefreshCw, Image, X } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import { useChatState } from "@/hooks/useChatState";
 import { useQuery } from "@tanstack/react-query";
@@ -16,12 +16,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const { messages, addMessage, handleUserMessage, resetChatConversation, isGenerating } = useChatState();
   
@@ -45,6 +49,15 @@ export default function ChatInterface() {
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [input]);
+  
+  // Clean up file preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
