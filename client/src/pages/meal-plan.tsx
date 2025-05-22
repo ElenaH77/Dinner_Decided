@@ -42,10 +42,10 @@ export default function MealPlan() {
     meals = mealPlanContext.currentPlan?.meals || [];
     setMeals = mealPlanContext.addMeal;
     
-    // Always refetch meal plan data when navigating to this page
+    // Refetch meal plan data when navigating to this page, but avoid clearing grocery list
     useEffect(() => {
-      // Force refetch on every mount of this component to ensure latest data
-      if (!mealPlanContext.isLoading) {
+      // Only refetch if we don't already have meals to prevent clearing grocery list
+      if (!mealPlanContext.isLoading && (!currentMealPlan || !currentMealPlan.meals || currentMealPlan.meals.length === 0)) {
         console.log("Refetching meal plan to ensure we have the latest data");
         mealPlanContext.refetchMealPlan();
       }
