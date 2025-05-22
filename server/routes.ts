@@ -1535,7 +1535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to generate and save grocery list
-  async function generateAndSaveGroceryList(mealPlanId: number, householdId: number) {
+  async function generateAndSaveGroceryList(mealPlanId: number, householdId: number, preserveExistingItems: boolean = true) {
     // Get meal plan from storage
     const mealPlan = await storage.getMealPlan(mealPlanId);
     
@@ -1569,14 +1569,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.warn(`[GROCERY] WARNING: Duplicate meals detected! Using fixed meal plan to prevent duplicates.`);
     }
     
-    // Generate grocery list with OpenAI using our fixed meal plan
-    const generatedList = await generateGroceryList(fixedMealPlan);
-    
-    // Get existing list or create new one
+    // Get existing list if any
     let groceryList = await storage.getGroceryListByMealPlanId(mealPlanId);
     
+    // If we're just refreshing the meal plan (not explicitly generating a new list)
+    // and there's an existing grocery list with items, we should preserve those items
+    if (preserveExistingItems && groceryList && groceryList.sections && 
+        Array.isArray(groceryList.sections) && groceryList.sections.length > 0) {
+      
+      console.log(`[GROCERY] Preserving existing grocery list with ${groceryList.sections.length} sections`);
+      
+      // Process each meal and add its ingredients to the existing list without replacing it
+      if (Array.isArray(mealPlan.meals) && mealPlan.meals.length > 0) {
+        for (const meal of mealPlan.meals) {
+          if (meal && meal.id) {
+            // This adds the meal's ingredients to the grocery list without replacing existing items
+            groceryList = await storage.ensureMealInGroceryList(groceryList.id, meal);
+          }
+        }
+      }
+      
+      return groceryList;
+    }
+    
+    // If preserveExistingItems is false or there's no existing list, generate a new one
+    console.log(`[GROCERY] Generating brand new grocery list`);
+    const generatedList = await generateGroceryList(fixedMealPlan);
+    
     if (groceryList) {
-      // Update existing list
+      // Update existing list with all new sections (replaces existing)
       groceryList = await storage.updateGroceryList(groceryList.id, {
         ...groceryList,
         sections: generatedList
