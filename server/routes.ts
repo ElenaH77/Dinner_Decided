@@ -842,8 +842,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/grocery-list/current", async (req, res) => {
     try {
       const groceryList = await storage.getCurrentGroceryList();
+      
+      // Normalize the grocery list sections to ensure it's always an array
+      if (groceryList) {
+        // Make sure sections is always an array
+        if (!groceryList.sections || !Array.isArray(groceryList.sections)) {
+          console.log('[API] Normalizing sections to empty array in grocery list GET response');
+          groceryList.sections = [];
+        }
+        
+        // Ensure each section has a properly initialized items array
+        if (Array.isArray(groceryList.sections)) {
+          groceryList.sections = groceryList.sections.map(section => {
+            if (!section.items || !Array.isArray(section.items)) {
+              return { ...section, items: [] };
+            }
+            return section;
+          });
+        }
+      }
+      
       res.json(groceryList);
     } catch (error) {
+      console.error("Error getting current grocery list:", error);
       res.status(500).json({ message: "Failed to get current grocery list" });
     }
   });
@@ -858,6 +879,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const groceryList = await storage.getGroceryListByMealPlanId(mealPlanId);
       if (!groceryList) {
         return res.status(404).json({ message: "Grocery list not found for this meal plan" });
+      }
+      
+      // Normalize the grocery list sections to ensure it's always an array
+      // Make sure sections is always an array
+      if (!groceryList.sections || !Array.isArray(groceryList.sections)) {
+        console.log('[API] Normalizing sections to empty array in grocery list GET by-meal-plan response');
+        groceryList.sections = [];
+      }
+      
+      // Ensure each section has a properly initialized items array
+      if (Array.isArray(groceryList.sections)) {
+        groceryList.sections = groceryList.sections.map(section => {
+          if (!section.items || !Array.isArray(section.items)) {
+            return { ...section, items: [] };
+          }
+          return section;
+        });
       }
       
       res.json(groceryList);
