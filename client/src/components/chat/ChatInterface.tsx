@@ -142,38 +142,52 @@ export default function ChatInterface() {
           // First add the user message, then immediately add the bot response
           
           // Now send the message to the API for processing
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: {
-                role: "user",
-                content: messageText.replace(/!\[Attached Image\]\(data:image\/[^;]+;base64,[^\)]+\)/g, 
-                  "[Image uploaded by user - analyzing contents]"),
+          setIsGenerating(true);
+          try {
+            const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
               },
-              analysisContext: "User has uploaded an image. Respond in a way that acknowledges both the image and any text they provided with it."
-            }),
-          });
-          
-          if (response.ok) {
-            const responseData = await response.json();
-            // Update state with the response
-            addMessage({
-              id: responseData.id || `assistant-${Date.now()}`,
-              role: "assistant",
-              content: responseData.content || "I see your image! What would you like to know about it?",
-              timestamp: new Date().toISOString(),
+              body: JSON.stringify({
+                message: {
+                  role: "user",
+                  content: messageText.replace(/!\[Attached Image\]\(data:image\/[^;]+;base64,[^\)]+\)/g, 
+                    "[Image uploaded by user - analyzing contents]"),
+                },
+                analysisContext: "User has uploaded an image of their refrigerator contents. Respond with recipe suggestions based on the visible ingredients."
+              }),
             });
-          } else {
-            // Fallback response if API call fails
+            
+            if (response.ok) {
+              const responseData = await response.json();
+              // Update state with the response
+              addMessage({
+                id: responseData.id || `assistant-${Date.now()}`,
+                role: "assistant",
+                content: responseData.content || "I see your image! Let me suggest some recipes based on what's in your fridge.",
+                timestamp: new Date().toISOString(),
+              });
+            } else {
+              console.error("Error response from server:", await response.text());
+              // Fallback response if API call fails
+              addMessage({
+                id: `assistant-${Date.now()}`,
+                role: "assistant",
+                content: "I noticed your image of the refrigerator! I'd be happy to suggest some quick meal ideas based on what you have available.",
+                timestamp: new Date().toISOString(),
+              });
+            }
+          } catch (error) {
+            console.error("Network error during image chat:", error);
             addMessage({
               id: `assistant-${Date.now()}`,
               role: "assistant",
-              content: "I see the image you shared! What would you like to know about it?",
+              content: "I see your image! Let me suggest some recipes based on what's in your fridge.",
               timestamp: new Date().toISOString(),
             });
+          } finally {
+            setIsGenerating(false);
           }
           
           // Clear the input and file
