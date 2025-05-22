@@ -62,18 +62,94 @@ export default function ChatInterface() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check file type (only allow images)
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Only image files are supported",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check file size (limit to 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create preview URL
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setSelectedFile(file);
+  };
+  
+  const handleFileUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleRemoveFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!input.trim() || isGenerating) return;
+    if ((!input.trim() && !selectedFile) || isGenerating) return;
     
-    await handleUserMessage(input);
-    setInput("");
-    
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+    // If there's a file attached, include it in the message
+    if (selectedFile) {
+      // Convert the image to base64 for sending in the chat
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Image = event.target?.result as string;
+        // Compose a message with both text and image
+        const messageWithImage = input.trim() 
+          ? `${input}\n\n![Attached Image](${base64Image})`
+          : `![Attached Image](${base64Image})`;
+        
+        await handleUserMessage(messageWithImage);
+        
+        // Clear the input and file
+        setInput("");
+        handleRemoveFile();
+        
+        // Reset textarea height
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+      };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      // Just send the text message
+      await handleUserMessage(input);
+      setInput("");
+      
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
   };
 
@@ -177,6 +253,27 @@ export default function ChatInterface() {
       {/* Chat Input Area */}
       <div className="bg-white border-t border-[#E2E2E2] p-3">
         <form onSubmit={handleSubmit}>
+          {/* File preview area */}
+          {previewUrl && (
+            <div className="mb-3 relative">
+              <div className="relative rounded-lg overflow-hidden border border-[#E2E2E2] w-full max-h-60">
+                <img 
+                  src={previewUrl} 
+                  alt="File preview" 
+                  className="max-w-full max-h-60 object-contain mx-auto"
+                />
+                <button 
+                  type="button"
+                  onClick={handleRemoveFile}
+                  className="absolute top-2 right-2 bg-[#212121] bg-opacity-70 rounded-full p-1 text-white hover:bg-opacity-90"
+                  aria-label="Remove file"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-end">
             <div className="flex-grow relative">
               <textarea 
@@ -190,10 +287,21 @@ export default function ChatInterface() {
                 onKeyDown={handleKeyDown}
                 disabled={isGenerating}
               />
+              {/* Hidden file input */}
+              <input 
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+                disabled={isGenerating}
+              />
               <button 
                 type="button" 
                 className="absolute right-2 bottom-2 text-[#8A8A8A] hover:text-[#21706D]"
                 aria-label="Attach file"
+                onClick={handleFileUploadClick}
+                disabled={isGenerating}
               >
                 <Paperclip className="h-5 w-5" />
               </button>
@@ -201,7 +309,7 @@ export default function ChatInterface() {
             <button 
               type="submit" 
               className="ml-2 bg-[#21706D] hover:bg-[#195957] text-white rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50"
-              disabled={!input.trim() || isGenerating}
+              disabled={(!input.trim() && !selectedFile) || isGenerating}
               aria-label="Send message"
             >
               <Layers className="h-5 w-5" />
