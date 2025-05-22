@@ -86,34 +86,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Complete reset endpoint - clears database and tells frontend to clear cache
+  app.post("/api/reset-all", async (req, res) => {
+    try {
+      // Clear all data
+      await storage.clearMessages();
+      
+      res.json({ 
+        success: true,
+        clearCache: true,
+        message: "Complete reset - database and cache cleared"
+      });
+    } catch (error) {
+      console.error("Error in complete reset:", error);
+      res.status(500).json({ message: "Failed to reset" });
+    }
+  });
+
   // Reset chat endpoint
   app.post("/api/chat/reset", async (req, res) => {
     try {
       // Clear all messages
       await storage.clearMessages();
       
-      // Get household for associating the welcome message
-      const household = await storage.getHousehold();
-      if (!household) {
-        return res.status(404).json({ message: "No household found" });
-      }
-      
-      // Create a new welcome message in the database
-      const welcomeMessage = {
-        id: `welcome-${Date.now()}`, // Ensure unique ID with timestamp
-        role: "assistant",
-        content: "Hi there! I'm your meal planning assistant. How can I help you today?",
-        timestamp: new Date(),
-        householdId: household.id
-      };
-      
-      // Save the welcome message to the database
-      const savedMessage = await storage.saveMessage(welcomeMessage);
-      
-      // Return success with the welcome message
+      // Return simple success - no household needed for fresh start
       res.json({ 
         success: true,
-        welcomeMessage: savedMessage
+        clearCache: true, // Signal frontend to clear localStorage
+        message: "Reset complete - ready for fresh start"
       });
     } catch (error) {
       console.error("Error in /api/chat/reset:", error);
