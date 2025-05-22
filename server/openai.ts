@@ -98,7 +98,9 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
 
         Keep questions simple and conversational. Don't ask about weekly schedules, meal types, or cooking styles - that comes later. Just focus on basic household setup information.
 
-        After collecting this basic info, offer to create their household profile and move to meal planning.`
+        After collecting all 6 pieces of info, automatically save their profile and say: "That's all I need to know for now - if you ever want to edit this later, it's all saved under Profile. Ready to plan some meals? Head over to /this-week and let's get started!"
+
+        Make the transition feel effortless and seamless - no permission asking, just smooth progression.`
       });
     } else {
       // DinnerBot system prompt - focus on dinner assistance, NOT meal planning
