@@ -123,51 +123,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const messageSchema = z.array(z.object({
-        id: z.string(),
-        role: z.enum(["user", "assistant", "system"]),
-        content: z.string(),
-        timestamp: z.string()
-      }));
-      
-      const messages = messageSchema.parse(req.body.messages);
-      
-      // Get household ID for message association
-      const household = await storage.getHousehold();
-      if (!household) {
-        return res.status(404).json({ message: "No household found" });
-      }
-      
-      // Save the user's message first
-      const userMessage = messages.find(m => m.role === "user");
-      if (userMessage) {
-        const messageToSave = {
-          ...userMessage,
-          // Generate a new unique ID for each user message to prevent duplicates
-          id: uuidv4(),
-          householdId: household.id,
-          timestamp: new Date(userMessage.timestamp)
-        };
-        await storage.saveMessage(messageToSave);
-      }
-      
-      // Get response from OpenAI
-      const aiResponse = await generateChatResponse(messages);
-      
-      // Save the AI response message
-      if (aiResponse) {
-        const newMessage = {
-          id: uuidv4(),
+      // Support both direct message submissions and array of messages (legacy support)
+      if (req.body.message) {
+        // New format - direct message with optional context
+        const messageSchema = z.object({
+          role: z.enum(["user", "assistant", "system"]),
+          content: z.string()
+        });
+        
+        const singleMessage = messageSchema.parse(req.body.message);
+        const analysisContext = req.body.analysisContext || "";
+        
+        // Get household ID for message association
+        const household = await storage.getHousehold();
+        if (!household) {
+          return res.status(404).json({ message: "No household found" });
+        }
+        
+        // Get previous messages for context
+        const previousMessages = await storage.getMessages();
+        const recentMessages = previousMessages.slice(-10);
+        
+        // Format messages for OpenAI
+        const formattedMessages = [
+          ...recentMessages.map(m => ({
+            role: m.role as "user" | "assistant" | "system",
+            content: m.content
+          })),
+          singleMessage,
+        ];
+        
+        if (analysisContext) {
+          formattedMessages.unshift({
+            role: "system",
+            content: analysisContext
+          });
+        }
+        
+        // Get response from OpenAI (don't save the user message since it was saved by client)
+        const aiResponse = await generateChatResponse(formattedMessages);
+        
+        // Create a response message
+        const responseId = uuidv4();
+        const responseMessage = {
+          id: responseId,
           role: "assistant",
           content: aiResponse,
-          timestamp: new Date(),
-          householdId: household.id
+          householdId: household.id,
+          timestamp: new Date()
         };
         
-        await storage.saveMessage(newMessage);
-        res.json(newMessage);
+        // Save the AI response
+        await storage.saveMessage(responseMessage);
+        
+        // Return the formatted response
+        return res.json({
+          id: responseId,
+          role: "assistant",
+          content: aiResponse,
+          timestamp: new Date().toISOString()
+        });
       } else {
-        res.status(500).json({ message: "Failed to generate response" });
+        // Legacy format handling with messages array
+        const messageSchema = z.array(z.object({
+          id: z.string(),
+          role: z.enum(["user", "assistant", "system"]),
+          content: z.string(),
+          timestamp: z.string()
+        }));
+        
+        const messages = messageSchema.parse(req.body.messages);
+        
+        // Get household ID for message association
+        const household = await storage.getHousehold();
+        if (!household) {
+          return res.status(404).json({ message: "No household found" });
+        }
+        
+        // Save the user's message first
+        const userMessage = messages.find(m => m.role === "user");
+        if (userMessage) {
+          const messageToSave = {
+            ...userMessage,
+            // Generate a new unique ID for each user message to prevent duplicates
+            id: uuidv4(),
+            householdId: household.id,
+            timestamp: new Date(userMessage.timestamp)
+          };
+          await storage.saveMessage(messageToSave);
+        }
+        
+        // Get response from OpenAI
+        const aiResponse = await generateChatResponse(messages);
+      
+        // Save the AI response message
+        if (aiResponse) {
+          const newMessage = {
+            id: uuidv4(),
+            role: "assistant", 
+            content: aiResponse,
+            householdId: household.id,
+            timestamp: new Date()
+          };
+        
+          await storage.saveMessage(newMessage);
+          res.json(newMessage);
+        } else {
+          res.status(500).json({ message: "Failed to generate AI response" });
+        }
       }
     } catch (error) {
       console.error("Error in /api/chat:", error);
