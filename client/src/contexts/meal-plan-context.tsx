@@ -119,11 +119,36 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         console.log("Loading meal plan on context initialization using storage service");
         
+        // Get the list of removed meal IDs if available
+        let removedMealIds: string[] = [];
+        try {
+          const removedMealsJson = localStorage.getItem('removed_meal_ids');
+          if (removedMealsJson) {
+            removedMealIds = JSON.parse(removedMealsJson);
+            console.log('Found previously removed meal IDs:', removedMealIds);
+          }
+        } catch (e) {
+          console.error('Error parsing removed meal IDs:', e);
+        }
+        
         // Use the centralized storage service for loading
         const result = await loadMealPlan();
         
         if (result.success && result.data) {
           console.log(`Loaded meal plan from ${result.source}:`, result.data);
+          
+          // Filter out any previously removed meals if we have IDs stored
+          if (removedMealIds.length > 0 && result.data && Array.isArray(result.data.meals)) {
+            const filteredMeals = result.data.meals.filter(meal => !removedMealIds.includes(meal.id));
+            if (filteredMeals.length !== result.data.meals.length) {
+              console.log(`Filtered out ${result.data.meals.length - filteredMeals.length} previously removed meals`);
+              result.data.meals = filteredMeals;
+              
+              // If we filtered any meals, update storage with the filtered version
+              saveMealPlan(result.data);
+            }
+          }
+          
           setCurrentPlan(result.data);
         } else {
           console.warn("No meal plan found or error loading plan:", result.error);
@@ -134,8 +159,16 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
             const data = await response.json();
             console.log("Loaded meal plan directly from API:", data);
             
-            // If we have a valid meal plan, set it
+            // If we have a valid meal plan, filter removed meals and set it
             if (data && data.id) {
+              if (removedMealIds.length > 0 && Array.isArray(data.meals)) {
+                const filteredMeals = data.meals.filter(meal => !removedMealIds.includes(meal.id));
+                if (filteredMeals.length !== data.meals.length) {
+                  console.log(`Filtered out ${data.meals.length - filteredMeals.length} previously removed meals from API data`);
+                  data.meals = filteredMeals;
+                }
+              }
+              
               setCurrentPlan(data);
             }
           }
@@ -260,13 +293,33 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // Update the state with our new filtered plan
     setCurrentPlan(clonedPlan);
     
+    // IMPORTANT: Update all localStorage copies immediately to prevent stale data
+    console.log('Sending updated plan to server with', clonedPlan.meals.length, 'meals');
+    localStorage.setItem('current_meal_plan', JSON.stringify(clonedPlan));
+    localStorage.setItem('meal_plan_cache', JSON.stringify(clonedPlan));
+    
+    // Also keep a safe reference of removed meal IDs to prevent them from being re-added from stale data
+    const removedMealIds = JSON.parse(localStorage.getItem('removed_meal_ids') || '[]');
+    removedMealIds.push(mealId);
+    localStorage.setItem('removed_meal_ids', JSON.stringify(removedMealIds));
+    
     // Use the centralized storage service to save the updated plan
     try {
-      saveMealPlan(clonedPlan).then(result => {
-        if (!result.success) {
-          console.warn("Failed to persist meal removal to storage service:", result.error);
+      const result = await saveMealPlan(clonedPlan);
+      
+      if (result.success) {
+        // Force server refetch after successful save
+        try {
+          // Make sure any future API calls will get fresh data
+          const { queryClient } = await import('@/lib/queryClient');
+          queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+          console.log('Verified plan after update has', clonedPlan.meals.length, 'meals');
+        } catch (e) {
+          console.error('Failed to invalidate query cache:', e);
         }
-      });
+      } else {
+        console.warn("Failed to persist meal removal to storage service:", result.error);
+      }
     } catch (err) {
       console.error('Failed to save meal plan after removal:', err);
     }
