@@ -138,11 +138,11 @@ export default function ChatInterface() {
             timestamp: new Date().toISOString(),
           });
           
-          // Instead of using setTimeout with state changes, let's use a simpler approach
-          // First add the user message, then immediately add the bot response
+          // Clear the input and file immediately for better UX
+          const originalInput = input;
+          setInput("");
           
           // Now send the message to the API for processing
-          // Show loading state while processing the message
           try {
             const response = await fetch("/api/chat", {
               method: "POST",
@@ -152,10 +152,9 @@ export default function ChatInterface() {
               body: JSON.stringify({
                 message: {
                   role: "user",
-                  content: messageText.replace(/!\[Attached Image\]\(data:image\/[^;]+;base64,[^\)]+\)/g, 
-                    "[Image uploaded by user - analyzing contents]"),
+                  content: originalInput || "What can I make with these ingredients?",
                 },
-                analysisContext: "User has uploaded an image of their refrigerator contents. Respond with recipe suggestions based on the visible ingredients."
+                analysisContext: "User has uploaded an image of their refrigerator or ingredients. Respond with recipe suggestions based on the visible ingredients."
               }),
             });
             
@@ -174,7 +173,7 @@ export default function ChatInterface() {
               addMessage({
                 id: `assistant-${Date.now()}`,
                 role: "assistant",
-                content: "I noticed your image of the refrigerator! I'd be happy to suggest some quick meal ideas based on what you have available.",
+                content: "I noticed your image! I'd be happy to suggest some quick meal ideas based on what you have available.",
                 timestamp: new Date().toISOString(),
               });
             }
@@ -188,8 +187,7 @@ export default function ChatInterface() {
             });
           }
           
-          // Clear the input and file
-          setInput("");
+          // Don't need to set input again as we've already done it
           handleRemoveFile();
           
           // Reset textarea height
