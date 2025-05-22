@@ -914,6 +914,12 @@ export class DatabaseStorage implements IStorage {
       console.log('[DATABASE] Setting default creation date for grocery list');
       processedData.createdAt = new Date();
     }
+    
+    // IMPORTANT: Always ensure sections is initialized as an array
+    if (!processedData.sections || !Array.isArray(processedData.sections)) {
+      console.log('[DATABASE] Initializing empty sections array for new grocery list');
+      processedData.sections = [];
+    }
 
     const [groceryList] = await db.insert(groceryLists).values(processedData).returning();
     return groceryList;
@@ -938,6 +944,24 @@ export class DatabaseStorage implements IStorage {
     if (processedData.createdAt && !(processedData.createdAt instanceof Date)) {
       console.warn('[DATABASE] Removing invalid createdAt from grocery list update data');
       delete processedData.createdAt;
+    }
+    
+    // IMPORTANT: Always ensure sections is an array, even when updating
+    if (processedData.sections !== undefined) {
+      if (!Array.isArray(processedData.sections)) {
+        console.log('[DATABASE] Normalizing sections to an array in grocery list update');
+        processedData.sections = Array.isArray(processedData.sections) ? processedData.sections : [];
+      }
+      
+      // Ensure each section has a properly initialized items array
+      if (Array.isArray(processedData.sections)) {
+        processedData.sections = processedData.sections.map(section => {
+          if (!section.items || !Array.isArray(section.items)) {
+            return { ...section, items: [] };
+          }
+          return section;
+        });
+      }
     }
 
     const [updatedGroceryList] = await db
