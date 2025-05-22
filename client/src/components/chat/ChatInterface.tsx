@@ -138,15 +138,21 @@ export default function ChatInterface() {
             timestamp: new Date().toISOString(),
           });
           
-          // Add a simple assistant response for image uploads
-          setIsGenerating(true); // Set loading state while we "process" the image
+          // Create a loading state simulation
+          const newIsGenerating = true;
+          setIsGenerating(newIsGenerating);
+          
+          // Add a simple assistant response for image uploads after a short delay
           setTimeout(() => {
+            // Add the bot response
             addMessage({
               id: `assistant-${Date.now()}`,
               role: "assistant",
               content: "I see the image you shared! What would you like to know about it?",
               timestamp: new Date().toISOString(),
             });
+            
+            // Reset the loading state
             setIsGenerating(false);
           }, 1000);
           
