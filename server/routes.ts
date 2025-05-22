@@ -1098,13 +1098,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Find or create the target section
       const targetSectionName = section || 'Other';
-      let updatedSections = [...(currentList.sections || [])];
+      
+      // Make sure we have a valid sections array, even if it's empty
+      if (!currentList.sections || !Array.isArray(currentList.sections)) {
+        currentList.sections = [];
+      }
+      
+      let updatedSections = [...currentList.sections];
       
       // Look for the section
       let targetSectionIndex = updatedSections.findIndex(s => s.name === targetSectionName);
       
       if (targetSectionIndex >= 0) {
         // Section exists, add item to it
+        // Make sure the items array exists
+        if (!updatedSections[targetSectionIndex].items || !Array.isArray(updatedSections[targetSectionIndex].items)) {
+          updatedSections[targetSectionIndex].items = [];
+        }
+        
         updatedSections[targetSectionIndex] = {
           ...updatedSections[targetSectionIndex],
           items: [...updatedSections[targetSectionIndex].items, newItem]
