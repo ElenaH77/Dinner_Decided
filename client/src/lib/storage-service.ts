@@ -224,7 +224,15 @@ export async function saveMealPlan(mealPlan: any) {
   if (mealPlan.id) {
     try {
       console.log("Saving meal plan to API:", mealPlan.id);
-      const apiResult = await updateToApi(`/api/meal-plan/${mealPlan.id}`, mealPlan);
+      
+      // IMPORTANT: Add flag to explicitly tell the server not to regenerate the grocery list
+      // This prevents meal plan refreshes from clearing the grocery list
+      const mealPlanWithFlag = {
+        ...mealPlan,
+        regenerateGroceryList: false // Explicitly tell server NOT to regenerate grocery list
+      };
+      
+      const apiResult = await updateToApi(`/api/meal-plan/${mealPlan.id}`, mealPlanWithFlag);
       return apiResult;
     } catch (error) {
       console.error("Failed to save meal plan to API:", error);
