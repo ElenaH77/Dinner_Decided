@@ -1493,10 +1493,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[DEBUG] After update, plan has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
       
-      // Update grocery list if needed
-      const household = await storage.getHousehold();
-      if (household) {
-        await generateAndSaveGroceryList(currentPlan.id, household.id);
+      // IMPORTANT: Only regenerate the grocery list if explicitly requested
+      // This prevents the meal plan refresh from clearing existing grocery items
+      if (req.body.regenerateGroceryList === true) {
+        const household = await storage.getHousehold();
+        if (household) {
+          console.log('[MEAL PLAN] Explicitly regenerating grocery list as requested');
+          await generateAndSaveGroceryList(currentPlan.id, household.id);
+        }
+      } else {
+        console.log('[MEAL PLAN] Skipping grocery list generation to preserve existing items');
       }
       
       res.json(updatedPlan);
