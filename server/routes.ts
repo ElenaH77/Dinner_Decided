@@ -134,10 +134,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const singleMessage = messageSchema.parse(req.body.message);
         const analysisContext = req.body.analysisContext || "";
         
-        // Get household ID for message association
-        const household = await storage.getHousehold();
+        // Get household ID for message association - create one if needed for onboarding
+        let household = await storage.getHousehold();
         if (!household) {
-          return res.status(404).json({ message: "No household found" });
+          // Create a basic household for onboarding
+          household = await storage.createHousehold({
+            name: "New Household",
+            members: [],
+            cookingSkill: 1,
+            preferences: "",
+            challenges: null,
+            location: null,
+            appliances: []
+          });
         }
         
         // Get previous messages for context
