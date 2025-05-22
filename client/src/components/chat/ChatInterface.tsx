@@ -142,7 +142,7 @@ export default function ChatInterface() {
           // First add the user message, then immediately add the bot response
           
           // Now send the message to the API for processing
-          setIsGenerating(true);
+          // Show loading state while processing the message
           try {
             const response = await fetch("/api/chat", {
               method: "POST",
@@ -186,8 +186,6 @@ export default function ChatInterface() {
               content: "I see your image! Let me suggest some recipes based on what's in your fridge.",
               timestamp: new Date().toISOString(),
             });
-          } finally {
-            setIsGenerating(false);
           }
           
           // Clear the input and file
