@@ -76,10 +76,13 @@ export async function generateChatResponse(messages: Message[], household?: any)
     }));
     
     // Determine if we're in onboarding or chat mode based on household completion status
-    console.log('[CHAT] Household data received:', household);
+    console.log('[CHAT] === DEBUGGING ONBOARDING DETECTION ===');
+    console.log('[CHAT] Household data received:', JSON.stringify(household, null, 2));
     console.log('[CHAT] Household onboardingComplete:', household?.onboardingComplete);
     const isOnboarding = household && !household.onboardingComplete;
     console.log('[CHAT] Is onboarding mode:', isOnboarding);
+    console.log('[CHAT] Will use prompt:', isOnboarding ? 'ONBOARDING' : 'DINNERBOT');
+    console.log('[CHAT] =======================================');
     
     // Use different system prompts for onboarding vs. DinnerBot
     if (isOnboarding) {
