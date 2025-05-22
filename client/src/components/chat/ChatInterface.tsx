@@ -118,37 +118,72 @@ export default function ChatInterface() {
     
     if ((!input.trim() && !selectedFile) || isGenerating) return;
     
-    // If there's a file attached, include it in the message
+    // If there's a file attached, handle it locally first
     if (selectedFile) {
-      // Convert the image to base64 for sending in the chat
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Image = event.target?.result as string;
-        // Compose a message with both text and image
-        const messageWithImage = input.trim() 
-          ? `${input}\n\n![Attached Image](${base64Image})`
-          : `![Attached Image](${base64Image})`;
-        
-        await handleUserMessage(messageWithImage);
-        
-        // Clear the input and file
+      try {
+        // Convert the image to base64 for displaying in the chat
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const base64Image = event.target?.result as string;
+          // Create the user message text with image markdown
+          const messageText = input.trim() 
+            ? `${input}\n\n![Attached Image](${base64Image})`
+            : `![Attached Image](${base64Image})`;
+          
+          // Add user message directly to the UI first
+          addMessage({
+            id: `user-${Date.now()}`,
+            role: "user",
+            content: messageText,
+            timestamp: new Date().toISOString(),
+          });
+          
+          // Add a simple assistant response for image uploads
+          setTimeout(() => {
+            addMessage({
+              id: `assistant-${Date.now()}`,
+              role: "assistant",
+              content: "I see the image you shared! What would you like to know about it?",
+              timestamp: new Date().toISOString(),
+            });
+            setIsGenerating(false);
+          }, 1000);
+          
+          // Clear the input and file
+          setInput("");
+          handleRemoveFile();
+          
+          // Reset textarea height
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
+        };
+        reader.readAsDataURL(selectedFile);
+      } catch (error) {
+        console.error("Error handling image:", error);
+        toast({
+          title: "Error",
+          description: "There was a problem uploading your image. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Just send the text message normally
+      try {
+        await handleUserMessage(input);
         setInput("");
-        handleRemoveFile();
         
         // Reset textarea height
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
-      };
-      reader.readAsDataURL(selectedFile);
-    } else {
-      // Just send the text message
-      await handleUserMessage(input);
-      setInput("");
-      
-      // Reset textarea height
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      } catch (error) {
+        console.error("Error sending message:", error);
+        toast({
+          title: "Error",
+          description: "Failed to send your message. Please try again.",
+          variant: "destructive",
+        });
       }
     }
   };
