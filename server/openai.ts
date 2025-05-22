@@ -75,11 +75,8 @@ export async function generateChatResponse(messages: Message[]): Promise<string>
       content: msg.content
     }));
     
-    // Determine if we're in onboarding or chat mode
-    const isOnboarding = messages.some(msg => 
-      msg.content?.includes("Welcome to Dinner, Decided!") && 
-      msg.content?.includes("Let's get started with a few questions about your household")
-    );
+    // Determine if we're in onboarding or chat mode based on household completion status
+    const isOnboarding = household && !household.onboardingComplete;
     
     // Use different system prompts for onboarding vs. DinnerBot
     if (isOnboarding) {
