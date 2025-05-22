@@ -53,8 +53,8 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize database with seed data if needed
   try {
-    await seedInitialData();
-    log("Database initialization complete");
+    // await seedInitialData(); // Disabled for fresh start experience
+    log("Database initialization complete (seed data disabled)");
   } catch (error) {
     console.error("Database initialization error:", error);
   }
