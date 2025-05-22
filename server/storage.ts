@@ -61,8 +61,10 @@ export class MemStorage implements IStorage {
     const persistentData = this.loadFromPersistentStore();
     
     if (!persistentData) {
-      this.initializeDemoData();
-      this.saveToPersistentStore();
+      // Disable automatic demo data creation for proper fresh start experience
+      console.log('[STORAGE] Starting with empty state - no demo data created');
+      // this.initializeDemoData();
+      // this.saveToPersistentStore();
     }
   }
   
