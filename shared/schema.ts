@@ -12,6 +12,7 @@ export const households = pgTable("households", {
   challenges: text("challenges"),
   location: text("location"),
   appliances: jsonb("appliances").notNull().$type<string[]>(),
+  onboardingComplete: boolean("onboarding_complete").notNull().default(false),
 });
 
 export const insertHouseholdSchema = createInsertSchema(households);
