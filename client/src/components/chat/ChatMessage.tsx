@@ -50,11 +50,73 @@ export default function ChatMessage({ message, mealPlan, groceryList }: ChatMess
   }, [message.content, mealPlan, groceryList, message.role]);
 
   const formatContent = (text: string) => {
-    return text.split("\n").map((line, i) => (
-      <p key={i} className={i > 0 ? "mt-2" : ""}>
-        {line}
-      </p>
-    ));
+    // Handle images in markdown format ![alt](url)
+    const imageRegex = /!\[.*?\]\((.*?)\)/g;
+    let parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    // Find all image markdown in the text
+    while ((match = imageRegex.exec(text)) !== null) {
+      // Add text before the image
+      if (match.index > lastIndex) {
+        const textBefore = text.substring(lastIndex, match.index);
+        parts.push({
+          type: 'text',
+          content: textBefore
+        });
+      }
+      
+      // Add the image
+      parts.push({
+        type: 'image',
+        url: match[1] // This is the captured URL from the regex
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add any remaining text after the last image
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      });
+    }
+    
+    // If no images were found, return the text as is
+    if (parts.length === 0) {
+      return text.split("\n").map((line, i) => (
+        <p key={i} className={i > 0 ? "mt-2" : ""}>
+          {line}
+        </p>
+      ));
+    }
+    
+    // Otherwise, render the mix of text and images
+    return (
+      <div>
+        {parts.map((part, index) => (
+          part.type === 'text' ? (
+            <div key={index}>
+              {part.content.split("\n").map((line, i) => (
+                <p key={i} className={i > 0 ? "mt-2" : ""}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <div key={index} className="my-4">
+              <img 
+                src={part.url} 
+                alt="Uploaded content" 
+                className="rounded-md max-w-full max-h-[400px]" 
+              />
+            </div>
+          )
+        ))}
+      </div>
+    );
   };
 
   if (message.role === 'user') {
