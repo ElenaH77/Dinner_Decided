@@ -42,14 +42,14 @@ export default function MealPlan() {
     meals = mealPlanContext.currentPlan?.meals || [];
     setMeals = mealPlanContext.addMeal;
     
-    // Refetch meal plan if reload param is present or no plan loaded
+    // Always refetch meal plan data when navigating to this page
     useEffect(() => {
-      const shouldRefetch = window.location.search.includes('reload') || !currentMealPlan;
-      if (shouldRefetch && !mealPlanContext.isLoading) {
-        console.log("Refetching meal plan due to reload parameter or missing plan");
+      // Force refetch on every mount of this component to ensure latest data
+      if (!mealPlanContext.isLoading) {
+        console.log("Refetching meal plan to ensure we have the latest data");
         mealPlanContext.refetchMealPlan();
       }
-    }, [window.location.search, mealPlanContext, currentMealPlan]);
+    }, []);
   } catch (error) {
     console.error("Error accessing meal plan context:", error);
   }
