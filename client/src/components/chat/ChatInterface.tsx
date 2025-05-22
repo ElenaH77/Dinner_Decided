@@ -141,13 +141,40 @@ export default function ChatInterface() {
           // Instead of using setTimeout with state changes, let's use a simpler approach
           // First add the user message, then immediately add the bot response
           
-          // Add the bot response right away
-          addMessage({
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: "I see the image you shared! What would you like to know about it?",
-            timestamp: new Date().toISOString(),
+          // Now send the message to the API for processing
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                role: "user",
+                content: messageText.replace(/!\[Attached Image\]\(data:image\/[^;]+;base64,[^\)]+\)/g, 
+                  "[Image uploaded by user - analyzing contents]"),
+              },
+              analysisContext: "User has uploaded an image. Respond in a way that acknowledges both the image and any text they provided with it."
+            }),
           });
+          
+          if (response.ok) {
+            const responseData = await response.json();
+            // Update state with the response
+            addMessage({
+              id: responseData.id || `assistant-${Date.now()}`,
+              role: "assistant",
+              content: responseData.content || "I see your image! What would you like to know about it?",
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            // Fallback response if API call fails
+            addMessage({
+              id: `assistant-${Date.now()}`,
+              role: "assistant",
+              content: "I see the image you shared! What would you like to know about it?",
+              timestamp: new Date().toISOString(),
+            });
+          }
           
           // Clear the input and file
           setInput("");
