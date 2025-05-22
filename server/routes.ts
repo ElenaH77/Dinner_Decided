@@ -153,7 +153,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const previousMessages = await storage.getMessages();
         const recentMessages = previousMessages.slice(-10);
         
-        // Format messages for OpenAI
+        // Check onboarding status to determine which system prompt to use
+        const isOnboardingComplete = household.onboardingComplete;
+        
+        // Format messages for OpenAI with appropriate system prompt
         const formattedMessages = [
           ...recentMessages.map(m => ({
             role: m.role as "user" | "assistant" | "system",
@@ -167,10 +170,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: "system",
             content: analysisContext
           });
+        } else if (!isOnboardingComplete) {
+          // Use onboarding system prompt if not yet complete
+          formattedMessages.unshift({
+            role: "system",
+            content: `You are an onboarding assistant for "Dinner, Decided" - a meal planning service. Your job is to collect essential information about the user's household to create their personalized meal plan profile.
+
+Follow this exact sequence of questions and only ask ONE question at a time:
+
+1. "How many people are you cooking for?" (collect household size)
+2. "Any food stuff we should know about?" (collect dietary restrictions, allergies, dislikes)
+3. "What's your kitchen like?" (collect appliances, equipment, cooking setup)
+4. "How do you feel about cooking?" (collect skill level, confidence, time availability)
+5. "Where do you live?" (collect location/ZIP code for local preferences)
+6. "What makes dinner hard at your house?" (collect challenges, pain points)
+
+IMPORTANT RULES:
+- Only ask ONE question at a time
+- Wait for their answer before moving to the next question
+- Keep responses brief and conversational
+- Don't explain the whole process upfront
+- After the final question, say: "That's all I need to know for now - if you ever want to edit this later, it's all saved under Profile. Ready to plan some meals?"
+
+Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely necessary.`
+          });
         }
         
         // Get response from OpenAI (don't save the user message since it was saved by client)
-        const aiResponse = await generateChatResponse(formattedMessages);
+        const aiResponse = await generateChatResponse(formattedMessages, household);
         
         // Create a response message
         const responseId = uuidv4();
@@ -231,8 +258,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.saveMessage(messageToSave);
         }
         
+        // Check onboarding status and use appropriate system prompt
+        const isOnboardingComplete = household.onboardingComplete;
+        
+        // Add onboarding system prompt if not yet complete
+        if (!isOnboardingComplete) {
+          messages.unshift({
+            role: "system",
+            content: `You are an onboarding assistant for "Dinner, Decided" - a meal planning service. Your job is to collect essential information about the user's household to create their personalized meal plan profile.
+
+Follow this exact sequence of questions and only ask ONE question at a time:
+
+1. "How many people are you cooking for?" (collect household size)
+2. "Any food stuff we should know about?" (collect dietary restrictions, allergies, dislikes)
+3. "What's your kitchen like?" (collect appliances, equipment, cooking setup)
+4. "How do you feel about cooking?" (collect skill level, confidence, time availability)
+5. "Where do you live?" (collect location/ZIP code for local preferences)
+6. "What makes dinner hard at your house?" (collect challenges, pain points)
+
+IMPORTANT RULES:
+- Only ask ONE question at a time
+- Wait for their answer before moving to the next question
+- Keep responses brief and conversational
+- Don't explain the whole process upfront
+- After the final question, say: "That's all I need to know for now - if you ever want to edit this later, it's all saved under Profile. Ready to plan some meals?"
+
+Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely necessary.`
+          });
+        }
+
         // Get response from OpenAI
-        const aiResponse = await generateChatResponse(messages);
+        const aiResponse = await generateChatResponse(messages, household);
+      
+        // Check if onboarding should be marked complete
+        if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
+          await storage.updateHousehold({ onboardingComplete: true });
+        }
       
         // Save the AI response message
         if (aiResponse) {
