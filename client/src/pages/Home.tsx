@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import ChatInterface from "@/components/chat/ChatInterface";
 import { useChatState } from "@/hooks/useChatState";
-import { WELCOME_MESSAGE } from "@/lib/constants";
+import { ONBOARDING_WELCOME_MESSAGE } from "@/lib/constants";
 
 export default function Home() {
   const { messages, addMessage, loading } = useChatState();
@@ -12,7 +12,7 @@ export default function Home() {
       addMessage({
         id: "welcome",
         role: "assistant",
-        content: WELCOME_MESSAGE,
+        content: ONBOARDING_WELCOME_MESSAGE,
         timestamp: new Date().toISOString(),
       });
     }
