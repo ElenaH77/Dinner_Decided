@@ -139,6 +139,7 @@ export default function ChatInterface() {
           });
           
           // Add a simple assistant response for image uploads
+          setIsGenerating(true); // Set loading state while we "process" the image
           setTimeout(() => {
             addMessage({
               id: `assistant-${Date.now()}`,
