@@ -541,8 +541,30 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
           cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
         
-        // Parse the JSON response
-        let parsedResponse = JSON.parse(cleanContent);
+        // Parse the JSON response - handle partial responses
+        let parsedResponse;
+        try {
+          parsedResponse = JSON.parse(cleanContent);
+        } catch (partialError) {
+          // If JSON is incomplete, try to fix common issues
+          if (cleanContent.includes('[') && !cleanContent.endsWith(']')) {
+            // Incomplete array - try adding closing bracket
+            try {
+              parsedResponse = JSON.parse(cleanContent + ']');
+            } catch (fixError) {
+              throw partialError;
+            }
+          } else if (cleanContent.includes('{') && !cleanContent.endsWith('}')) {
+            // Incomplete object - try adding closing brace
+            try {
+              parsedResponse = JSON.parse(cleanContent + '}');
+            } catch (fixError) {
+              throw partialError;
+            }
+          } else {
+            throw partialError;
+          }
+        }
         
         // Handle multiple formats that OpenAI might return:
         // 1. Array of meals directly
