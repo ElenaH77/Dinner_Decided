@@ -531,8 +531,18 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
       console.log('[MEAL PLAN] Raw response content:', content);
       
       try {
+        // Clean up the response content before parsing
+        let cleanContent = content.trim();
+        
+        // Remove any markdown code blocks if present
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
         // Parse the JSON response
-        let parsedResponse = JSON.parse(content);
+        let parsedResponse = JSON.parse(cleanContent);
         
         // Handle multiple formats that OpenAI might return:
         // 1. Array of meals directly
