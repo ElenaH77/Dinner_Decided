@@ -608,7 +608,9 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
         }
       } catch (parseError) {
         console.error('[MEAL PLAN] Error parsing OpenAI response:', parseError);
-        console.log('[MEAL PLAN] Failed response content:', content);
+        console.log('[MEAL PLAN] Failed response content (first 1000 chars):', content?.substring(0, 1000));
+        console.log('[MEAL PLAN] Full response length:', content?.length);
+        console.log('[MEAL PLAN] Response type:', typeof content);
         throw new Error('Failed to parse meal plan response from OpenAI. Please try again.');
       }
     } catch (error) {
