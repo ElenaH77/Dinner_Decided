@@ -292,7 +292,12 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
       
         // Check if onboarding should be marked complete
         if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
-          await storage.updateHousehold({ onboardingComplete: true });
+          // Extract onboarding information from the conversation
+          const householdInfo = extractHouseholdInfoFromChat(messages);
+          await storage.updateHousehold({ 
+            onboardingComplete: true,
+            ...householdInfo
+          });
         }
       
         // Save the AI response message
