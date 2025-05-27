@@ -196,6 +196,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const singleMessage = messageSchema.parse(req.body.message);
         const analysisContext = req.body.analysisContext || "";
         
+        // Check for reset command FIRST, before any other processing
+        if (singleMessage.role === "user") {
+          const userContent = singleMessage.content.toLowerCase();
+          console.log("[DEBUG] User message content:", JSON.stringify(userContent));
+          console.log("[DEBUG] Checking for reset commands...");
+          
+          // Check for reset commands and handle immediately
+          if (userContent.includes('reset my profile') || 
+              userContent.includes('start over') || 
+              userContent.includes('reset onboarding') ||
+              userContent.includes('restart my profile')) {
+            
+            console.log("[RESET] User requested profile reset, clearing onboarding data...");
+            
+            // Get household to reset
+            let household = await storage.getHousehold();
+            if (household) {
+              // Reset the household to onboarding state
+              await storage.updateHousehold({
+                onboardingComplete: false,
+                members: [],
+                preferences: "",
+                challenges: null,
+                location: null,
+                appliances: [],
+                cookingSkill: 1
+              });
+              
+              // Clear all chat messages
+              await storage.clearMessages();
+            }
+            
+            console.log("[RESET] Profile reset complete, onboarding will restart");
+            
+            return res.json({ 
+              id: uuidv4(),
+              role: "assistant",
+              content: "Perfect! I've reset your profile completely. Let's start fresh - who are we feeding?",
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+        
         // Get household ID for message association - create one if needed for onboarding
         let household = await storage.getHousehold();
         if (!household) {
