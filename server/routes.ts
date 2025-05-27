@@ -9,6 +9,70 @@ import settingsRouter from "./api/settings";
 import { v4 as uuidv4 } from "uuid";
 import { getWeatherContextForMealPlanning } from "./weather";
 
+// Extract household information from onboarding chat conversation
+function extractHouseholdInfoFromChat(messages: any[]) {
+  const conversationText = messages.map(m => m.content).join(' ').toLowerCase();
+  
+  const householdInfo: any = {};
+  
+  // Extract household size
+  const sizeMatch = conversationText.match(/(\d+)\s*(adults?|people)/i);
+  if (sizeMatch) {
+    householdInfo.members = [`${sizeMatch[1]} adults`];
+  }
+  
+  // Extract kids info
+  const kidsMatch = conversationText.match(/(\d+)\s*(kids?|children)/i);
+  if (kidsMatch && householdInfo.members) {
+    householdInfo.members.push(`${kidsMatch[1]} kids`);
+  }
+  
+  // Extract dietary restrictions/preferences
+  if (conversationText.includes('no ') || conversationText.includes('allergic') || conversationText.includes('vegetarian') || conversationText.includes('vegan')) {
+    const restrictionMatch = conversationText.match(/(no \w+|allergic to \w+|vegetarian|vegan|gluten.free)/gi);
+    if (restrictionMatch) {
+      householdInfo.preferences = restrictionMatch.join(', ');
+    }
+  }
+  
+  // Extract appliances mentioned
+  const appliances = [];
+  if (conversationText.includes('slow cooker') || conversationText.includes('crockpot')) appliances.push('slowCooker');
+  if (conversationText.includes('instant pot') || conversationText.includes('pressure cooker')) appliances.push('instantPot');
+  if (conversationText.includes('air fryer')) appliances.push('airFryer');
+  if (conversationText.includes('grill')) appliances.push('grill');
+  if (conversationText.includes('oven')) appliances.push('ovenStovetop');
+  if (appliances.length > 0) {
+    householdInfo.appliances = appliances;
+  }
+  
+  // Extract location/ZIP code
+  const zipMatch = conversationText.match(/\b\d{5}\b/);
+  if (zipMatch) {
+    householdInfo.location = zipMatch[0];
+  }
+  
+  // Extract cooking skill level
+  if (conversationText.includes('beginner') || conversationText.includes('not confident')) {
+    householdInfo.cookingSkill = 1;
+  } else if (conversationText.includes('intermediate') || conversationText.includes('some experience')) {
+    householdInfo.cookingSkill = 2;
+  } else if (conversationText.includes('advanced') || conversationText.includes('confident') || conversationText.includes('experienced')) {
+    householdInfo.cookingSkill = 3;
+  }
+  
+  // Extract challenges
+  const challengeKeywords = ['time', 'picky', 'busy', 'energy', 'planning', 'shopping'];
+  const mentionedChallenges = challengeKeywords.filter(keyword => 
+    conversationText.includes(keyword)
+  );
+  if (mentionedChallenges.length > 0) {
+    householdInfo.challenges = mentionedChallenges.join(', ');
+  }
+  
+  return householdInfo;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register API sub-routes
   app.use('/api/settings', settingsRouter);
@@ -292,12 +356,15 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
       
         // Check if onboarding should be marked complete
         if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
+          console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
           // Extract onboarding information from the conversation
           const householdInfo = extractHouseholdInfoFromChat(messages);
+          console.log("[ONBOARDING] Extracted household info:", householdInfo);
           await storage.updateHousehold({ 
             onboardingComplete: true,
             ...householdInfo
           });
+          console.log("[ONBOARDING] Household updated with extracted info");
         }
       
         // Save the AI response message
