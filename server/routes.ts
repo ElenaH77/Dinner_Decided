@@ -292,6 +292,48 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         
         const messages = messageSchema.parse(req.body.messages);
         
+        // Check for reset command FIRST, before any other processing
+        const userMessage = messages.find(m => m.role === "user");
+        if (userMessage) {
+          const userContent = userMessage.content.toLowerCase();
+          
+          // Check for reset commands and handle immediately
+          if (userContent.includes('reset my profile') || 
+              userContent.includes('start over') || 
+              userContent.includes('reset onboarding') ||
+              userContent.includes('restart my profile')) {
+            
+            console.log("[RESET] User requested profile reset, clearing onboarding data...");
+            
+            // Get household to reset
+            let household = await storage.getHousehold();
+            if (household) {
+              // Reset the household to onboarding state
+              await storage.updateHousehold({
+                onboardingComplete: false,
+                members: [],
+                preferences: "",
+                challenges: null,
+                location: null,
+                appliances: [],
+                cookingSkill: 1
+              });
+              
+              // Clear all chat messages
+              await storage.clearMessages();
+            }
+            
+            console.log("[RESET] Profile reset complete, onboarding will restart");
+            
+            return res.json({ 
+              id: uuidv4(),
+              role: "assistant",
+              content: "Perfect! I've reset your profile completely. Let's start fresh - who are we feeding?",
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+        
         // Get household ID for message association - create one if needed for onboarding
         let household = await storage.getHousehold();
         if (!household) {
@@ -307,43 +349,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
           });
         }
         
-        // Check for reset command before processing
-        const userMessage = messages.find(m => m.role === "user");
+        // Save user message (after reset check)
         if (userMessage) {
-          const userContent = userMessage.content.toLowerCase();
-          
-          // Check for reset commands
-          if (userContent.includes('reset my profile') || 
-              userContent.includes('start over') || 
-              userContent.includes('reset onboarding') ||
-              userContent.includes('restart my profile')) {
-            
-            console.log("[RESET] User requested profile reset, clearing onboarding data...");
-            
-            // Reset the household to onboarding state
-            await storage.updateHousehold({
-              onboardingComplete: false,
-              members: [],
-              preferences: "",
-              challenges: null,
-              location: null,
-              appliances: [],
-              cookingSkill: 1
-            });
-            
-            // Clear all chat messages
-            await storage.clearMessages();
-            
-            console.log("[RESET] Profile reset complete, onboarding will restart");
-            
-            res.json({ 
-              success: true,
-              message: "Perfect! I've reset your profile completely. Let's start fresh - who are we feeding?",
-              resetCompleted: true
-            });
-            return;
-          }
-          
           const messageToSave = {
             ...userMessage,
             // Generate a new unique ID for each user message to prevent duplicates
