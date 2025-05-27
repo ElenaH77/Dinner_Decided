@@ -184,6 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/chat", async (req, res) => {
+    console.log("[CHAT DEBUG] POST /api/chat called with body:", JSON.stringify(req.body, null, 2));
     try {
       // Support both direct message submissions and array of messages (legacy support)
       if (req.body.message) {
