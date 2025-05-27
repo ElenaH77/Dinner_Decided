@@ -11,63 +11,61 @@ import { getWeatherContextForMealPlanning } from "./weather";
 
 // Extract household information from onboarding chat conversation
 function extractHouseholdInfoFromChat(messages: any[]) {
-  const conversationText = messages.map(m => m.content).join(' ').toLowerCase();
-  
   const householdInfo: any = {};
   
-  // Extract household size
-  const sizeMatch = conversationText.match(/(\d+)\s*(adults?|people)/i);
-  if (sizeMatch) {
-    householdInfo.members = [`${sizeMatch[1]} adults`];
-  }
+  // Look at user responses in sequence to match with questions
+  const userMessages = messages.filter(m => m.role === 'user').map(m => m.content.trim());
   
-  // Extract kids info
-  const kidsMatch = conversationText.match(/(\d+)\s*(kids?|children)/i);
-  if (kidsMatch && householdInfo.members) {
-    householdInfo.members.push(`${kidsMatch[1]} kids`);
-  }
-  
-  // Extract dietary restrictions/preferences
-  if (conversationText.includes('no ') || conversationText.includes('allergic') || conversationText.includes('vegetarian') || conversationText.includes('vegan')) {
-    const restrictionMatch = conversationText.match(/(no \w+|allergic to \w+|vegetarian|vegan|gluten.free)/gi);
-    if (restrictionMatch) {
-      householdInfo.preferences = restrictionMatch.join(', ');
+  if (userMessages.length >= 6) {
+    // First response: household size
+    const sizeResponse = userMessages[0];
+    if (/^\d+$/.test(sizeResponse)) {
+      householdInfo.members = [`${sizeResponse} people`];
     }
-  }
-  
-  // Extract appliances mentioned
-  const appliances = [];
-  if (conversationText.includes('slow cooker') || conversationText.includes('crockpot')) appliances.push('slowCooker');
-  if (conversationText.includes('instant pot') || conversationText.includes('pressure cooker')) appliances.push('instantPot');
-  if (conversationText.includes('air fryer')) appliances.push('airFryer');
-  if (conversationText.includes('grill')) appliances.push('grill');
-  if (conversationText.includes('oven')) appliances.push('ovenStovetop');
-  if (appliances.length > 0) {
-    householdInfo.appliances = appliances;
-  }
-  
-  // Extract location/ZIP code
-  const zipMatch = conversationText.match(/\b\d{5}\b/);
-  if (zipMatch) {
-    householdInfo.location = zipMatch[0];
-  }
-  
-  // Extract cooking skill level
-  if (conversationText.includes('beginner') || conversationText.includes('not confident')) {
-    householdInfo.cookingSkill = 1;
-  } else if (conversationText.includes('intermediate') || conversationText.includes('some experience')) {
-    householdInfo.cookingSkill = 2;
-  } else if (conversationText.includes('advanced') || conversationText.includes('confident') || conversationText.includes('experienced')) {
-    householdInfo.cookingSkill = 3;
-  }
-  
-  // Extract challenges
-  const challengeKeywords = ['time', 'picky', 'busy', 'energy', 'planning', 'shopping'];
-  const mentionedChallenges = challengeKeywords.filter(keyword => 
-    conversationText.includes(keyword)
-  );
-  if (mentionedChallenges.length > 0) {
-    householdInfo.challenges = mentionedChallenges.join(', ');
+    
+    // Second response: dietary preferences/restrictions
+    const dietResponse = userMessages[1].toLowerCase();
+    if (dietResponse !== '3' && dietResponse !== 'none' && dietResponse !== 'no') {
+      householdInfo.preferences = userMessages[1];
+    }
+    
+    // Third response: kitchen/appliances (if it's not just "3")
+    const kitchenResponse = userMessages[2].toLowerCase();
+    if (kitchenResponse !== '3') {
+      const appliances = [];
+      if (kitchenResponse.includes('slow cooker') || kitchenResponse.includes('crockpot')) appliances.push('slowCooker');
+      if (kitchenResponse.includes('instant pot') || kitchenResponse.includes('pressure cooker')) appliances.push('instantPot');
+      if (kitchenResponse.includes('air fryer')) appliances.push('airFryer');
+      if (kitchenResponse.includes('grill')) appliances.push('grill');
+      if (kitchenResponse.includes('oven') || kitchenResponse.includes('stovetop')) appliances.push('ovenStovetop');
+      if (appliances.length > 0) {
+        householdInfo.appliances = appliances;
+      }
+    }
+    
+    // Fourth response: cooking skill
+    const skillResponse = userMessages[3].toLowerCase();
+    if (skillResponse !== '3') {
+      if (skillResponse.includes('beginner') || skillResponse.includes('not confident')) {
+        householdInfo.cookingSkill = 1;
+      } else if (skillResponse.includes('intermediate') || skillResponse.includes('some experience')) {
+        householdInfo.cookingSkill = 2;
+      } else if (skillResponse.includes('advanced') || skillResponse.includes('confident') || skillResponse.includes('experienced')) {
+        householdInfo.cookingSkill = 3;
+      }
+    }
+    
+    // Fifth response: location/ZIP
+    const locationResponse = userMessages[4];
+    if (/^\d{5}$/.test(locationResponse)) {
+      householdInfo.location = locationResponse;
+    }
+    
+    // Sixth response: challenges
+    const challengeResponse = userMessages[5].toLowerCase();
+    if (challengeResponse !== '3' && challengeResponse !== 'none') {
+      householdInfo.challenges = userMessages[5];
+    }
   }
   
   return householdInfo;
@@ -357,6 +355,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         // Check if onboarding should be marked complete
         if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
           console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
+          console.log("[ONBOARDING] Full conversation text:", messages.map(m => `${m.role}: ${m.content}`).join(' | '));
           // Extract onboarding information from the conversation
           const householdInfo = extractHouseholdInfoFromChat(messages);
           console.log("[ONBOARDING] Extracted household info:", householdInfo);
