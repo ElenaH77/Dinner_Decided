@@ -9,7 +9,7 @@ import type { ChatMessage } from "@/lib/types";
 async function sendMessageToApi(message: ChatMessage): Promise<ChatMessage> {
   return apiRequest('/api/chat/messages', {
     method: 'POST',
-    body: message,
+    body: JSON.stringify(message),
   });
 }
 

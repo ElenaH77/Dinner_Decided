@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, RotateCcw } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MessageBubble from './message-bubble';
@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/use-chat';
 import { useMealPlan } from '@/contexts/meal-plan-context';
 import { ChatMessage } from '@/lib/types';
-import { apiRequest } from '@/lib/queryClient';
 
 interface ChatInterfaceProps {
   standalone?: boolean;
@@ -18,7 +17,6 @@ export default function ChatInterface({ standalone = false }: ChatInterfaceProps
   const { messages, sendMessage, isLoading } = useChat();
   const { currentMealPlan, meals } = useMealPlan();
   const [inputValue, setInputValue] = useState('');
-  const [isResetting, setIsResetting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Scroll to bottom of chat when messages change
@@ -34,7 +32,7 @@ export default function ChatInterface({ standalone = false }: ChatInterfaceProps
     if (!inputValue.trim()) return;
     
     try {
-      await sendMessage(inputValue);
+      await sendMessage(inputValue, currentMealPlan?.id);
       setInputValue('');
     } catch (error) {
       toast({
@@ -42,35 +40,6 @@ export default function ChatInterface({ standalone = false }: ChatInterfaceProps
         description: "There was a problem sending your message. Please try again.",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleResetProfile = async () => {
-    if (!confirm("Are you sure you want to reset your profile? This will clear all your information and start fresh with onboarding.")) {
-      return;
-    }
-
-    setIsResetting(true);
-    try {
-      // Call the reset endpoint directly
-      await apiRequest('/api/reset-all', {
-        method: 'POST'
-      });
-      
-      // Clear the page and reload to restart onboarding
-      window.location.reload();
-      
-      toast({
-        title: "Profile Reset Complete",
-        description: "Your profile has been reset. Starting fresh!",
-      });
-    } catch (error) {
-      toast({
-        title: "Reset Failed",
-        description: "There was a problem resetting your profile. Please try again.",
-        variant: "destructive"
-      });
-      setIsResetting(false);
     }
   };
 
