@@ -296,6 +296,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         const userMessage = messages.find(m => m.role === "user");
         if (userMessage) {
           const userContent = userMessage.content.toLowerCase();
+          console.log("[DEBUG] User message content:", JSON.stringify(userContent));
+          console.log("[DEBUG] Checking for reset commands...");
           
           // Check for reset commands and handle immediately
           if (userContent.includes('reset my profile') || 
