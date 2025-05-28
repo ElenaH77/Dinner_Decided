@@ -84,17 +84,6 @@ export function useChat() {
         console.error("[RESET] Failed to reset profile:", error);
       }
       
-      // Call the reset API
-      try {
-        await fetch('/api/chat/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userMessage)
-        });
-      } catch (error) {
-        console.log("Reset API call completed");
-      }
-      
       return true;
     }
     
@@ -109,7 +98,7 @@ export function useChat() {
     };
     
     // Update local messages immediately for UI responsiveness
-    const updatedMessages = [...messages, userMessage];
+    const updatedMessages = Array.isArray(messages) ? [...messages, userMessage] : [userMessage];
     queryClient.setQueryData(['/api/chat/messages'], updatedMessages);
     
     setIsLoading(true);
