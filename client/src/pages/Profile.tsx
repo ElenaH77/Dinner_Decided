@@ -144,15 +144,36 @@ export default function Profile() {
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-[#212121]">Household Profile</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-[#212121]">Household Profile</h1>
+          <p className="text-gray-600">Customize your information to get more personalized meal suggestions.</p>
+        </div>
         <div className="flex gap-2">
           <Button 
-            onClick={handleResetProfile}
-            disabled={isResetting}
+            onClick={() => {
+              if (confirm("Are you sure you want to reset your profile? This will clear all your data and restart onboarding.")) {
+                fetch('/api/household', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    onboardingComplete: false,
+                    members: [],
+                    preferences: "",
+                    challenges: null,
+                    location: null,
+                    appliances: [],
+                    cookingSkill: 1
+                  })
+                }).then(() => {
+                  alert("Profile reset! Please refresh the page.");
+                  window.location.reload();
+                });
+              }
+            }}
             variant="outline"
-            className="border-[#F25C05] text-[#F25C05] hover:bg-[#F25C05] hover:text-white"
+            className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
           >
-            {isResetting ? "Resetting..." : "Reset Profile"}
+            Reset Profile
           </Button>
           {!isEditing ? (
             <Button 
