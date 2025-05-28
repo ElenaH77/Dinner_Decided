@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 export default function Profile() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   
   const { data: household, isLoading } = useQuery({
     queryKey: ['/api/household'],
@@ -79,6 +80,45 @@ export default function Profile() {
     queryClient.setQueryData(['/api/household'], updatedHousehold);
   };
 
+  const handleResetProfile = async () => {
+    if (!confirm("Are you sure you want to reset your profile? This will clear all your information and you'll need to start over.")) {
+      return;
+    }
+    
+    setIsResetting(true);
+    try {
+      // Reset the household to onboarding state
+      await apiRequest("PATCH", "/api/household", {
+        onboardingComplete: false,
+        members: [],
+        preferences: "",
+        challenges: null,
+        location: null,
+        appliances: [],
+        cookingSkill: 1
+      });
+      
+      // Clear all cached data
+      queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/chat/messages'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
+      
+      toast({
+        title: "Profile reset complete",
+        description: "Your profile has been reset. You can now start the onboarding process again.",
+      });
+    } catch (error) {
+      toast({
+        title: "Reset failed",
+        description: "There was an error resetting your profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const updateAppliance = (id: string, checked: boolean) => {
     if (!household) return;
     
@@ -105,22 +145,32 @@ export default function Profile() {
     <div className="container max-w-4xl mx-auto py-6 px-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-[#212121]">Household Profile</h1>
-        {!isEditing ? (
+        <div className="flex gap-2">
           <Button 
-            onClick={() => setIsEditing(true)}
-            className="bg-[#21706D] hover:bg-[#195957]"
+            onClick={handleResetProfile}
+            disabled={isResetting}
+            variant="outline"
+            className="border-[#F25C05] text-[#F25C05] hover:bg-[#F25C05] hover:text-white"
           >
-            Edit Profile
+            {isResetting ? "Resetting..." : "Reset Profile"}
           </Button>
-        ) : (
-          <Button 
-            onClick={handleSaveProfile}
-            className="bg-[#21706D] hover:bg-[#195957]"
-          >
-            <Check className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
-        )}
+          {!isEditing ? (
+            <Button 
+              onClick={() => setIsEditing(true)}
+              className="bg-[#21706D] hover:bg-[#195957]"
+            >
+              Edit Profile
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleSaveProfile}
+              className="bg-[#21706D] hover:bg-[#195957]"
+            >
+              <Check className="mr-2 h-4 w-4" />
+              Save Changes
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
