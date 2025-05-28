@@ -48,7 +48,7 @@ export default function Profile() {
     const updatedHousehold = {
       ...household,
       members: [
-        ...household.members,
+        ...(household.members || []),
         { id: `temp-${Date.now()}`, name: "", age: "", dietaryRestrictions: [] }
       ]
     };
@@ -61,7 +61,7 @@ export default function Profile() {
     
     const updatedHousehold = {
       ...household,
-      members: household.members.filter(member => member.id !== id)
+      members: (household.members || []).filter(member => member.id !== id)
     };
     
     queryClient.setQueryData(['/api/household'], updatedHousehold);
@@ -173,7 +173,7 @@ export default function Profile() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || !household ? (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -359,6 +359,22 @@ export default function Profile() {
           </Card>
         </div>
       )}
+
+      {/* Reset Profile Section */}
+      <div className="mt-8 p-6 bg-red-50 border border-red-200 rounded-lg">
+        <h3 className="text-lg font-medium text-red-800 mb-2">Reset Profile</h3>
+        <p className="text-red-600 mb-4">
+          This will clear all your profile data and restart the onboarding process. This action cannot be undone.
+        </p>
+        <Button 
+          onClick={handleResetProfile}
+          disabled={isResetting}
+          variant="destructive"
+          className="bg-red-600 hover:bg-red-700"
+        >
+          {isResetting ? "Resetting..." : "Reset My Profile"}
+        </Button>
+      </div>
     </div>
   );
 }
