@@ -52,32 +52,37 @@ export function useChat() {
     if (lowerContent.includes('reset my profile') || 
         lowerContent.includes('start over') || 
         lowerContent.includes('reset onboarding') ||
-        lowerContent.includes('restart my profile')) {
+        lowerContent.includes('restart my profile') ||
+        lowerContent.includes('reset profile')) {
       
       console.log("[RESET] Detected reset command, calling reset API...");
       
-      // Add user message to chat
-      const userMessage: ChatMessage = {
-        id: Date.now(),
-        userId: 1,
-        content,
-        role: 'user',
-        timestamp: new Date().toISOString(),
-        mealPlanId
-      };
-      
-      // Add reset response message
-      const resetMessage: ChatMessage = {
-        id: Date.now() + 1,
-        userId: 1,
-        content: "Perfect! I've reset your profile completely. Let's start fresh - who are we feeding?",
-        role: 'assistant',
-        timestamp: new Date().toISOString(),
-        mealPlanId
-      };
-      
-      // Update UI with both messages
-      queryClient.setQueryData(['/api/chat/messages'], [userMessage, resetMessage]);
+      try {
+        // Call the actual reset API to clear profile data
+        const response = await fetch('/api/chat/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'user',
+            content: content
+          })
+        });
+        
+        if (response.ok) {
+          const resetResponse = await response.json();
+          console.log("[RESET] Profile reset successful, server response:", resetResponse);
+          
+          // Clear all cached data
+          queryClient.invalidateQueries({ queryKey: ['/api/chat/messages'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
+          
+          return;
+        }
+      } catch (error) {
+        console.error("[RESET] Failed to reset profile:", error);
+      }
       
       // Call the reset API
       try {
