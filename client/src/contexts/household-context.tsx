@@ -33,10 +33,26 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       console.log('Fetched household data:', data);
       
       if (data) {
-        // Set household members
+        // Set household members - handle both onboarding format and full member objects
         if (data.members && Array.isArray(data.members)) {
           console.log('Setting members:', data.members);
-          setMembers(data.members);
+          
+          // Check if members are simple strings from onboarding (like ["3 people"])
+          if (data.members.length > 0 && typeof data.members[0] === 'string') {
+            // Convert onboarding format to member objects
+            const memberStrings = data.members;
+            const convertedMembers = memberStrings.map((memberStr: string, index: number) => ({
+              id: `onboarding-${index}`,
+              userId: 1,
+              name: memberStr,
+              dietaryRestrictions: data.preferences || '',
+              isMainUser: index === 0
+            }));
+            setMembers(convertedMembers);
+          } else {
+            // Already in member object format
+            setMembers(data.members);
+          }
         } else {
           console.log('No members data or invalid format:', data.members);
           setMembers([]);
