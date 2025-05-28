@@ -205,7 +205,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (userContent.includes('reset my profile') || 
             userContent.includes('start over') || 
             userContent.includes('reset onboarding') ||
-            userContent.includes('restart my profile')) {
+            userContent.includes('restart my profile') ||
+            userContent.includes('reset profile')) {
           
           console.log("[RESET] User requested profile reset, clearing onboarding data...");
           
