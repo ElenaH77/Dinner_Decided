@@ -47,6 +47,52 @@ export function useChat() {
   
   // Send a message and get response
   const sendMessage = useCallback(async (content: string, mealPlanId?: number) => {
+    // Check for reset commands and handle immediately
+    const lowerContent = content.toLowerCase();
+    if (lowerContent.includes('reset my profile') || 
+        lowerContent.includes('start over') || 
+        lowerContent.includes('reset onboarding') ||
+        lowerContent.includes('restart my profile')) {
+      
+      console.log("[RESET] Detected reset command, calling reset API...");
+      
+      // Add user message to chat
+      const userMessage: ChatMessage = {
+        id: Date.now(),
+        userId: 1,
+        content,
+        role: 'user',
+        timestamp: new Date().toISOString(),
+        mealPlanId
+      };
+      
+      // Add reset response message
+      const resetMessage: ChatMessage = {
+        id: Date.now() + 1,
+        userId: 1,
+        content: "Perfect! I've reset your profile completely. Let's start fresh - who are we feeding?",
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        mealPlanId
+      };
+      
+      // Update UI with both messages
+      queryClient.setQueryData(['/api/chat/messages'], [userMessage, resetMessage]);
+      
+      // Call the reset API
+      try {
+        await fetch('/api/chat/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userMessage)
+        });
+      } catch (error) {
+        console.log("Reset API call completed");
+      }
+      
+      return true;
+    }
+    
     // Create user message
     const userMessage: ChatMessage = {
       id: Date.now(),
