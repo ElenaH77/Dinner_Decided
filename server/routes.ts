@@ -192,6 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST route for DinnerBot chat messages
   app.post("/api/chat/messages", async (req, res) => {
     console.log("[CHAT MESSAGES DEBUG] POST /api/chat/messages called with body:", JSON.stringify(req.body, null, 2));
+    console.log("[RESET DEBUG] Checking for reset in DinnerBot route...");
     try {
       const messageData = req.body;
       
