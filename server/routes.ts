@@ -417,8 +417,37 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
           });
         }
         
-        // Get response from OpenAI (don't save the user message since it was saved by client)
+        // Save the user message first
+        const userMessage = {
+          id: uuidv4(),
+          role: singleMessage.role,
+          content: singleMessage.content,
+          householdId: household.id,
+          timestamp: new Date()
+        };
+        await storage.saveMessage(userMessage);
+        
+        // Get response from OpenAI
         const aiResponse = await generateChatResponse(formattedMessages, household);
+        
+        // Check if onboarding should be marked complete
+        if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
+          console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
+          
+          // Get all messages including the ones we just processed
+          const allMessages = await storage.getMessages();
+          console.log("[ONBOARDING] Full conversation:", allMessages.map(m => `${m.role}: ${m.content}`));
+          
+          // Extract onboarding information from the conversation
+          const householdInfo = extractHouseholdInfoFromChat(allMessages);
+          console.log("[ONBOARDING] Extracted household info:", householdInfo);
+          
+          await storage.updateHousehold({ 
+            onboardingComplete: true,
+            ...householdInfo
+          });
+          console.log("[ONBOARDING] Household updated with extracted info");
+        }
         
         // Create a response message
         const responseId = uuidv4();
