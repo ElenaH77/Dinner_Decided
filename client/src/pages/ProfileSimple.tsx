@@ -123,48 +123,49 @@ export default function ProfileSimple() {
   const displayData = isEditing ? editedHousehold : (household as any);
 
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#212121]">Household Profile</h1>
-          <p className="text-gray-600">Customize your information to get more personalized meal suggestions.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleResetProfile}
-            variant="outline"
-            className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-          >
-            Reset Profile
-          </Button>
-          {!isEditing ? (
+    <div className="min-h-screen bg-gray-50 px-4 py-6">
+      <div className="max-w-screen-sm mx-auto space-y-6">
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-[#212121]">Household Profile</h1>
+            <p className="text-gray-600">Customize your information to get more personalized meal suggestions.</p>
+          </div>
+          <div className="flex flex-col md:flex-row gap-2">
             <Button 
-              onClick={startEditing}
-              className="bg-[#21706D] hover:bg-[#195957]"
+              onClick={handleResetProfile}
+              variant="outline"
+              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white py-2 px-4"
             >
-              Edit Profile
+              Reset Profile
             </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button onClick={cancelEditing} variant="outline">
-                Cancel
+            {!isEditing ? (
+              <Button 
+                onClick={startEditing}
+                className="bg-[#21706D] hover:bg-[#195957] py-2 px-4"
+              >
+                Edit Profile
               </Button>
-              <Button onClick={handleSaveProfile} className="bg-[#21706D] hover:bg-[#195957]">
-                Save Changes
-              </Button>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col md:flex-row gap-2">
+                <Button onClick={cancelEditing} variant="outline" className="py-2 px-4">
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveProfile} className="bg-[#21706D] hover:bg-[#195957] py-2 px-4">
+                  Save Changes
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="grid gap-6">
-        <Card>
+        <div className="space-y-6">
+          <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
+            <div className="space-y-6">
+              <div className="space-y-1">
                 <Label className="text-sm font-medium">Household Size</Label>
                 {isEditing ? (
                   <Textarea
@@ -185,11 +186,11 @@ export default function ProfileSimple() {
                     rows={2}
                   />
                 ) : (
-                  <p className="text-gray-600">{displayData.members?.[0]?.name || "Not set"}</p>
+                  <p className="text-gray-600 mt-1">{displayData.members?.[0]?.name || "Not set"}</p>
                 )}
               </div>
               
-              <div>
+              <div className="space-y-1">
                 <Label className="text-sm font-medium">Location (Zip Code)</Label>
                 {isEditing ? (
                   <Input
@@ -201,11 +202,11 @@ export default function ProfileSimple() {
                     placeholder="e.g., 22301"
                   />
                 ) : (
-                  <p className="text-gray-600">{displayData.location || "Not set"}</p>
+                  <p className="text-gray-600 mt-1">{displayData.location || "Not set"}</p>
                 )}
               </div>
               
-              <div>
+              <div className="space-y-1">
                 <Label className="text-sm font-medium">Cooking Skill Level</Label>
                 {isEditing ? (
                   <Select
@@ -230,7 +231,7 @@ export default function ProfileSimple() {
                 )}
               </div>
               
-              <div>
+              <div className="space-y-1">
                 <Label className="text-sm font-medium">Dietary Preferences</Label>
                 {isEditing ? (
                   <Textarea
@@ -243,7 +244,7 @@ export default function ProfileSimple() {
                     rows={3}
                   />
                 ) : (
-                  <p className="text-gray-600">{displayData.preferences || "None specified"}</p>
+                  <p className="text-gray-600 mt-1">{displayData.preferences || "None specified"}</p>
                 )}
               </div>
             </div>
@@ -256,33 +257,33 @@ export default function ProfileSimple() {
           </CardHeader>
           <CardContent>
             {isEditing ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {availableAppliances.map((appliance) => (
-                  <div key={appliance.id} className="flex items-center space-x-2">
+                  <div key={appliance.id} className="flex items-center space-x-3 py-2">
                     <Switch
                       checked={displayData.appliances?.includes(appliance.id) || false}
                       onCheckedChange={(checked) => {
                         const currentAppliances = displayData.appliances || [];
                         const newAppliances = checked
                           ? [...currentAppliances, appliance.id]
-                          : currentAppliances.filter(a => a !== appliance.id);
+                          : currentAppliances.filter((a: string) => a !== appliance.id);
                         setEditedHousehold({
                           ...editedHousehold,
                           appliances: newAppliances
                         });
                       }}
                     />
-                    <Label className="text-sm">{appliance.name}</Label>
+                    <Label className="text-sm cursor-pointer flex-1">{appliance.name}</Label>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {displayData.appliances?.length > 0 ? displayData.appliances.map((applianceId: string) => {
-                  const appliance = availableAppliances.find(a => a.id === applianceId);
+                  const appliance = availableAppliances.find((a: any) => a.id === applianceId);
                   return (
-                    <div key={applianceId} className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div key={applianceId} className="flex items-center space-x-3 py-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                       <span className="text-sm">{appliance?.name || applianceId}</span>
                     </div>
                   );
@@ -291,6 +292,7 @@ export default function ProfileSimple() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
