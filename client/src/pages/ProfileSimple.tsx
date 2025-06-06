@@ -53,8 +53,13 @@ export default function ProfileSimple() {
 
   const handleSaveProfile = async () => {
     try {
-      await apiRequest("PATCH", "/api/household", editedHousehold);
-      queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+      console.log("Saving profile data:", editedHousehold);
+      const result = await apiRequest("PATCH", "/api/household", editedHousehold);
+      console.log("Save result:", result);
+      
+      // Force a refetch of the data
+      await queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/household'] });
       
       toast({
         title: "Profile updated",
@@ -64,6 +69,7 @@ export default function ProfileSimple() {
       setIsEditing(false);
       setEditedHousehold(null);
     } catch (error) {
+      console.error("Save error:", error);
       toast({
         title: "Error",
         description: "Failed to update profile",
@@ -73,7 +79,17 @@ export default function ProfileSimple() {
   };
 
   const startEditing = () => {
-    setEditedHousehold({ ...household });
+    const h = household as any;
+    setEditedHousehold({
+      ...h,
+      members: h?.members || [],
+      appliances: h?.appliances || [],
+      preferences: h?.preferences || "",
+      location: h?.location || "",
+      cookingSkill: h?.cookingSkill || 1,
+      challenges: h?.challenges || "",
+      name: h?.name || "New Household"
+    });
     setIsEditing(true);
   };
 
@@ -102,7 +118,7 @@ export default function ProfileSimple() {
     return <div>No household data found</div>;
   }
 
-  const displayData = isEditing ? editedHousehold : household;
+  const displayData = isEditing ? editedHousehold : (household as any);
 
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">
@@ -149,13 +165,18 @@ export default function ProfileSimple() {
               <div>
                 <Label className="text-sm font-medium">Household Size</Label>
                 {isEditing ? (
-                  <Input
+                  <Textarea
                     value={displayData.members?.join(", ") || ""}
-                    onChange={(e) => setEditedHousehold({
-                      ...editedHousehold,
-                      members: e.target.value.split(",").map(m => m.trim()).filter(m => m)
-                    })}
-                    placeholder="e.g., 2 adults, 1 child"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const members = value ? value.split(",").map(m => m.trim()).filter(m => m) : [];
+                      setEditedHousehold({
+                        ...editedHousehold,
+                        members: members
+                      });
+                    }}
+                    placeholder="e.g., 3 people or 2 adults, 1 child"
+                    rows={2}
                   />
                 ) : (
                   <p className="text-gray-600">{displayData.members?.join(", ") || "Not set"}</p>
