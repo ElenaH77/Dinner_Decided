@@ -25,7 +25,22 @@ export default function QuickProfile() {
 
   const updateProfile = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/household", "PATCH", data);
+      // Check if household exists to determine whether to PATCH or POST
+      const checkResponse = await fetch("/api/household");
+      const existingHousehold = checkResponse.ok ? await checkResponse.json() : null;
+      
+      const method = existingHousehold ? "PATCH" : "POST";
+      const response = await fetch("/api/household", {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/household"] });
@@ -47,16 +62,43 @@ export default function QuickProfile() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convert form data to household format
+    // Convert form data to household format that matches the schema
+    const appliances = [];
+    const kitchenLower = formData.kitchen.toLowerCase();
+    
+    // Parse kitchen description to extract appliances
+    if (kitchenLower.includes('fully stocked') || kitchenLower.includes('well equipped')) {
+      appliances.push('ovenStovetop', 'slowCooker', 'instantPot', 'airFryer', 'grill', 'microwave', 'blender');
+    } else {
+      if (kitchenLower.includes('slow cooker') || kitchenLower.includes('crockpot')) appliances.push('slowCooker');
+      if (kitchenLower.includes('instant pot') || kitchenLower.includes('pressure cooker')) appliances.push('instantPot');
+      if (kitchenLower.includes('air fryer')) appliances.push('airFryer');
+      if (kitchenLower.includes('grill')) appliances.push('grill');
+      if (kitchenLower.includes('oven') || kitchenLower.includes('stovetop') || kitchenLower.includes('basic')) appliances.push('ovenStovetop');
+      if (kitchenLower.includes('microwave')) appliances.push('microwave');
+      if (kitchenLower.includes('blender')) appliances.push('blender');
+    }
+    
+    // Ensure at least basic appliances
+    if (appliances.length === 0) {
+      appliances.push('ovenStovetop');
+    }
+
     const householdData = {
       onboardingComplete: true,
-      members: [{ name: "Household Member", dietaryRestrictions: formData.dietary }],
-      appliances: formData.kitchen.split(",").map(k => k.trim()).filter(k => k),
+      members: [{ 
+        id: "member-1", 
+        name: `Household of ${formData.householdSize}`, 
+        age: "adult",
+        dietaryRestrictions: formData.dietary ? [formData.dietary] : []
+      }],
+      appliances: appliances,
       cookingSkill: formData.cookingSkill === "beginner" ? 1 : 
                    formData.cookingSkill === "intermediate" ? 3 : 5,
       location: formData.location,
       challenges: formData.challenges,
-      preferences: formData.dietary
+      preferences: formData.dietary,
+      name: `${formData.householdSize} Household`
     };
 
     updateProfile.mutate(householdData);
