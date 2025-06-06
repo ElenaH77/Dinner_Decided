@@ -525,14 +525,16 @@ export default function MealPlan() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="meals" className="mt-0" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingBottom: '60px' }}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-neutral-text">{weekDateRange}</h2>
-            {meals && meals.length > 0 && (
-              <span className="bg-teal-primary text-white text-sm py-1 px-3 rounded-full">
-                {meals.length} meals planned
-              </span>
-            )}
+        <TabsContent value="meals" className="mt-0 space-y-6">
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex flex-col space-y-3">
+              <h2 className="text-xl font-semibold text-neutral-text">{weekDateRange}</h2>
+              {meals && meals.length > 0 && (
+                <span className="bg-teal-primary text-white text-sm py-1 px-3 rounded-full self-start">
+                  {meals.length} meals planned
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Add direct localStorage rescue button */}
@@ -594,7 +596,7 @@ export default function MealPlan() {
           ) : meals && meals.length > 0 ? (
             <>
               {/* Show chat interface at the top for existing meal plans */}
-              <div className="mb-8">
+              <div className="bg-white rounded-lg shadow-sm p-4">
                 <ChatInterface standalone={false} />
               </div>
               
@@ -611,7 +613,7 @@ export default function MealPlan() {
               </div>
               
               {/* Meal cards */}
-              <div className="flex flex-col space-y-6">
+              <div className="space-y-4">
                 {meals.map((meal, index) => {
                   // Generate day information if not available
                   const currentDate = new Date();
@@ -637,11 +639,11 @@ export default function MealPlan() {
                   );
                 })}
 
-                {/* Add Meal Card */}
-                <div className="border-2 border-dashed border-neutral-gray rounded-xl flex items-center justify-center h-48 bg-white cursor-pointer hover:border-teal-primary transition-colors">
-                  <div className="flex flex-col items-center text-neutral-text">
-                    <PlusCircle className="w-8 h-8 mb-2 text-neutral-gray" />
-                    <span className="font-medium">Add another meal</span>
+                {/* Add Meal Card - Mobile Optimized */}
+                <div className="border-2 border-dashed border-neutral-gray rounded-xl flex items-center justify-center min-h-[120px] bg-white cursor-pointer hover:border-teal-primary transition-colors mx-0">
+                  <div className="flex flex-col items-center text-neutral-text p-4">
+                    <PlusCircle className="w-6 h-6 mb-2 text-neutral-gray" />
+                    <span className="font-medium text-sm text-center">Add another meal</span>
                   </div>
                 </div>
               </div>
