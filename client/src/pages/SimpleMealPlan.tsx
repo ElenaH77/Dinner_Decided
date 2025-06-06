@@ -281,9 +281,9 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
         )}
         
         {/* Bottom actions */}
-        <div className="flex justify-between items-center mt-2">
-          {/* Mobile-optimized button layout */}
-          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+        <div className="mt-4 space-y-3">
+          {/* Primary action buttons */}
+          <div className="grid grid-cols-2 gap-3 w-full">
             <Button 
               variant="outline" 
               className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-12 text-sm font-medium shadow-sm"
@@ -305,8 +305,9 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
               Add to List
             </Button>
           </div>
-          {/* Secondary actions moved to smaller buttons */}
-          <div className="flex gap-2 mt-2 justify-center">
+          
+          {/* Secondary action buttons */}
+          <div className="flex gap-2 justify-center">
             <Button 
               variant="ghost" 
               size="sm" 
