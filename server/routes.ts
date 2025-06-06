@@ -54,19 +54,23 @@ function extractHouseholdInfoFromChat(messages: any[]) {
   }
   
   // Extract based on the assistant's question that prompted each user response
-  // We need to look at the assistant message that comes RIGHT BEFORE each user response
+  // We need to find the assistant message that comes RIGHT BEFORE each user response
   for (let i = 0; i < userMessages.length; i++) {
     const userResponse = userMessages[i];
     
-    // Find the assistant message that prompted this user response
-    // In the conversation flow, assistant messages and user messages alternate
+    // Find the assistant message that prompted this user response by looking at the full conversation
     let assistantPrompt = '';
     
-    // The assistant messages are at indices 0, 2, 4, 6, 8, 10...
-    // User responses are at indices 1, 3, 5, 7, 9, 11...
-    // So for user message at index i, the prompting assistant message is at index i
-    if (i < assistantMessages.length) {
-      assistantPrompt = assistantMessages[i];
+    // Find the user message in the original conversation and get the assistant message before it
+    const userMessageIndex = messages.findIndex(m => m.role === 'user' && m.content === userResponse);
+    if (userMessageIndex > 0) {
+      // Look backwards for the most recent assistant message
+      for (let j = userMessageIndex - 1; j >= 0; j--) {
+        if (messages[j].role === 'assistant') {
+          assistantPrompt = messages[j].content;
+          break;
+        }
+      }
     }
     
     console.log(`[EXTRACTION] User response ${i}: "${userResponse}"`);
@@ -92,13 +96,25 @@ function extractHouseholdInfoFromChat(messages: any[]) {
              assistantPrompt.toLowerCase().includes('appliances')) {
       const appliances = [];
       const lower = userResponse.toLowerCase();
+      
+      // Handle specific appliances mentioned
       if (lower.includes('slow cooker') || lower.includes('crockpot')) appliances.push('slowCooker');
       if (lower.includes('instant pot') || lower.includes('pressure cooker')) appliances.push('instantPot');
       if (lower.includes('air fryer')) appliances.push('airFryer');
       if (lower.includes('grill')) appliances.push('grill');
       if (lower.includes('oven') || lower.includes('stovetop') || lower.includes('basic')) appliances.push('ovenStovetop');
+      if (lower.includes('microwave')) appliances.push('microwave');
+      if (lower.includes('blender')) appliances.push('blender');
       
-      householdInfo.appliances = appliances.length > 0 ? appliances : ['ovenStovetop'];
+      // Handle descriptive responses like "fully stocked" or "well equipped"
+      if (lower.includes('fully stocked') || lower.includes('well equipped') || 
+          lower.includes('everything') || lower.includes('all appliances')) {
+        appliances.push('ovenStovetop', 'slowCooker', 'instantPot', 'airFryer', 'grill', 'microwave', 'blender');
+      }
+      
+      // Remove duplicates and ensure at least basic appliances
+      const uniqueAppliances = [...new Set(appliances)];
+      householdInfo.appliances = uniqueAppliances.length > 0 ? uniqueAppliances : ['ovenStovetop'];
       console.log("[EXTRACTION] Found appliances:", householdInfo.appliances);
     }
     else if (assistantPrompt.toLowerCase().includes('cooking') && 
