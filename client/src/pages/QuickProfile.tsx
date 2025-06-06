@@ -68,7 +68,7 @@ export default function QuickProfile() {
     
     // Parse kitchen description to extract appliances
     if (kitchenLower.includes('fully stocked') || kitchenLower.includes('well equipped')) {
-      appliances.push('ovenStovetop', 'slowCooker', 'instantPot', 'airFryer', 'grill', 'microwave', 'blender');
+      appliances.push('ovenStovetop', 'slowCooker', 'instantPot', 'airFryer', 'grill', 'microwave', 'blender', 'foodProcessor', 'standMixer');
     } else {
       if (kitchenLower.includes('slow cooker') || kitchenLower.includes('crockpot')) appliances.push('slowCooker');
       if (kitchenLower.includes('instant pot') || kitchenLower.includes('pressure cooker')) appliances.push('instantPot');
@@ -77,6 +77,8 @@ export default function QuickProfile() {
       if (kitchenLower.includes('oven') || kitchenLower.includes('stovetop') || kitchenLower.includes('basic')) appliances.push('ovenStovetop');
       if (kitchenLower.includes('microwave')) appliances.push('microwave');
       if (kitchenLower.includes('blender')) appliances.push('blender');
+      if (kitchenLower.includes('food processor')) appliances.push('foodProcessor');
+      if (kitchenLower.includes('stand mixer') || kitchenLower.includes('kitchenaid')) appliances.push('standMixer');
     }
     
     // Ensure at least basic appliances
