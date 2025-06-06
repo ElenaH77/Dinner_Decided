@@ -319,32 +319,30 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
             </div>
           )}
           
-          {/* Serving info and action buttons - Mobile optimized */}
-          <div className="mt-3 space-y-2">
+          {/* Mobile-optimized bottom section */}
+          <div className="mt-2 space-y-2 pb-3">
             <div className="text-sm text-[#212121] flex items-center">
               <Utensils className="h-4 w-4 mr-1 text-[#21706D]" />
               <span>Serves {meal.servings || 4}</span>
             </div>
             
-            {/* Action buttons - Mobile first design with proper spacing */}
-            <div className="flex gap-2 w-full pb-2">
+            {/* Mobile action buttons - ensure full visibility */}
+            <div className="grid grid-cols-2 gap-2 w-full">
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 h-9 text-xs font-medium flex items-center justify-center gap-1"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-10 text-sm font-medium"
                 onClick={handleViewRecipe}
               >
-                <FileText className="h-3 w-3" /> 
-                <span>Recipe</span>
+                <FileText className="h-4 w-4 mr-1" /> 
+                Recipe
               </Button>
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 h-9 text-xs font-medium flex items-center justify-center gap-1"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-10 text-sm font-medium"
                 onClick={handleAddToGroceryList}
               >
-                <ShoppingCart className="h-3 w-3" /> 
-                <span>Add to List</span>
+                <ShoppingCart className="h-4 w-4 mr-1" /> 
+                Add to List
               </Button>
             </div>
           </div>
