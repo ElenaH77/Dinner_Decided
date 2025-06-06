@@ -327,23 +327,23 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
             </div>
             
             {/* Action buttons - Mobile first design with proper spacing */}
-            <div className="flex flex-col gap-2 w-full pb-1">
+            <div className="flex gap-2 w-full pb-2">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white w-full h-8 text-xs font-medium flex items-center justify-center gap-1.5"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 h-9 text-xs font-medium flex items-center justify-center gap-1"
                 onClick={handleViewRecipe}
               >
-                <FileText className="h-3.5 w-3.5" /> 
-                <span>View Recipe</span>
+                <FileText className="h-3 w-3" /> 
+                <span>Recipe</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white w-full h-8 text-xs font-medium flex items-center justify-center gap-1.5"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 h-9 text-xs font-medium flex items-center justify-center gap-1"
                 onClick={handleAddToGroceryList}
               >
-                <ShoppingCart className="h-3.5 w-3.5" /> 
+                <ShoppingCart className="h-3 w-3" /> 
                 <span>Add to List</span>
               </Button>
             </div>

@@ -489,14 +489,14 @@ export default function MealPlan() {
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Fixed Action Buttons - Mobile Optimized */}
-        <div className="sticky top-4 z-10 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="mb-4">
+          <div className="bg-white rounded-lg shadow-md p-3">
             <div className="flex flex-col sm:flex-row gap-2 w-full">
               <Button
                 onClick={() => {
                   window.location.href = '/grocery';
                 }}
-                className="bg-teal-primary hover:bg-teal-dark text-white flex-1"
+                className="bg-teal-primary hover:bg-teal-dark text-white flex-1 h-10 text-sm"
                 size="default"
               >
                 <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
@@ -506,7 +506,7 @@ export default function MealPlan() {
                 onClick={() => {
                   window.location.href = '/show-meal-plan';
                 }}
-                className="flex-1"
+                className="flex-1 h-10 text-sm"
                 size="default"
               >
                 <FileText className="w-4 h-4 mr-2" /> View Full Recipes
