@@ -487,16 +487,16 @@ export default function MealPlan() {
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <div className="max-w-screen-sm mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Fixed Action Buttons - Mobile Optimized */}
         <div className="sticky top-4 z-10 mb-6">
           <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex flex-col gap-2 w-full max-w-full">
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
               <Button
                 onClick={() => {
                   window.location.href = '/grocery';
                 }}
-                className="bg-teal-primary hover:bg-teal-dark text-white w-full"
+                className="bg-teal-primary hover:bg-teal-dark text-white flex-1"
                 size="default"
               >
                 <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
@@ -506,7 +506,7 @@ export default function MealPlan() {
                 onClick={() => {
                   window.location.href = '/show-meal-plan';
                 }}
-                className="w-full"
+                className="flex-1"
                 size="default"
               >
                 <FileText className="w-4 h-4 mr-2" /> View Full Recipes
@@ -516,7 +516,7 @@ export default function MealPlan() {
         </div>
 
         <Tabs defaultValue="meals" value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="border-b border-neutral-gray w-full justify-start mb-6">
+        <TabsList className="bg-white border-b border-neutral-gray w-full justify-start mb-6 rounded-lg shadow-sm">
           <TabsTrigger value="meals" className="text-neutral-text data-[state=active]:text-teal-primary data-[state=active]:border-b-2 data-[state=active]:border-teal-primary">
             This Week's Plan
           </TabsTrigger>
