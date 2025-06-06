@@ -2,12 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2 } from "lucide-react";
 
 export default function ProfileSimple() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [editedHousehold, setEditedHousehold] = useState<any>(null);
   
   const { data: household, isLoading } = useQuery({
     queryKey: ['/api/household'],
@@ -44,6 +51,49 @@ export default function ProfileSimple() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    try {
+      await apiRequest("PATCH", "/api/household", editedHousehold);
+      queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+      
+      toast({
+        title: "Profile updated",
+        description: "Your household profile has been saved successfully.",
+      });
+      
+      setIsEditing(false);
+      setEditedHousehold(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const startEditing = () => {
+    setEditedHousehold({ ...household });
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditedHousehold(null);
+    setIsEditing(false);
+  };
+
+  const availableAppliances = [
+    { id: "ovenStovetop", name: "Oven/Stovetop" },
+    { id: "microwave", name: "Microwave" },
+    { id: "slowCooker", name: "Slow Cooker" },
+    { id: "instantPot", name: "Instant Pot/Pressure Cooker" },
+    { id: "airFryer", name: "Air Fryer" },
+    { id: "grill", name: "Grill" },
+    { id: "blender", name: "Blender" },
+    { id: "foodProcessor", name: "Food Processor" },
+    { id: "standMixer", name: "Stand Mixer" },
+  ];
+
   if (isLoading) {
     return <div>Loading profile...</div>;
   }
@@ -51,6 +101,8 @@ export default function ProfileSimple() {
   if (!household) {
     return <div>No household data found</div>;
   }
+
+  const displayData = isEditing ? editedHousehold : household;
 
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">
@@ -67,12 +119,23 @@ export default function ProfileSimple() {
           >
             Reset Profile
           </Button>
-          <Button 
-            onClick={() => setIsEditing(!isEditing)}
-            className="bg-[#21706D] hover:bg-[#195957]"
-          >
-            {isEditing ? "Cancel" : "Edit Profile"}
-          </Button>
+          {!isEditing ? (
+            <Button 
+              onClick={startEditing}
+              className="bg-[#21706D] hover:bg-[#195957]"
+            >
+              Edit Profile
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button onClick={cancelEditing} variant="outline">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveProfile} className="bg-[#21706D] hover:bg-[#195957]">
+                Save Changes
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -84,20 +147,77 @@ export default function ProfileSimple() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Household Size</label>
-                <p className="text-gray-600">{household.members?.join(", ") || "Not set"}</p>
+                <Label className="text-sm font-medium">Household Size</Label>
+                {isEditing ? (
+                  <Input
+                    value={displayData.members?.join(", ") || ""}
+                    onChange={(e) => setEditedHousehold({
+                      ...editedHousehold,
+                      members: e.target.value.split(",").map(m => m.trim()).filter(m => m)
+                    })}
+                    placeholder="e.g., 2 adults, 1 child"
+                  />
+                ) : (
+                  <p className="text-gray-600">{displayData.members?.join(", ") || "Not set"}</p>
+                )}
               </div>
+              
               <div>
-                <label className="text-sm font-medium">Location</label>
-                <p className="text-gray-600">{household.location || "Not set"}</p>
+                <Label className="text-sm font-medium">Location (Zip Code)</Label>
+                {isEditing ? (
+                  <Input
+                    value={displayData.location || ""}
+                    onChange={(e) => setEditedHousehold({
+                      ...editedHousehold,
+                      location: e.target.value
+                    })}
+                    placeholder="e.g., 22301"
+                  />
+                ) : (
+                  <p className="text-gray-600">{displayData.location || "Not set"}</p>
+                )}
               </div>
+              
               <div>
-                <label className="text-sm font-medium">Cooking Skill Level</label>
-                <p className="text-gray-600">Level {household.cookingSkill || 1}</p>
+                <Label className="text-sm font-medium">Cooking Skill Level</Label>
+                {isEditing ? (
+                  <Select
+                    value={displayData.cookingSkill?.toString() || "1"}
+                    onValueChange={(value) => setEditedHousehold({
+                      ...editedHousehold,
+                      cookingSkill: parseInt(value)
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Beginner</SelectItem>
+                      <SelectItem value="2">Intermediate</SelectItem>
+                      <SelectItem value="3">Advanced</SelectItem>
+                      <SelectItem value="4">Expert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-gray-600">Level {displayData.cookingSkill || 1}</p>
+                )}
               </div>
+              
               <div>
-                <label className="text-sm font-medium">Dietary Preferences</label>
-                <p className="text-gray-600">{household.preferences || "None specified"}</p>
+                <Label className="text-sm font-medium">Dietary Preferences</Label>
+                {isEditing ? (
+                  <Textarea
+                    value={displayData.preferences || ""}
+                    onChange={(e) => setEditedHousehold({
+                      ...editedHousehold,
+                      preferences: e.target.value
+                    })}
+                    placeholder="e.g., vegetarian, no nuts, low sodium"
+                    rows={3}
+                  />
+                ) : (
+                  <p className="text-gray-600">{displayData.preferences || "None specified"}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -108,14 +228,40 @@ export default function ProfileSimple() {
             <CardTitle>Kitchen Equipment</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {household.appliances?.map((appliance: string) => (
-                <div key={appliance} className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">{appliance}</span>
-                </div>
-              )) || <p className="text-gray-600">No equipment listed</p>}
-            </div>
+            {isEditing ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {availableAppliances.map((appliance) => (
+                  <div key={appliance.id} className="flex items-center space-x-2">
+                    <Switch
+                      checked={displayData.appliances?.includes(appliance.id) || false}
+                      onCheckedChange={(checked) => {
+                        const currentAppliances = displayData.appliances || [];
+                        const newAppliances = checked
+                          ? [...currentAppliances, appliance.id]
+                          : currentAppliances.filter(a => a !== appliance.id);
+                        setEditedHousehold({
+                          ...editedHousehold,
+                          appliances: newAppliances
+                        });
+                      }}
+                    />
+                    <Label className="text-sm">{appliance.name}</Label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {displayData.appliances?.length > 0 ? displayData.appliances.map((applianceId: string) => {
+                  const appliance = availableAppliances.find(a => a.id === applianceId);
+                  return (
+                    <div key={applianceId} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">{appliance?.name || applianceId}</span>
+                    </div>
+                  );
+                }) : <p className="text-gray-600">No equipment selected</p>}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
