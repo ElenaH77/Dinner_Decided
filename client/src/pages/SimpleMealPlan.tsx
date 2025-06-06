@@ -1180,15 +1180,17 @@ export default function SimpleMealPlan() {
     <div className="container max-w-4xl mx-auto py-6 px-4 overflow-y-auto h-full pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white py-4 border-b border-gray-100 mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3">
           <h1 className="text-2xl font-semibold text-[#212121]">Your Meal Plan</h1>
-          <div className="flex gap-2">
+          {/* Mobile-optimized header buttons */}
+          <div className="grid grid-cols-3 gap-2 w-full">
             <Button 
               onClick={() => refetch()}
               variant="outline"
-              className="text-[#21706D] border-[#21706D] hover:bg-[#f0f9f9] hover:text-[#195957]"
+              size="sm"
+              className="text-[#21706D] border-[#21706D] hover:bg-[#f0f9f9] hover:text-[#195957] h-10 text-xs"
             >
-              <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
                 <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
@@ -1203,9 +1205,10 @@ export default function SimpleMealPlan() {
             />
             <Button 
               onClick={handleAddMeal}
-              className="bg-[#21706D] hover:bg-[#195957]"
+              size="sm"
+              className="bg-[#21706D] hover:bg-[#195957] h-10 text-xs"
             >
-              <PlusCircle className="mr-2 h-4 w-4" />
+              <PlusCircle className="mr-1 h-3 w-3" />
               Add Meal
             </Button>
           </div>
