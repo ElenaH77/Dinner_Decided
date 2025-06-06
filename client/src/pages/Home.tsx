@@ -50,22 +50,9 @@ export default function Home() {
     clearStaleCache();
   }, []);
 
-  // Handle onboarding state - reset chat and show welcome message when profile is reset
+  // Add welcome message on initial load if no messages exist
   useEffect(() => {
-    if (householdData && needsOnboarding && messagesList.length > 0) {
-      console.log('Profile reset detected, restarting onboarding...', {
-        members: householdData.members,
-        location: householdData.location,
-        preferences: householdData.preferences,
-        onboardingComplete: householdData.onboardingComplete
-      });
-      resetChatConversation();
-    }
-  }, [householdData, needsOnboarding, resetChatConversation, messagesList.length]);
-
-  // Add welcome message on initial load or when onboarding is needed
-  useEffect(() => {
-    if ((messagesList.length === 0 || needsOnboarding) && !loading && householdData) {
+    if (messagesList.length === 0 && !loading) {
       addMessage({
         id: `welcome-${Date.now()}`,
         role: "assistant",
@@ -73,7 +60,7 @@ export default function Home() {
         timestamp: new Date().toISOString(),
       });
     }
-  }, [messagesList.length, loading, addMessage, needsOnboarding, householdData]);
+  }, [messagesList.length, loading, addMessage]);
 
   return (
     <div className="flex-grow flex flex-col h-screen md:h-auto overflow-hidden pb-16 md:pb-0">
