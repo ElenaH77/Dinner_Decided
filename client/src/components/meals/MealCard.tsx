@@ -258,52 +258,49 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
 
   return (
     <>
-      <Card className="border border-[#E2E2E2] overflow-hidden bg-[#F9F9F9] hover:shadow-md transition-all max-h-[550px]">
-        <div className="p-4 w-full">
-          {/* Category Badge at the top */}
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex flex-wrap gap-2">
+      <Card className="border border-[#E2E2E2] overflow-hidden bg-white hover:shadow-md transition-all w-full">
+        <div className="p-3 sm:p-4 w-full">
+          {/* Category Badge and Action Buttons Row - Mobile Optimized */}
+          <div className="flex justify-between items-start mb-3 gap-2">
+            <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
               {primaryCategory && (
-                <Badge className="bg-[#21706D] text-white px-3 py-1 flex items-center gap-1">
-                  {categoryIcon && <span>{categoryIcon}</span>}
-                  <span>{primaryCategory}</span>
+                <Badge className="bg-[#21706D] text-white px-2 py-1 flex items-center gap-1 text-xs">
+                  {categoryIcon && <span className="text-xs">{categoryIcon}</span>}
+                  <span className="truncate text-xs">{primaryCategory}</span>
                 </Badge>
               )}
               {meal.prepTime && (
-                <Badge className="bg-[#F25C05] bg-opacity-80 text-white px-3 py-1">
+                <Badge className="bg-[#F25C05] bg-opacity-80 text-white px-2 py-1 text-xs">
                   {meal.prepTime} min
                 </Badge>
               )}
             </div>
-          </div>
-          
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-semibold text-lg">{meal.name}</h3>
-            </div>
-            <div className="flex space-x-1">
+            {/* Action buttons - Mobile optimized */}
+            <div className="flex gap-0.5 flex-shrink-0">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-[#8A8A8A] hover:text-red-500 h-8 w-8"
+                className="text-gray-400 hover:text-red-500 h-7 w-7 p-1"
                 onClick={handleRemoveMeal}
                 disabled={isRemoving}
               >
-                <X className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-[#8A8A8A] hover:text-[#21706D] h-8 w-8">
-                <Edit className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </Button>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-[#8A8A8A] hover:text-[#21706D] h-8 w-8"
+                className="text-gray-400 hover:text-[#21706D] h-7 w-7 p-1"
                 onClick={handleReplaceMeal}
                 disabled={isReplacing}
               >
-                <RefreshCw className={`h-4 w-4 ${isReplacing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${isReplacing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
+          </div>
+          
+          {/* Meal Title */}
+          <div className="mb-2">
+            <h3 className="font-semibold text-base sm:text-lg leading-tight">{meal.name}</h3>
           </div>
           
           {!compact && meal.description && (
@@ -322,27 +319,32 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
             </div>
           )}
           
-          <div className="mt-3 flex flex-col md:flex-row justify-between gap-2">
+          {/* Serving info and action buttons - Mobile optimized */}
+          <div className="mt-4 space-y-3">
             <div className="text-sm text-[#212121] flex items-center">
               <Utensils className="h-4 w-4 mr-1 text-[#21706D]" />
               <span>Serves {meal.servings || 4}</span>
             </div>
-            <div className="flex flex-wrap gap-3">
+            
+            {/* Action buttons - Mobile first design */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
               <Button 
-                variant="link" 
+                variant="outline" 
                 size="sm" 
-                className="text-[#21706D] hover:text-[#195957] text-sm font-medium p-0 flex items-center"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 text-sm font-medium flex items-center justify-center gap-2"
                 onClick={handleViewRecipe}
               >
-                <FileText className="h-4 w-4 mr-1" /> View Recipe
+                <FileText className="h-4 w-4" /> 
+                <span>View Recipe</span>
               </Button>
               <Button 
-                variant="link" 
+                variant="outline" 
                 size="sm" 
-                className="text-[#21706D] hover:text-[#195957] text-sm font-medium p-0 flex items-center"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 text-sm font-medium flex items-center justify-center gap-2"
                 onClick={handleAddToGroceryList}
               >
-                <ShoppingCart className="h-4 w-4 mr-1" /> Add to Grocery List
+                <ShoppingCart className="h-4 w-4" /> 
+                <span>Add to List</span>
               </Button>
             </div>
           </div>
