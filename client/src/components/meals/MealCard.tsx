@@ -326,22 +326,22 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
               <span>Serves {meal.servings || 4}</span>
             </div>
             
-            {/* Mobile action buttons - ensure full visibility */}
-            <div className="grid grid-cols-2 gap-2 w-full">
+            {/* UPDATED: Mobile action buttons with proper spacing */}
+            <div className="grid grid-cols-2 gap-3 w-full mt-3">
               <Button 
                 variant="outline" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-10 text-sm font-medium"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-12 text-sm font-medium shadow-sm"
                 onClick={handleViewRecipe}
               >
-                <FileText className="h-4 w-4 mr-1" /> 
-                Recipe
+                <FileText className="h-4 w-4 mr-2" /> 
+                View Recipe
               </Button>
               <Button 
                 variant="outline" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-10 text-sm font-medium"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-12 text-sm font-medium shadow-sm"
                 onClick={handleAddToGroceryList}
               >
-                <ShoppingCart className="h-4 w-4 mr-1" /> 
+                <ShoppingCart className="h-4 w-4 mr-2" /> 
                 Add to List
               </Button>
             </div>
