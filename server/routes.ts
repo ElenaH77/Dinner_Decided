@@ -664,6 +664,9 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         } else {
           res.status(500).json({ message: "Failed to generate AI response" });
         }
+      } else {
+        // No valid message format provided
+        return res.status(400).json({ message: "Invalid message format. Expected 'message' string or 'messages' array." });
       }
     } catch (error) {
       console.error("Error in /api/chat:", error);
