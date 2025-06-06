@@ -149,7 +149,7 @@ export default function Profile() {
           <p className="text-gray-600">Customize your information to get more personalized meal suggestions.</p>
         </div>
         <div className="flex gap-2">
-          <Button 
+          <button 
             onClick={() => {
               if (confirm("Are you sure you want to reset your profile? This will clear all your data and restart onboarding.")) {
                 fetch('/api/household', {
@@ -170,11 +170,10 @@ export default function Profile() {
                 });
               }
             }}
-            variant="outline"
-            className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+            className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-md transition-colors"
           >
             Reset Profile
-          </Button>
+          </button>
           {!isEditing ? (
             <Button 
               onClick={() => setIsEditing(true)}
