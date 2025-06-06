@@ -486,32 +486,36 @@ export default function MealPlan() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl">
-      {/* Fixed Action Buttons - Always Visible */}
-      <div className="sticky top-4 z-10 mb-6 flex justify-center">
-        <div className="bg-white rounded-full shadow-md px-4 py-2 flex gap-3">
-          <Button
-            onClick={() => {
-              window.location.href = '/grocery';
-            }}
-            className="bg-teal-primary hover:bg-teal-dark text-white"
-            size="sm"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => {
-              window.location.href = '/show-meal-plan';
-            }}
-            size="sm"
-          >
-            <FileText className="w-4 h-4 mr-2" /> View Full Recipes
-          </Button>
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <div className="max-w-screen-sm mx-auto px-4 py-6">
+        {/* Fixed Action Buttons - Mobile Optimized */}
+        <div className="sticky top-4 z-10 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex flex-col gap-2 w-full max-w-full">
+              <Button
+                onClick={() => {
+                  window.location.href = '/grocery';
+                }}
+                className="bg-teal-primary hover:bg-teal-dark text-white w-full"
+                size="default"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  window.location.href = '/show-meal-plan';
+                }}
+                className="w-full"
+                size="default"
+              >
+                <FileText className="w-4 h-4 mr-2" /> View Full Recipes
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <Tabs defaultValue="meals" value={selectedTab} onValueChange={setSelectedTab}>
+        <Tabs defaultValue="meals" value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="border-b border-neutral-gray w-full justify-start mb-6">
           <TabsTrigger value="meals" className="text-neutral-text data-[state=active]:text-teal-primary data-[state=active]:border-b-2 data-[state=active]:border-teal-primary">
             This Week's Plan
@@ -594,26 +598,8 @@ export default function MealPlan() {
                 <ChatInterface standalone={false} />
               </div>
               
-              {/* Action buttons */}
-              <div className="mb-6 flex flex-wrap gap-3">
-                <Button
-                  onClick={() => {
-                    // Navigate to grocery list page
-                    window.location.href = '/grocery';
-                  }}
-                  className="bg-teal-primary hover:bg-teal-dark text-white"
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" /> Generate Grocery List
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    // Navigate to show-meal-plan page for full recipe details
-                    window.location.href = '/show-meal-plan';
-                  }}
-                >
-                  <FileText className="w-4 h-4 mr-2" /> View Full Recipes
-                </Button>
+              {/* Mobile-optimized action buttons */}
+              <div className="mb-6 grid grid-cols-1 gap-3">
                 
                 {/* Add Reset button for data recovery */}
                 <ResetButton
@@ -676,6 +662,7 @@ export default function MealPlan() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
