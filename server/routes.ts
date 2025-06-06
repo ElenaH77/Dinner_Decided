@@ -356,13 +356,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Support both direct message submissions and array of messages (legacy support)
       if (req.body.message) {
-        // New format - direct message with optional context
-        const messageSchema = z.object({
-          role: z.enum(["user", "assistant", "system"]),
-          content: z.string()
-        });
-        
-        const singleMessage = messageSchema.parse(req.body.message);
+        // Handle string message format (convert to user message object)
+        let singleMessage;
+        if (typeof req.body.message === 'string') {
+          singleMessage = {
+            role: "user" as const,
+            content: req.body.message
+          };
+        } else {
+          // Object format
+          const messageSchema = z.object({
+            role: z.enum(["user", "assistant", "system"]),
+            content: z.string()
+          });
+          singleMessage = messageSchema.parse(req.body.message);
+        }
         const analysisContext = req.body.analysisContext || "";
         
         // Check for reset command FIRST, before any other processing
@@ -445,28 +453,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: analysisContext
           });
         } else if (!isOnboardingComplete) {
-          // Use onboarding system prompt if not yet complete
+          // If onboarding not complete, direct user to profile setup instead of chat onboarding
           formattedMessages.unshift({
             role: "system",
-            content: `You are an onboarding assistant for "Dinner, Decided" - a meal planning service. Your job is to collect essential information about the user's household to create their personalized meal plan profile.
+            content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. The user hasn't completed their profile setup yet. 
 
-Follow this exact sequence of questions and only ask ONE question at a time:
+Instead of asking onboarding questions, politely direct them to complete their profile first by visiting the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
 
-1. "How many people are you cooking for?" (collect household size)
-2. "Any food stuff we should know about?" (collect dietary restrictions, allergies, dislikes)
-3. "What's your kitchen like?" (collect appliances, equipment, cooking setup)
-4. "How do you feel about cooking?" (collect skill level, confidence, time availability)
-5. "Where do you live?" (collect location/ZIP code for local preferences)
-6. "What makes dinner hard at your house?" (collect challenges, pain points)
-
-IMPORTANT RULES:
-- Only ask ONE question at a time
-- Wait for their answer before moving to the next question
-- Keep responses brief and conversational
-- Don't explain the whole process upfront
-- After the final question, say: "That's all I need to know for now - if you ever want to edit this later, it's all saved under Profile. Ready to plan some meals?"
-
-Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely necessary.`
+Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning. Don't ask onboarding questions - just direct them to the profile setup.`
           });
         }
         
@@ -522,7 +516,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
           content: aiResponse,
           timestamp: new Date().toISOString()
         });
-      } else {
+      } else if (req.body.messages) {
         // Legacy format handling with messages array
         const messageSchema = z.array(z.object({
           id: z.string(),
