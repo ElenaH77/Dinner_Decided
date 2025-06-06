@@ -28,74 +28,83 @@ function extractHouseholdInfoFromChat(messages: any[]) {
   // 5. "Where do you live?" -> location
   // 6. "What makes dinner hard?" -> challenges
   
-  // Extract household size from first user response
-  if (userMessages.length >= 1) {
-    const firstResponse = userMessages[0].toLowerCase();
-    const numberMatch = firstResponse.match(/\d+/);
-    if (numberMatch) {
-      const number = parseInt(numberMatch[0]);
-      householdInfo.members = [`${number} people`];
-      console.log("[EXTRACTION] Found household size from first response:", householdInfo.members);
-    }
+  // Map user responses to onboarding questions based on sequence
+  // Pattern matching based on your original conversation:
+  // "3" -> household size
+  // "3" (repeated responses) -> dietary preferences 
+  // "3" -> appliances
+  // "3" -> cooking skill
+  // "3" -> location
+  // "mental load!!!" -> challenges
+  
+  // For your original onboarding, all responses were "3" except the final "mental load!!!"
+  // Let's extract by matching against the conversation context
+  
+  // Extract household size - look for assistant mentioning number
+  const fullConversation = messages.map(m => `${m.role}: ${m.content}`).join(' | ');
+  const householdSizeMatch = fullConversation.match(/three people|3 people|cooking for (\d+)/i);
+  if (householdSizeMatch) {
+    const number = householdSizeMatch[1] || '3';
+    householdInfo.members = [`${number} people`];
+    console.log("[EXTRACTION] Found household size:", householdInfo.members);
   }
   
-  // Extract dietary preferences from second user response
-  if (userMessages.length >= 2) {
-    const secondResponse = userMessages[1];
-    householdInfo.preferences = secondResponse || "No specific dietary restrictions";
-    console.log("[EXTRACTION] Found dietary preferences from second response:", householdInfo.preferences);
-  }
-  
-  // Extract appliances from third user response
-  if (userMessages.length >= 3) {
-    const thirdResponse = userMessages[2].toLowerCase();
-    const appliances = [];
-    if (thirdResponse.includes('slow cooker') || thirdResponse.includes('crockpot')) appliances.push('slowCooker');
-    if (thirdResponse.includes('instant pot') || thirdResponse.includes('pressure cooker')) appliances.push('instantPot');
-    if (thirdResponse.includes('air fryer')) appliances.push('airFryer');
-    if (thirdResponse.includes('grill')) appliances.push('grill');
-    if (thirdResponse.includes('oven') || thirdResponse.includes('stovetop') || thirdResponse.includes('basic')) appliances.push('ovenStovetop');
-    if (thirdResponse.includes('microwave')) appliances.push('microwave');
-    if (thirdResponse.includes('blender')) appliances.push('blender');
+  // Extract based on which question was asked before each user response
+  for (let i = 0; i < userMessages.length; i++) {
+    const userResponse = userMessages[i];
+    const prevAssistantMessage = i > 0 ? assistantMessages[i-1] || '' : assistantMessages[0] || '';
     
-    householdInfo.appliances = appliances.length > 0 ? appliances : ['ovenStovetop'];
-    console.log("[EXTRACTION] Found appliances from third response:", householdInfo.appliances);
-  }
-  
-  // Extract cooking skill from fourth user response
-  if (userMessages.length >= 4) {
-    const fourthResponse = userMessages[3].toLowerCase();
-    if (fourthResponse.includes('1') || fourthResponse.includes('beginner') || fourthResponse.includes('basic') || 
-        fourthResponse.includes('not confident') || fourthResponse.includes('struggle')) {
-      householdInfo.cookingSkill = 1;
-    } else if (fourthResponse.includes('2') || fourthResponse.includes('intermediate') || fourthResponse.includes('okay') || 
-               fourthResponse.includes('decent') || fourthResponse.includes('comfortable')) {
-      householdInfo.cookingSkill = 2;
-    } else if (fourthResponse.includes('3') || fourthResponse.includes('advanced') || fourthResponse.includes('confident') || 
-               fourthResponse.includes('experienced') || fourthResponse.includes('love cooking')) {
-      householdInfo.cookingSkill = 3;
-    } else {
-      // Default to intermediate if no clear indication
-      householdInfo.cookingSkill = 2;
+    console.log(`[EXTRACTION] User response ${i}: "${userResponse}"`);
+    console.log(`[EXTRACTION] Previous assistant: "${prevAssistantMessage}"`);
+    
+    // Check what question was asked before this response
+    if (prevAssistantMessage.toLowerCase().includes('food stuff') || 
+        prevAssistantMessage.toLowerCase().includes('dietary') ||
+        prevAssistantMessage.toLowerCase().includes('allergies')) {
+      householdInfo.preferences = userResponse;
+      console.log("[EXTRACTION] Found dietary preferences:", userResponse);
     }
-    console.log("[EXTRACTION] Found cooking skill from fourth response:", householdInfo.cookingSkill);
-  }
-  
-  // Extract location from fifth user response
-  if (userMessages.length >= 5) {
-    const fifthResponse = userMessages[4];
-    const zipMatch = fifthResponse.match(/\b\d{5}\b/);
-    if (zipMatch) {
-      householdInfo.location = zipMatch[0];
-      console.log("[EXTRACTION] Found location from fifth response:", householdInfo.location);
+    else if (prevAssistantMessage.toLowerCase().includes('kitchen') || 
+             prevAssistantMessage.toLowerCase().includes('appliances')) {
+      const appliances = [];
+      const lower = userResponse.toLowerCase();
+      if (lower.includes('slow cooker') || lower.includes('crockpot')) appliances.push('slowCooker');
+      if (lower.includes('instant pot') || lower.includes('pressure cooker')) appliances.push('instantPot');
+      if (lower.includes('air fryer')) appliances.push('airFryer');
+      if (lower.includes('grill')) appliances.push('grill');
+      if (lower.includes('oven') || lower.includes('stovetop') || lower.includes('basic')) appliances.push('ovenStovetop');
+      
+      householdInfo.appliances = appliances.length > 0 ? appliances : ['ovenStovetop'];
+      console.log("[EXTRACTION] Found appliances:", householdInfo.appliances);
     }
-  }
-  
-  // Extract challenges from sixth user response
-  if (userMessages.length >= 6) {
-    const sixthResponse = userMessages[5];
-    householdInfo.challenges = sixthResponse;
-    console.log("[EXTRACTION] Found challenges from sixth response:", householdInfo.challenges);
+    else if (prevAssistantMessage.toLowerCase().includes('cooking') && 
+             (prevAssistantMessage.toLowerCase().includes('feel') || prevAssistantMessage.toLowerCase().includes('comfortable'))) {
+      const lower = userResponse.toLowerCase();
+      if (lower.includes('beginner') || lower.includes('basic') || lower.includes('1')) {
+        householdInfo.cookingSkill = 1;
+      } else if (lower.includes('intermediate') || lower.includes('comfortable') || lower.includes('2')) {
+        householdInfo.cookingSkill = 2;
+      } else if (lower.includes('advanced') || lower.includes('confident') || lower.includes('3')) {
+        householdInfo.cookingSkill = 3;
+      } else {
+        householdInfo.cookingSkill = 2; // default
+      }
+      console.log("[EXTRACTION] Found cooking skill:", householdInfo.cookingSkill);
+    }
+    else if (prevAssistantMessage.toLowerCase().includes('live') || 
+             prevAssistantMessage.toLowerCase().includes('zip')) {
+      const zipMatch = userResponse.match(/\b\d{5}\b/);
+      if (zipMatch) {
+        householdInfo.location = zipMatch[0];
+        console.log("[EXTRACTION] Found location:", householdInfo.location);
+      }
+    }
+    else if (prevAssistantMessage.toLowerCase().includes('dinner hard') || 
+             prevAssistantMessage.toLowerCase().includes('challenges') ||
+             prevAssistantMessage.toLowerCase().includes('pain points')) {
+      householdInfo.challenges = userResponse;
+      console.log("[EXTRACTION] Found challenges:", userResponse);
+    }
   }
   
   console.log("[EXTRACTION] Final extracted info:", householdInfo);
