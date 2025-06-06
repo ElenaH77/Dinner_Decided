@@ -282,30 +282,22 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
         
         {/* Bottom actions */}
         <div className="flex justify-between items-center mt-2">
-          <div className="flex gap-2">
+          {/* Mobile-optimized button layout */}
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
             <Button 
               variant="outline" 
-              size="sm" 
-              className="text-sm text-gray-600 h-8"
-              onClick={() => setIsModifyDialogOpen(true)}
+              className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-12 text-sm font-medium shadow-sm"
+              onClick={() => setIsRecipeOpen(true)}
             >
-              Modify
+              <FileText className="h-4 w-4 mr-2" /> 
+              View Recipe
             </Button>
             <Button 
               variant="outline" 
-              size="sm" 
-              className="text-sm text-gray-600 h-8"
-              onClick={() => setIsReplaceDialogOpen(true)}
-            >
-              Replace
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-sm text-gray-600 h-8 flex items-center"
+              className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white h-12 text-sm font-medium shadow-sm flex items-center justify-center"
               onClick={handleAddToGroceryList}
             >
-              <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6h19l-3 10H6L3 6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 21a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
                 <path d="M19 21a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
@@ -313,14 +305,25 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
               Add to List
             </Button>
           </div>
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="text-[#21706D] hover:text-[#195957] text-sm font-medium p-0 flex items-center"
-            onClick={() => setIsRecipeOpen(true)}
-          >
-            <FileText className="h-4 w-4 mr-1" /> View Recipe
-          </Button>
+          {/* Secondary actions moved to smaller buttons */}
+          <div className="flex gap-2 mt-2 justify-center">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs text-gray-500 hover:text-[#21706D] h-8"
+              onClick={() => setIsModifyDialogOpen(true)}
+            >
+              Modify
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs text-gray-500 hover:text-[#21706D] h-8"
+              onClick={() => setIsReplaceDialogOpen(true)}
+            >
+              Replace
+            </Button>
+          </div>
         </div>
       </div>
       
