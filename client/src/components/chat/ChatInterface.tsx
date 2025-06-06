@@ -118,47 +118,42 @@ export default function ChatInterface() {
     
     if ((!input.trim() && !selectedFile) || isGenerating) return;
     
-    // If there's a file attached, handle it locally first
-    if (selectedFile) {
-      try {
-        // Convert the image to base64 for displaying in the chat
+    // Handle message with or without image
+    try {
+      if (selectedFile) {
+        // Convert image to base64 and send with message
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
           const base64Image = event.target?.result as string;
-          // Create the user message text with image markdown
-          const messageText = input.trim() 
-            ? `${input}\n\n![Attached Image](${base64Image})`
-            : `![Attached Image](${base64Image})`;
+          const imageData = base64Image.split(',')[1]; // Remove data URL prefix
           
-          // Add user message directly to the UI first
-          addMessage({
+          // Create the user message with image
+          const messageText = input.trim() || "What can I make with this?";
+          
+          // Add user message to chat immediately
+          const userMessage = {
             id: `user-${Date.now()}`,
-            role: "user",
+            role: "user" as const,
             content: messageText,
+            image: base64Image, // Store full data URL for display
             timestamp: new Date().toISOString(),
-          });
+          };
           
-          // Clear the input immediately for better UX
+          addMessage(userMessage);
           setInput("");
-          
-          // Skip the actual API call for image uploads to avoid connection issues
-          // Just show a simulated response for better user experience
-          setTimeout(() => {
-            addMessage({
-              id: `assistant-${Date.now()}`,
-              role: "assistant",
-              content: "I see your image! Looking at what you have available, here are some quick meal ideas:\n\n" + 
-                "1. **Quick Stir-Fry**: Combine any vegetables with protein and serve over rice\n" +
-                "2. **Simple Pasta**: Mix with olive oil, garlic, and any vegetables you have\n" +
-                "3. **Sheet Pan Dinner**: Roast a protein with vegetables seasoned with herbs\n" +
-                "4. **Hearty Salad**: Combine fresh ingredients with a protein and dressing\n\n" +
-                "Would you like a specific recipe for any of these options?",
-              timestamp: new Date().toISOString(),
-            });
-          }, 1500);
-          
-          // Remove the file attachment
           handleRemoveFile();
+          
+          // Send to backend with image data
+          try {
+            await handleUserMessage(messageText, imageData);
+          } catch (error) {
+            console.error("Error sending image message:", error);
+            toast({
+              title: "Error",
+              description: "Failed to analyze your image. Please try again.",
+              variant: "destructive",
+            });
+          }
           
           // Reset textarea height
           if (textareaRef.current) {
@@ -166,17 +161,8 @@ export default function ChatInterface() {
           }
         };
         reader.readAsDataURL(selectedFile);
-      } catch (error) {
-        console.error("Error handling image:", error);
-        toast({
-          title: "Error",
-          description: "There was a problem uploading your image. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Just send the text message normally
-      try {
+      } else {
+        // Send text message normally
         await handleUserMessage(input);
         setInput("");
         
@@ -184,14 +170,14 @@ export default function ChatInterface() {
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
-      } catch (error) {
-        console.error("Error sending message:", error);
-        toast({
-          title: "Error",
-          description: "Failed to send your message. Please try again.",
-          variant: "destructive",
-        });
       }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send your message. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
