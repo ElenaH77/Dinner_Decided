@@ -16,8 +16,9 @@ export default function ProfileSimple() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedHousehold, setEditedHousehold] = useState<any>(null);
   
-  const { data: household, isLoading } = useQuery({
+  const { data: household, isLoading, refetch } = useQuery({
     queryKey: ['/api/household'],
+    staleTime: 0,
   });
 
   const handleResetProfile = async () => {
@@ -57,17 +58,18 @@ export default function ProfileSimple() {
       const result = await apiRequest("PATCH", "/api/household", editedHousehold);
       console.log("Save result:", result);
       
-      // Force a refetch of the data
-      await queryClient.invalidateQueries({ queryKey: ['/api/household'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/household'] });
+      // Force an immediate refetch of fresh data
+      await refetch();
+      
+      // Clear the editing state after successful save and refetch
+      setIsEditing(false);
+      setEditedHousehold(null);
       
       toast({
         title: "Profile updated",
         description: "Your household profile has been saved successfully.",
       });
       
-      setIsEditing(false);
-      setEditedHousehold(null);
     } catch (error) {
       console.error("Save error:", error);
       toast({
