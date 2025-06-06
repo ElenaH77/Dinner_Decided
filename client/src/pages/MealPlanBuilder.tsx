@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -32,20 +30,15 @@ export default function MealPlanBuilder() {
   // State for any additional notes
   const [additionalNotes, setAdditionalNotes] = useState('');
   
-  // Helper to check if a meal type is selected for a specific day
-  const isMealSelected = (day: string, mealType: string) => {
-    return selectedMeals[day] === mealType;
-  };
-  
-  // Handle meal type selection for a day
+  // Handle meal type selection for a day via dropdown
   const handleMealSelection = (day: string, mealType: string) => {
-    // If the meal type is already selected, unselect it
-    if (selectedMeals[day] === mealType) {
+    if (mealType === "none") {
+      // Remove the day if "No meal planned" is selected
       const updatedMeals = { ...selectedMeals };
       delete updatedMeals[day];
       setSelectedMeals(updatedMeals);
     } else {
-      // Otherwise, select this meal type for the day
+      // Set the meal type for the day
       setSelectedMeals({
         ...selectedMeals,
         [day]: mealType
@@ -209,44 +202,37 @@ export default function MealPlanBuilder() {
         </CardContent>
       </Card>
       
-      {/* Meal Selection Grid */}
-      <div className="w-full">
-        <div className="overflow-x-auto pb-2">
-          <table className="w-full border-collapse min-w-[600px]">
-            <thead>
-              <tr>
-                <th className="text-left p-2 w-28 sticky left-0 bg-white z-10"></th>
-                {MEAL_TYPES.map(type => (
-                  <th key={type.id} className="text-center p-2 w-[140px]">
-                    <div className="flex flex-col items-center justify-center">
-                      <span className="text-2xl">{type.icon}</span>
-                      <span className="text-sm font-medium">{type.name}</span>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {DAYS_OF_WEEK.map(day => (
-                <tr key={day} className="border-t border-gray-200">
-                  <td className="py-4 px-2 font-medium sticky left-0 bg-white z-10">{day}</td>
-                  {MEAL_TYPES.map(type => (
-                    <td key={`${day}-${type.id}`} className="text-center p-2">
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={isMealSelected(day, type.id)}
-                          onCheckedChange={() => handleMealSelection(day, type.id)}
-                          className="h-6 w-6"
-                        />
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Mobile-Optimized Meal Selection */}
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Choose meals for each day</h2>
+          <div className="space-y-4">
+            {DAYS_OF_WEEK.map(day => (
+              <div key={day} className="flex flex-col space-y-2">
+                <Label htmlFor={`${day}-select`} className="text-sm font-medium">
+                  {day}:
+                </Label>
+                <Select
+                  value={selectedMeals[day] || "none"}
+                  onValueChange={(value) => handleMealSelection(day, value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No meal planned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No meal planned</SelectItem>
+                    {MEAL_TYPES.map(type => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.icon} {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Summary */}
       <div className="bg-gray-50 p-4 rounded-md">
