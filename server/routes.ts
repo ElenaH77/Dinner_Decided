@@ -40,32 +40,56 @@ function extractHouseholdInfoFromChat(messages: any[]) {
   // For your original onboarding, all responses were "3" except the final "mental load!!!"
   // Let's extract by matching against the conversation context
   
-  // Extract household size - look for assistant mentioning number
+  // Extract household size from conversation context or first user response
   const fullConversation = messages.map(m => `${m.role}: ${m.content}`).join(' | ');
-  const householdSizeMatch = fullConversation.match(/three people|3 people|cooking for (\d+)/i);
+  const householdSizeMatch = fullConversation.match(/household of (\w+)|three people|(\d+) people/i);
   if (householdSizeMatch) {
-    const number = householdSizeMatch[1] || '3';
+    const number = householdSizeMatch[1] === 'three' ? '3' : (householdSizeMatch[1] || householdSizeMatch[2]);
     householdInfo.members = [`${number} people`];
-    console.log("[EXTRACTION] Found household size:", householdInfo.members);
+    console.log("[EXTRACTION] Found household size from conversation:", householdInfo.members);
+  } else if (userMessages.length > 0 && /^\d+$/.test(userMessages[0].trim())) {
+    // If first user response is just a number, assume it's household size
+    householdInfo.members = [`${userMessages[0].trim()} people`];
+    console.log("[EXTRACTION] Found household size from first response:", householdInfo.members);
   }
   
-  // Extract based on which question was asked before each user response
+  // Extract based on the assistant's question that prompted each user response
+  // We need to look at the assistant message that comes RIGHT BEFORE each user response
   for (let i = 0; i < userMessages.length; i++) {
     const userResponse = userMessages[i];
-    const prevAssistantMessage = i > 0 ? assistantMessages[i-1] || '' : assistantMessages[0] || '';
+    
+    // Find the assistant message that prompted this user response
+    // In the conversation flow, assistant messages and user messages alternate
+    let assistantPrompt = '';
+    
+    // The assistant messages are at indices 0, 2, 4, 6, 8, 10...
+    // User responses are at indices 1, 3, 5, 7, 9, 11...
+    // So for user message at index i, the prompting assistant message is at index i
+    if (i < assistantMessages.length) {
+      assistantPrompt = assistantMessages[i];
+    }
     
     console.log(`[EXTRACTION] User response ${i}: "${userResponse}"`);
-    console.log(`[EXTRACTION] Previous assistant: "${prevAssistantMessage}"`);
+    console.log(`[EXTRACTION] Assistant prompt: "${assistantPrompt}"`);
     
-    // Check what question was asked before this response
-    if (prevAssistantMessage.toLowerCase().includes('food stuff') || 
-        prevAssistantMessage.toLowerCase().includes('dietary') ||
-        prevAssistantMessage.toLowerCase().includes('allergies')) {
+    // Match responses to the correct fields based on assistant's question
+    if (assistantPrompt.toLowerCase().includes('household') || 
+        assistantPrompt.toLowerCase().includes('feeding') ||
+        assistantPrompt.toLowerCase().includes('cooking for')) {
+      // First question about household size
+      if (/^\d+$/.test(userResponse.trim())) {
+        householdInfo.members = [`${userResponse.trim()} people`];
+        console.log("[EXTRACTION] Found household size:", householdInfo.members);
+      }
+    }
+    else if (assistantPrompt.toLowerCase().includes('food stuff') || 
+             assistantPrompt.toLowerCase().includes('dietary') ||
+             assistantPrompt.toLowerCase().includes('allergies')) {
       householdInfo.preferences = userResponse;
       console.log("[EXTRACTION] Found dietary preferences:", userResponse);
     }
-    else if (prevAssistantMessage.toLowerCase().includes('kitchen') || 
-             prevAssistantMessage.toLowerCase().includes('appliances')) {
+    else if (assistantPrompt.toLowerCase().includes('kitchen') || 
+             assistantPrompt.toLowerCase().includes('appliances')) {
       const appliances = [];
       const lower = userResponse.toLowerCase();
       if (lower.includes('slow cooker') || lower.includes('crockpot')) appliances.push('slowCooker');
@@ -77,8 +101,8 @@ function extractHouseholdInfoFromChat(messages: any[]) {
       householdInfo.appliances = appliances.length > 0 ? appliances : ['ovenStovetop'];
       console.log("[EXTRACTION] Found appliances:", householdInfo.appliances);
     }
-    else if (prevAssistantMessage.toLowerCase().includes('cooking') && 
-             (prevAssistantMessage.toLowerCase().includes('feel') || prevAssistantMessage.toLowerCase().includes('comfortable'))) {
+    else if (assistantPrompt.toLowerCase().includes('cooking') && 
+             (assistantPrompt.toLowerCase().includes('feel') || assistantPrompt.toLowerCase().includes('comfortable'))) {
       const lower = userResponse.toLowerCase();
       if (lower.includes('beginner') || lower.includes('basic') || lower.includes('1')) {
         householdInfo.cookingSkill = 1;
@@ -91,17 +115,21 @@ function extractHouseholdInfoFromChat(messages: any[]) {
       }
       console.log("[EXTRACTION] Found cooking skill:", householdInfo.cookingSkill);
     }
-    else if (prevAssistantMessage.toLowerCase().includes('live') || 
-             prevAssistantMessage.toLowerCase().includes('zip')) {
+    else if (assistantPrompt.toLowerCase().includes('live') || 
+             assistantPrompt.toLowerCase().includes('zip')) {
+      // Handle both actual ZIP codes and simple numeric responses
       const zipMatch = userResponse.match(/\b\d{5}\b/);
       if (zipMatch) {
         householdInfo.location = zipMatch[0];
-        console.log("[EXTRACTION] Found location:", householdInfo.location);
+        console.log("[EXTRACTION] Found ZIP code location:", householdInfo.location);
+      } else if (/^\d+$/.test(userResponse.trim())) {
+        householdInfo.location = userResponse.trim();
+        console.log("[EXTRACTION] Found numeric location placeholder:", householdInfo.location);
       }
     }
-    else if (prevAssistantMessage.toLowerCase().includes('dinner hard') || 
-             prevAssistantMessage.toLowerCase().includes('challenges') ||
-             prevAssistantMessage.toLowerCase().includes('pain points')) {
+    else if (assistantPrompt.toLowerCase().includes('dinner hard') || 
+             assistantPrompt.toLowerCase().includes('challenges') ||
+             assistantPrompt.toLowerCase().includes('pain points')) {
       householdInfo.challenges = userResponse;
       console.log("[EXTRACTION] Found challenges:", userResponse);
     }
