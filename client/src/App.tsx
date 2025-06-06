@@ -6,6 +6,7 @@ import SimpleMealPlan from "@/pages/SimpleMealPlan";
 import MealPlanBuilder from "@/pages/MealPlanBuilder";
 import GroceryList from "@/pages/GroceryList";
 import ProfileSimple from "@/pages/ProfileSimple";
+import QuickProfile from "@/pages/QuickProfile";
 import Onboarding from "@/pages/onboarding";
 import ChatOnboarding from "@/pages/chat-onboarding";
 import TestErrorHandling from "@/pages/test-error-handling";
@@ -75,6 +76,7 @@ function App() {
                 <Route path="/old-meal-plan" component={MealPlan} /> {/* Old version in case we need to revert */}
                 <Route path="/grocery" component={GroceryList} />
                 <Route path="/profile" component={ProfileSimple} />
+                <Route path="/quick-profile" component={QuickProfile} />
                 <Route path="/settings" component={Settings} />
                 <Route path="/test-errors" component={TestErrorHandling} />
                 <Route path="/show-meal-plan" component={ShowMealPlan} />

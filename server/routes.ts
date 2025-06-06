@@ -639,9 +639,14 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         // Check if onboarding should be marked complete
         if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
           console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
-          console.log("[ONBOARDING] Full conversation text:", messages.map(m => `${m.role}: ${m.content}`).join(' | '));
-          // Extract onboarding information from the conversation
-          const householdInfo = extractHouseholdInfoFromChat(messages);
+          
+          // Get the complete conversation history from storage (including the current message)
+          const allMessages = await storage.getMessages();
+          console.log("[ONBOARDING] Retrieved", allMessages.length, "messages from storage");
+          console.log("[ONBOARDING] Full conversation:", allMessages.map(m => `${m.role}: ${m.content}`).join(' | '));
+          
+          // Extract onboarding information from the complete conversation
+          const householdInfo = extractHouseholdInfoFromChat(allMessages);
           console.log("[ONBOARDING] Extracted household info:", householdInfo);
           await storage.updateHousehold({ 
             onboardingComplete: true,
