@@ -258,7 +258,7 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
 
   return (
     <>
-      <Card className="border border-[#E2E2E2] overflow-hidden bg-white hover:shadow-md transition-all w-full">
+      <Card className="border border-[#E2E2E2] bg-white hover:shadow-md transition-all w-full">
         <div className="p-3 sm:p-4 w-full">
           {/* Category Badge and Action Buttons Row - Mobile Optimized */}
           <div className="flex justify-between items-start mb-3 gap-2">
@@ -320,30 +320,30 @@ export default function MealCard({ meal, compact = false }: MealCardProps) {
           )}
           
           {/* Serving info and action buttons - Mobile optimized */}
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-2">
             <div className="text-sm text-[#212121] flex items-center">
               <Utensils className="h-4 w-4 mr-1 text-[#21706D]" />
               <span>Serves {meal.servings || 4}</span>
             </div>
             
-            {/* Action buttons - Mobile first design */}
-            <div className="flex flex-col sm:flex-row gap-2 w-full">
+            {/* Action buttons - Mobile first design with proper spacing */}
+            <div className="flex flex-col gap-2 w-full pb-1">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 text-sm font-medium flex items-center justify-center gap-2"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white w-full h-8 text-xs font-medium flex items-center justify-center gap-1.5"
                 onClick={handleViewRecipe}
               >
-                <FileText className="h-4 w-4" /> 
+                <FileText className="h-3.5 w-3.5" /> 
                 <span>View Recipe</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white flex-1 text-sm font-medium flex items-center justify-center gap-2"
+                className="border-[#21706D] text-[#21706D] hover:bg-[#21706D] hover:text-white w-full h-8 text-xs font-medium flex items-center justify-center gap-1.5"
                 onClick={handleAddToGroceryList}
               >
-                <ShoppingCart className="h-4 w-4" /> 
+                <ShoppingCart className="h-3.5 w-3.5" /> 
                 <span>Add to List</span>
               </Button>
             </div>
