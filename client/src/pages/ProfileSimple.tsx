@@ -168,20 +168,24 @@ export default function ProfileSimple() {
                 <Label className="text-sm font-medium">Household Size</Label>
                 {isEditing ? (
                   <Textarea
-                    value={displayData.members?.join(", ") || ""}
+                    value={displayData.members?.[0]?.name || ""}
                     onChange={(e) => {
                       const value = e.target.value;
-                      const members = value ? value.split(",").map(m => m.trim()).filter(m => m) : [];
                       setEditedHousehold({
                         ...editedHousehold,
-                        members: members
+                        members: [{
+                          id: "member-1",
+                          name: value,
+                          age: "adult",
+                          dietaryRestrictions: displayData.members?.[0]?.dietaryRestrictions || []
+                        }]
                       });
                     }}
-                    placeholder="e.g., 3 people or 2 adults, 1 child"
+                    placeholder="e.g., 2 adults 1 child"
                     rows={2}
                   />
                 ) : (
-                  <p className="text-gray-600">{displayData.members?.join(", ") || "Not set"}</p>
+                  <p className="text-gray-600">{displayData.members?.[0]?.name || "Not set"}</p>
                 )}
               </div>
               
