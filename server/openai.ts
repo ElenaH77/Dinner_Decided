@@ -70,10 +70,32 @@ export async function generateChatResponse(messages: Message[], household?: any,
     }
     
     // Map messages to OpenAI format
-    const openaiMessages = messages.map(msg => ({
-      role: msg.role as 'user' | 'assistant' | 'system',
-      content: msg.content
-    }));
+    const openaiMessages = messages.map(msg => {
+      if (imageData && msg.role === 'user') {
+        // If this is a user message with image data, format for vision API
+        return {
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: [
+            {
+              type: "text",
+              text: msg.content || "What can I make with this?"
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${imageData}`
+              }
+            }
+          ]
+        };
+      } else {
+        // Regular text message
+        return {
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content
+        };
+      }
+    });
     
     // Determine if we're in onboarding or chat mode based on household completion status
     console.log('[CHAT] === DEBUGGING ONBOARDING DETECTION ===');
