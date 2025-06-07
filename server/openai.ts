@@ -61,7 +61,7 @@ const openai = new OpenAI({
 })();
 
 // Generate a response for the chat conversation
-export async function generateChatResponse(messages: Message[], household?: any): Promise<string> {
+export async function generateChatResponse(messages: Message[], household?: any, imageData?: string): Promise<string> {
   try {
     // For demo purposes with no valid API key, return a canned response
     if (!hasValidApiKey()) {

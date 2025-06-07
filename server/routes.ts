@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messageData = req.body;
       
       // Check for reset command FIRST, before any other processing
-      if (messageData.role === "user" && messageData.content) {
+      if (messageData.role === "user" && (messageData.content || messageData.image)) {
         const userContent = messageData.content.toLowerCase();
         console.log("[DEBUG] User message content:", JSON.stringify(userContent));
         console.log("[DEBUG] Checking for reset commands...");
@@ -297,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiResponse = await generateChatResponse([{
         role: messageData.role,
         content: messageData.content
-      }]);
+      }], undefined, messageData.image);
       
       const assistantMessage = {
         id: uuidv4(),
