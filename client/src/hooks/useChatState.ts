@@ -85,7 +85,7 @@ export function useChatState() {
           role: "user",
           content,
           image: imageData
-        });
+        } as any);
       } catch (error) {
         console.error("Error sending image message:", error);
       }
