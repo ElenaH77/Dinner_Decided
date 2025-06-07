@@ -20,7 +20,17 @@ export function useChatState() {
   const messageMutation = useMutation({
     mutationFn: sendMessage,
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/messages'] });
+      // Add the assistant response to existing messages instead of invalidating
+      if (response && response.content) {
+        const currentMessages = Array.isArray(messages) ? messages : [];
+        const updatedMessages = [...currentMessages, {
+          id: response.id || `assistant-${Date.now()}`,
+          role: "assistant" as const,
+          content: response.content,
+          timestamp: response.timestamp || new Date().toISOString()
+        }];
+        queryClient.setQueryData(['/api/chat/messages'], updatedMessages);
+      }
       
       // Also invalidate meal plan and grocery list as they might have changed
       queryClient.invalidateQueries({ queryKey: ['/api/meal-plan/current'] });
@@ -78,8 +88,19 @@ export function useChatState() {
   const handleUserMessage = useCallback(async (content: string, imageData?: string) => {
     setIsGenerating(true);
     
-    // If we have image data, send directly to backend with image
+    // Always add user message to chat first (for persistence)
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: "user",
+      content,
+      timestamp: new Date().toISOString(),
+      ...(imageData && { image: `data:image/jpeg;base64,${imageData}` })
+    };
+    
+    addMessage(userMessage);
+    
     if (imageData) {
+      // Send image data to backend
       try {
         await messageMutation.mutateAsync({
           role: "user",
@@ -90,16 +111,7 @@ export function useChatState() {
         console.error("Error sending image message:", error);
       }
     } else {
-      // Regular text message - add to chat and send to backend
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: "user",
-        content,
-        timestamp: new Date().toISOString(),
-      };
-      
-      addMessage(userMessage);
-      
+      // Regular text message - send to backend
       try {
         const currentMessages = Array.isArray(messages) ? [...messages, userMessage] : [userMessage];
         await messageMutation.mutateAsync(currentMessages);

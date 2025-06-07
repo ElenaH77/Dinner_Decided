@@ -130,20 +130,10 @@ export default function ChatInterface() {
           // Create the user message with image
           const messageText = input.trim() || "What can I make with this?";
           
-          // Add user message to chat immediately
-          const userMessage = {
-            id: `user-${Date.now()}`,
-            role: "user" as const,
-            content: messageText,
-            image: base64Image, // Store full data URL for display
-            timestamp: new Date().toISOString(),
-          };
-          
-          addMessage(userMessage);
           setInput("");
           handleRemoveFile();
           
-          // Send to backend with image data
+          // Send to backend with image data (hook handles adding message to chat)
           try {
             await handleUserMessage(messageText, imageData);
           } catch (error) {
