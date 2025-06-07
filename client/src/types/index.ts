@@ -4,6 +4,7 @@ export interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
+  image?: string; // Base64 image data for display
 }
 
 // Meal types

@@ -75,24 +75,37 @@ export function useChatState() {
   }, [messages, queryClient]);
   
   // Handle sending a user message and getting a response
-  const handleUserMessage = useCallback(async (content: string) => {
-    // Add user message to the chat
-    const userMessage: Message = {
-      id: uuidv4(),
-      role: "user",
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    
-    addMessage(userMessage);
+  const handleUserMessage = useCallback(async (content: string, imageData?: string) => {
     setIsGenerating(true);
     
-    // Use the message mutation to send to backend
-    try {
-      const currentMessages = Array.isArray(messages) ? [...messages, userMessage] : [userMessage];
-      await messageMutation.mutateAsync(currentMessages);
-    } catch (error) {
-      console.error("Error in handleUserMessage:", error);
+    // If we have image data, send directly to backend with image
+    if (imageData) {
+      try {
+        await messageMutation.mutateAsync({
+          role: "user",
+          content,
+          image: imageData
+        });
+      } catch (error) {
+        console.error("Error sending image message:", error);
+      }
+    } else {
+      // Regular text message - add to chat and send to backend
+      const userMessage: Message = {
+        id: uuidv4(),
+        role: "user",
+        content,
+        timestamp: new Date().toISOString(),
+      };
+      
+      addMessage(userMessage);
+      
+      try {
+        const currentMessages = Array.isArray(messages) ? [...messages, userMessage] : [userMessage];
+        await messageMutation.mutateAsync(currentMessages);
+      } catch (error) {
+        console.error("Error in handleUserMessage:", error);
+      }
     }
   }, [messages, addMessage, messageMutation]);
   

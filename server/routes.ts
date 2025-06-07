@@ -1072,13 +1072,21 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
   // Add a single meal to meal plan
   app.post("/api/meal-plan/add-meal", async (req, res) => {
     try {
+      console.log('[ADD MEAL] Request received:', { mealType: req.body.mealType, preferences: req.body.preferences });
+      
       const { mealType, preferences } = req.body;
       const currentPlan = await storage.getCurrentMealPlan();
       const household = await storage.getHousehold();
       
+      console.log('[ADD MEAL] Current plan exists:', !!currentPlan);
+      console.log('[ADD MEAL] Household exists:', !!household);
+      
       if (!currentPlan) {
+        console.log('[ADD MEAL] No active meal plan found');
         return res.status(404).json({ message: "No active meal plan found" });
       }
+      
+      console.log('[ADD MEAL] Generating meal with OpenAI...');
       
       // Generate a single meal with OpenAI
       const newMeals = await generateMealPlan(household, { 
@@ -1086,6 +1094,9 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         mealType,
         additionalPreferences: preferences 
       });
+      
+      console.log('[ADD MEAL] OpenAI response type:', typeof newMeals);
+      console.log('[ADD MEAL] OpenAI response length:', Array.isArray(newMeals) ? newMeals.length : 'not array');
       
       // Add extra validation and fallback for the returned meals
       if (!newMeals) {
@@ -1109,6 +1120,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
         return res.status(500).json({ message: "Failed to generate new meal - invalid meal format" });
       }
       
+      console.log('[ADD MEAL] Generated meal name:', newMeals[0].name);
+      
       // Import normalizeMeal for field name consistency
       const { normalizeMeal } = await import('./openai');
       
@@ -1121,24 +1134,33 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
       // Normalize field names for consistency
       newMeal = normalizeMeal(newMeal);
       
-      console.log('Generated new meal with ID:', newMeal.id);
+      console.log('[ADD MEAL] Generated new meal with ID:', newMeal.id);
+      console.log('[ADD MEAL] Current plan has', currentPlan.meals?.length || 0, 'meals');
       
       // Add the new meal to the plan
-      const updatedMeals = [...currentPlan.meals, newMeal];
+      const updatedMeals = [...(currentPlan.meals || []), newMeal];
+      
+      console.log('[ADD MEAL] Updating meal plan with', updatedMeals.length, 'meals');
       
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
         ...currentPlan, 
         meals: updatedMeals 
       });
       
+      console.log('[ADD MEAL] Updated plan successfully');
+      
       // Update grocery list
       if (household) {
+        console.log('[ADD MEAL] Updating grocery list...');
         await generateAndSaveGroceryList(currentPlan.id, household.id);
+        console.log('[ADD MEAL] Grocery list updated');
       }
       
+      console.log('[ADD MEAL] Sending response with', updatedPlan.meals?.length || 0, 'meals');
       res.json(updatedPlan);
     } catch (error) {
-      console.error("Error adding meal:", error);
+      console.error("[ADD MEAL] Error details:", error);
+      console.error("[ADD MEAL] Error stack:", error.stack);
       res.status(500).json({ message: "Failed to add meal" });
     }
   });
