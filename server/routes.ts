@@ -595,56 +595,18 @@ Keep your response brief and friendly, explaining that they need to set up their
           await storage.saveMessage(messageToSave, householdId);
         }
         
-        // Check onboarding status and use appropriate system prompt
-        const isOnboardingComplete = household.onboardingComplete;
-        
-        // Add onboarding system prompt if not yet complete
-        if (!isOnboardingComplete) {
-          messages.unshift({
-            role: "system",
-            content: `You are an onboarding assistant for "Dinner, Decided" - a meal planning service. Your job is to collect essential information about the user's household to create their personalized meal plan profile.
+        // Always direct users to complete their profile first
+        messages.unshift({
+          role: "system",
+          content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
 
-Follow this exact sequence of questions and only ask ONE question at a time:
+Always politely direct them to visit the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
 
-1. "How many people are you cooking for?" (collect household size)
-2. "Any food stuff we should know about?" (collect dietary restrictions, allergies, dislikes)
-3. "What's your kitchen like?" (collect appliances, equipment, cooking setup)
-4. "How do you feel about cooking?" (collect skill level, confidence, time availability)
-5. "Where do you live?" (collect location/ZIP code for local preferences)
-6. "What makes dinner hard at your house?" (collect challenges, pain points)
-
-IMPORTANT RULES:
-- Only ask ONE question at a time
-- Wait for their answer before moving to the next question
-- Keep responses brief and conversational
-- Don't explain the whole process upfront
-- After the final question, say: "That's all I need to know for now - if you ever want to edit this later, it's all saved under Profile. Ready to plan some meals?"
-
-Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely necessary.`
-          });
-        }
+Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning. Don't ask onboarding questions - just direct them to the profile setup.`
+        });
 
         // Get response from OpenAI
         const aiResponse = await generateChatResponse(messages, household);
-      
-        // Check if onboarding should be marked complete
-        if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
-          console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
-          
-          // Get the complete conversation history from storage (including the current message)
-          const allMessages = await storage.getMessages(householdId);
-          console.log("[ONBOARDING] Retrieved", allMessages.length, "messages from storage");
-          console.log("[ONBOARDING] Full conversation:", allMessages.map(m => `${m.role}: ${m.content}`).join(' | '));
-          
-          // Extract onboarding information from the complete conversation
-          const householdInfo = extractHouseholdInfoFromChat(allMessages);
-          console.log("[ONBOARDING] Extracted household info:", householdInfo);
-          await storage.updateHousehold({ 
-            onboardingComplete: true,
-            ...householdInfo
-          }, householdId);
-          console.log("[ONBOARDING] Household updated with extracted info");
-        }
       
         // Save the AI response message
         if (aiResponse) {
