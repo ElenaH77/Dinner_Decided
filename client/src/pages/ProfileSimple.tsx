@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,18 @@ export default function ProfileSimple() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedHousehold, setEditedHousehold] = useState<any>(null);
   
+  // Clear cache on component mount to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+    queryClient.removeQueries({ queryKey: ['/api/household'] });
+  }, []);
+  
   const { data: household, isLoading, refetch } = useQuery({
     queryKey: ['/api/household'],
     staleTime: 0,
+    gcTime: 0, // Garbage collect immediately
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const handleResetProfile = async () => {
