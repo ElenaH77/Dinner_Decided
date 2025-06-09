@@ -939,7 +939,7 @@ Keep your response brief and friendly, explaining that they need to set up their
       // Create meal plan in storage
       const mealPlan = await storage.createMealPlan({
         name: "Weekly Meal Plan",
-        householdId: household.id,
+        householdId: household.householdId,
         createdAt: new Date(),
         isActive: true,
         specialNotes: specialNotes || "",
