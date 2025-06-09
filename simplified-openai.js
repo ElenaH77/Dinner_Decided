@@ -395,16 +395,22 @@ function buildMealPlanPrompt(household: any, preferences: any, weatherContext: s
     prompt += "\\nMeal selections by day:\\n";
     for (const day in preferences.mealsByDay) {
       if (preferences.mealsByDay.hasOwnProperty(day)) {
-        const category = preferences.mealsByDay[day];
-        if (category) {
-          // Map category to description
-          let description = category;
-          if (category.toLowerCase() === 'quick') description = 'Quick & Easy (15-20 minutes)';
-          if (category.toLowerCase() === 'weeknight') description = 'Weeknight Meal (30-40 minutes)';
-          if (category.toLowerCase() === 'batch') description = 'Batch Cooking (extras for leftovers)';
-          if (category.toLowerCase() === 'split') description = 'Split Prep (prep ahead, cook later)';
-          
-          prompt += \`- \${day}: \${description}\\n\`;
+        const categories = preferences.mealsByDay[day];
+        // Handle both array and string formats
+        const categoryList = Array.isArray(categories) ? categories : [categories];
+        
+        // Process each category for this day
+        for (const category of categoryList) {
+          if (category && typeof category === 'string') {
+            // Map category to description
+            let description = category;
+            if (category.toLowerCase() === 'quick') description = 'Quick & Easy (15-20 minutes)';
+            if (category.toLowerCase() === 'weeknight') description = 'Weeknight Meal (30-40 minutes)';
+            if (category.toLowerCase() === 'batch') description = 'Batch Cooking (extras for leftovers)';
+            if (category.toLowerCase() === 'split') description = 'Split Prep (prep ahead, cook later)';
+            
+            prompt += \`- \${day}: \${description}\\n\`;
+          }
         }
       }
     }

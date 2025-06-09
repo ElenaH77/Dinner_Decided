@@ -207,27 +207,31 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
       // Map meal categories to more user-friendly descriptions
       for (const day in preferences.mealsByDay) {
         if (preferences.mealsByDay.hasOwnProperty(day)) {
-          const category = preferences.mealsByDay[day];
-          // If we have a valid category, add it to our selections
-          if (category) {
-            let categoryDescription = category;
-            
-            // Use predefined descriptions for common categories
-            switch (category.toLowerCase()) {
-              case 'quick':
-                categoryDescription = 'Quick & Easy (15-20 minutes)';
-                break;
-              case 'weeknight':
-                categoryDescription = 'Weeknight Meal (30-40 minutes)';
-                break;
-              case 'batch':
-                categoryDescription = 'Batch Cooking (Make extras for leftovers)';
-                break;
-              case 'split':
-                categoryDescription = 'Split Prep (Prep ahead, cook later - including crockpot meals)';
-                break;
-              default:
-                categoryDescription = preferences.categoryDefinitions?.[category] || category;
+          const categories = preferences.mealsByDay[day];
+          // Handle both array and string formats
+          const categoryList = Array.isArray(categories) ? categories : [categories];
+          
+          // Process each category for this day
+          for (const category of categoryList) {
+            if (category && typeof category === 'string') {
+              let categoryDescription = category;
+              
+              // Use predefined descriptions for common categories
+              switch (category.toLowerCase()) {
+                case 'quick':
+                  categoryDescription = 'Quick & Easy (15-20 minutes)';
+                  break;
+                case 'weeknight':
+                  categoryDescription = 'Weeknight Meal (30-40 minutes)';
+                  break;
+                case 'batch':
+                  categoryDescription = 'Batch Cooking (Make extras for leftovers)';
+                  break;
+                case 'split':
+                  categoryDescription = 'Split Prep (Prep ahead, cook later - including crockpot meals)';
+                  break;
+                default:
+                  categoryDescription = preferences.categoryDefinitions?.[category] || category;
             }
             
             mealSelections.push(`- ${day}: ${categoryDescription}`);
@@ -287,6 +291,7 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
         10. IMPORTANT: Add 2-3 personalized rationales for why this meal is a good fit for this specific family (considering their dietary needs, preferences, time constraints, etc.)
         
         Generate a JSON response with an array of meal objects, ensuring that you include the rationales as an array of strings in a "rationales" field for each meal. Every meal MUST have detailed ingredients with quantities.`;
+      }
     } else if (preferences.singleMeal) {
       // Special handling for single meal generation
       const mealType = preferences.mealType || "any";
