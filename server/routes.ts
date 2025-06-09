@@ -788,7 +788,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
       const updatedHousehold = await storage.updateHousehold({
         ...household,
         members: updatedMembers
-      });
+      }, householdId);
       
       res.json(updatedMember);
     } catch (error) {
@@ -801,7 +801,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
     try {
       // Support both numeric and string IDs
       const rawMemberId = req.params.id;
-      const household = await storage.getHousehold();
+      const householdId = getHouseholdIdFromRequest(req);
+      const household = await storage.getHousehold(householdId);
       
       if (!household || !household.members) {
         return res.status(404).json({ message: "Household or members not found" });
@@ -816,7 +817,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
       const updatedHousehold = await storage.updateHousehold({
         ...household,
         members: updatedMembers
-      });
+      }, householdId);
       
       res.json({ message: "Member removed successfully" });
     } catch (error) {
