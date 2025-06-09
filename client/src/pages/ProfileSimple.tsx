@@ -124,7 +124,8 @@ export default function ProfileSimple() {
       location: h?.location || "",
       cookingSkill: h?.cookingSkill || 1,
       challenges: h?.challenges || "",
-      name: h?.name || "New Household"
+      name: h?.name || "New Household",
+      onboardingComplete: h?.onboardingComplete !== false // Preserve onboarding status
     });
     setIsEditing(true);
   };

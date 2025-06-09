@@ -466,8 +466,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: "system",
             content: analysisContext
           });
-        } else {
-          // Always direct users to complete their profile first
+        } else if (!household.onboardingComplete) {
+          // Only direct to profile setup if onboarding is not complete
           formattedMessages.unshift({
             role: "system",
             content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.

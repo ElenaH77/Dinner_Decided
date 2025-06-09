@@ -24,7 +24,13 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     try {
-      await apiRequest("PATCH", "/api/household", household);
+      // Ensure onboardingComplete is preserved when saving profile
+      const profileData = {
+        ...household,
+        onboardingComplete: household?.onboardingComplete !== false
+      };
+      
+      await apiRequest("PATCH", "/api/household", profileData);
       queryClient.invalidateQueries({ queryKey: ['/api/household'] });
       
       toast({
