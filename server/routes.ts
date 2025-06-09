@@ -11,7 +11,9 @@ import { getWeatherContextForMealPlanning } from "./weather";
 
 // Helper function to extract household ID from request headers
 function getHouseholdIdFromRequest(req: Request): string {
+  console.log('[HOUSEHOLD ID] Request headers:', req.headers);
   const householdId = req.headers['x-household-id'] as string;
+  console.log('[HOUSEHOLD ID] Extracted household ID:', householdId);
   if (!householdId) {
     throw new Error('Missing household ID in request headers');
   }
@@ -427,7 +429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Get household ID for message association - create one if needed for onboarding
-        let household = await storage.getHousehold();
+        const altHouseholdId = getHouseholdIdFromRequest(req);
+        let household = await storage.getHousehold(altHouseholdId);
         if (!household) {
           // Create a basic household for onboarding
           household = await storage.createHousehold({
@@ -438,11 +441,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             challenges: null,
             location: null,
             appliances: []
-          });
+          }, altHouseholdId);
+          console.log("[CHAT] Created new household for onboarding:", household.id);
         }
         
         // Get previous messages for context
-        const previousMessages = await storage.getMessages();
+        const previousMessages = await storage.getMessages(altHouseholdId);
         const recentMessages = previousMessages.slice(-10);
         
         // Check onboarding status to determine which system prompt to use
