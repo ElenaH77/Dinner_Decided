@@ -650,8 +650,8 @@ Keep your response brief and friendly, explaining that they need to set up their
       console.log('[HOUSEHOLD] Creating household for ID:', householdId);
       console.log('[HOUSEHOLD] Request body:', JSON.stringify(req.body, null, 2));
       
-      // Add householdId from header to the request data
-      const requestData = { ...req.body, householdId };
+      // Add householdId from header to the request data and set onboarding complete
+      const requestData = { ...req.body, householdId, onboardingComplete: true };
       const data = insertHouseholdSchema.parse(requestData);
       const household = await storage.createHousehold(data, householdId);
       console.log('[HOUSEHOLD] Successfully created household:', household.id);
@@ -956,7 +956,7 @@ Keep your response brief and friendly, explaining that they need to set up their
       
       // Generate grocery list from meal plan
       console.log('[MEAL PLAN GENERATE] Generating grocery list for meal plan:', mealPlan.id);
-      await generateAndSaveGroceryList(mealPlan.id, household.id);
+      await generateAndSaveGroceryList(mealPlan.id, household.householdId);
       console.log('[MEAL PLAN GENERATE] Successfully completed meal plan generation');
       
       res.json(mealPlan);

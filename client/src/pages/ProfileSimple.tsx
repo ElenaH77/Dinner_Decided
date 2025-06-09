@@ -125,6 +125,7 @@ export default function ProfileSimple() {
       cookingSkill: h?.cookingSkill || 1,
       challenges: h?.challenges || "",
       name: h?.name || "New Household",
+      ownerName: h?.ownerName || "",
       onboardingComplete: h?.onboardingComplete !== false // Preserve onboarding status
     });
     setIsEditing(true);
@@ -225,6 +226,22 @@ export default function ProfileSimple() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">What should I call you?</Label>
+                {isEditing ? (
+                  <Input
+                    value={displayData.ownerName || ""}
+                    onChange={(e) => setEditedHousehold({
+                      ...editedHousehold,
+                      ownerName: e.target.value
+                    })}
+                    placeholder="e.g., Sarah, Mike, Chef"
+                  />
+                ) : (
+                  <p className="text-gray-600 mt-1">{displayData.ownerName || "Not set"}</p>
+                )}
+              </div>
+              
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Household Size</Label>
                 {isEditing ? (
