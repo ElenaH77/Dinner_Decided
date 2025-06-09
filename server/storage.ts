@@ -872,6 +872,13 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
+    console.log('[DATABASE] Inserting meal plan with data:', JSON.stringify({
+      name: processedData.name,
+      householdId: processedData.householdId,
+      householdIdType: typeof processedData.householdId,
+      isActive: processedData.isActive
+    }));
+    
     const [mealPlan] = await db.insert(mealPlans).values(processedData).returning();
     return mealPlan;
   }

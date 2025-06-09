@@ -942,7 +942,6 @@ Keep your response brief and friendly, explaining that they need to set up their
         householdId: household.householdId,
         createdAt: new Date(),
         isActive: true,
-        specialNotes: specialNotes || "",
         meals: mealsWithIds,
       });
       
