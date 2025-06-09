@@ -18,6 +18,8 @@ export default function ProfileSimple() {
   
   // Clear cache on component mount to ensure fresh data
   useEffect(() => {
+    console.log("ProfileSimple - clearing cache and forcing fresh fetch");
+    queryClient.clear(); // Clear all cache
     queryClient.invalidateQueries({ queryKey: ['/api/household'] });
     queryClient.removeQueries({ queryKey: ['/api/household'] });
   }, []);
@@ -28,6 +30,31 @@ export default function ProfileSimple() {
     gcTime: 0, // Garbage collect immediately
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    enabled: true,
+    queryFn: async () => {
+      console.log("ProfileSimple - executing custom query function");
+      const response = await fetch('/api/household', {
+        headers: {
+          'X-Household-Id': localStorage.getItem('dinner-decided-household-id') || 'unknown'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      const text = await response.text();
+      console.log("ProfileSimple - raw response text:", text);
+      
+      if (!text.trim()) {
+        console.log("ProfileSimple - empty response, returning null");
+        return null;
+      }
+      
+      const data = JSON.parse(text);
+      console.log("ProfileSimple - parsed data:", data);
+      return data;
+    }
   });
 
   const handleResetProfile = async () => {
@@ -121,11 +148,14 @@ export default function ProfileSimple() {
     { id: "standMixer", name: "Stand Mixer" },
   ];
 
+  console.log("ProfileSimple - household data:", household);
+  console.log("ProfileSimple - isLoading:", isLoading);
+
   if (isLoading) {
     return <div>Loading profile...</div>;
   }
 
-  if (!household) {
+  if (!household || Object.keys(household).length === 0) {
     return <div>No household data found</div>;
   }
 
