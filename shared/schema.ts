@@ -26,7 +26,7 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
-  householdId: integer("household_id").references(() => households.id).notNull(),
+  householdId: text("household_id").references(() => households.householdId).notNull(),
 });
 
 export const insertMessageSchema = createInsertSchema(messages);
@@ -37,7 +37,7 @@ export type Message = typeof messages.$inferSelect;
 export const mealPlans = pgTable("meal_plans", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  householdId: integer("household_id").references(() => households.id).notNull(),
+  householdId: text("household_id").references(() => households.householdId).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
   meals: jsonb("meals").notNull().$type<{
