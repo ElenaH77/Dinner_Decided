@@ -36,23 +36,33 @@ export function deepClone<T>(data: T): T {
  * Clear all localStorage data when household ID changes
  */
 export function clearStaleHouseholdData(): void {
-  const keysToRemove = [
-    'dinner_decided_meal_plan',
-    'dinner_decided_household', 
-    'dinner_decided_messages',
-    'dinner_decided_grocery_list',
-    'dinner_decided_preferences',
+  // Clear all dinner-decided related keys
+  const keys = Object.keys(localStorage);
+  const keysToRemove = keys.filter(key => 
+    key.startsWith('dinner_decided_') || 
+    key.startsWith('dinner-decided-') ||
+    key.includes('meal_plan') ||
+    key.includes('household') ||
+    key.includes('grocery') ||
+    key.includes('messages') ||
+    key.includes('preferences')
+  );
+  
+  // Also include known legacy keys
+  keysToRemove.push(
     'meal_plan_cache',
-    'current_meal_plan',
+    'current_meal_plan', 
     'household_data',
-    'grocery_list_cache'
-  ];
+    'grocery_list_cache',
+    'chat_messages',
+    'user_preferences'
+  );
   
   keysToRemove.forEach(key => {
     localStorage.removeItem(key);
   });
   
-  console.log('Cleared stale household data from localStorage');
+  console.log('Cleared stale household data from localStorage:', keysToRemove);
 }
 
 /**

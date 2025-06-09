@@ -711,7 +711,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
 
   app.patch("/api/household", async (req, res) => {
     try {
-      const household = await storage.updateHousehold(req.body);
+      const householdId = getHouseholdIdFromRequest(req);
+      const household = await storage.updateHousehold(req.body, householdId);
       res.json(household);
     } catch (error) {
       res.status(500).json({ message: "Failed to update household" });
@@ -723,7 +724,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
     try {
       console.log('[HOUSEHOLD] Adding new member:', JSON.stringify(req.body, null, 2));
       
-      const household = await storage.getHousehold();
+      const householdId = getHouseholdIdFromRequest(req);
+      const household = await storage.getHousehold(householdId);
       if (!household) {
         return res.status(404).json({ message: "Household not found" });
       }
@@ -746,7 +748,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
       const updatedHousehold = await storage.updateHousehold({
         ...household,
         members
-      });
+      }, householdId);
       
       console.log('[HOUSEHOLD] Updated household:', JSON.stringify(updatedHousehold, null, 2));
       
@@ -761,7 +763,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
     try {
       // Support both numeric and string IDs
       const rawMemberId = req.params.id;
-      const household = await storage.getHousehold();
+      const householdId = getHouseholdIdFromRequest(req);
+      const household = await storage.getHousehold(householdId);
       
       if (!household || !household.members) {
         return res.status(404).json({ message: "Household or members not found" });
