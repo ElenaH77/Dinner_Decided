@@ -855,12 +855,11 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
   // Meal plan routes
   app.get("/api/meal-plan/current", async (req, res) => {
     try {
-      console.log('[API GET CURRENT] Fetching current meal plan');
-      const allPlans = await storage.getAllMealPlans();
-      console.log(`[API GET CURRENT] Available meal plans: ${allPlans.length > 0 ? allPlans.map(p => p.id).join(', ') : 'none'}`);
+      const householdId = getHouseholdIdFromRequest(req);
+      console.log('[API GET CURRENT] Fetching current meal plan for household:', householdId);
       
-      // Get current active plan from storage
-      let mealPlan = await storage.getCurrentMealPlan();
+      // Get current active plan from storage with household filtering
+      let mealPlan = await storage.getCurrentMealPlan(householdId);
       
       // If no meal plan exists, return 404
       if (!mealPlan) {

@@ -718,33 +718,49 @@ export class DatabaseStorage implements IStorage {
     return mealPlan;
   }
 
-  async getAllMealPlans(): Promise<MealPlan[]> {
+  async getAllMealPlans(clientHouseholdId: string): Promise<MealPlan[]> {
     try {
+      // First find the household
+      const household = await this.getHousehold(clientHouseholdId);
+      if (!household) {
+        console.log(`[DATABASE] No household found for ID: ${clientHouseholdId}`);
+        return [];
+      }
+
       const allMealPlans = await db
         .select()
         .from(mealPlans)
+        .where(eq(mealPlans.householdId, household.id))
         .orderBy(mealPlans.createdAt, 'desc');
       
-      console.log(`[DATABASE] Retrieved ${allMealPlans.length} meal plans`);
+      console.log(`[DATABASE] Retrieved ${allMealPlans.length} meal plans for household ${clientHouseholdId}`);
       return allMealPlans;
     } catch (error) {
-      console.error('[DATABASE] Error retrieving all meal plans:', error);
+      console.error('[DATABASE] Error retrieving meal plans:', error);
       return [];
     }
   }
 
-  async getCurrentMealPlan(): Promise<MealPlan | undefined> {
+  async getCurrentMealPlan(clientHouseholdId: string): Promise<MealPlan | undefined> {
     try {
-      // Get all meal plans to be used in various selection strategies
+      // First find the household
+      const household = await this.getHousehold(clientHouseholdId);
+      if (!household) {
+        console.log(`[DATABASE] No household found for ID: ${clientHouseholdId}, no meal plans available`);
+        return undefined;
+      }
+
+      // Get all meal plans for this specific household
       const allMealPlans = await db
         .select()
         .from(mealPlans)
+        .where(eq(mealPlans.householdId, household.id))
         .orderBy(mealPlans.createdAt, 'desc');
       
       // Log basic info about available meal plans for debugging
       if (allMealPlans.length > 0) {
         const idsList = allMealPlans.map(p => p.id).join(', ');
-        console.log(`[API GET CURRENT] Available meal plans: ${idsList}`);
+        console.log(`[API GET CURRENT] Available meal plans for household ${clientHouseholdId}: ${idsList}`);
       }
       
       // First try to find all active meal plans
