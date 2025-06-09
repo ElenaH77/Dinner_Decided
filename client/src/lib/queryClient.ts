@@ -7,8 +7,15 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Get household ID from localStorage
+// Cache the household ID to prevent race conditions
+let cachedHouseholdId: string | null = null;
+
+// Get household ID from localStorage with caching to prevent race conditions
 function getHouseholdId(): string {
+  if (cachedHouseholdId) {
+    return cachedHouseholdId;
+  }
+  
   const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
   let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
   
@@ -16,9 +23,22 @@ function getHouseholdId(): string {
     householdId = crypto.randomUUID();
     localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
     console.log('[API] Generated new household ID:', householdId);
+  } else {
+    console.log('[API] Using existing household ID:', householdId);
   }
   
+  cachedHouseholdId = householdId;
   return householdId;
+}
+
+// Export function to reset household ID (for testing or user reset)
+export function resetHouseholdId(): string {
+  const newId = crypto.randomUUID();
+  const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
+  localStorage.setItem(HOUSEHOLD_ID_KEY, newId);
+  cachedHouseholdId = newId;
+  console.log('[API] Reset to new household ID:', newId);
+  return newId;
 }
 
 export async function apiRequest(
