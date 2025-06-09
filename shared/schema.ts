@@ -5,6 +5,7 @@ import { z } from "zod";
 // Household schema
 export const households = pgTable("households", {
   id: serial("id").primaryKey(),
+  householdId: text("household_id").notNull().unique(), // User's unique identifier
   name: text("name").notNull(),
   members: jsonb("members").notNull().$type<{ id: string; name: string; age: string; dietaryRestrictions?: string[] }[]>(),
   cookingSkill: integer("cooking_skill").notNull(),

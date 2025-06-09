@@ -47,14 +47,14 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   // Collection of all meals across meal plans
-  private allMeals: Map<string, any> = new Map();
-  private household: Household | undefined;
-  private messages: Message[] = [];
-  private mealPlans: Map<number, MealPlan> = new Map();
-  private groceryLists: Map<number, GroceryList> = new Map();
-  private currentMealPlanId: number | undefined;
-  private mealPlanCounter: number = 1;
-  private groceryListCounter: number = 1;
+  private allMeals: Map<string, Map<string, any>> = new Map(); // householdId -> meals
+  private households: Map<string, Household> = new Map(); // householdId -> household
+  private messages: Map<string, Message[]> = new Map(); // householdId -> messages
+  private mealPlans: Map<string, Map<number, MealPlan>> = new Map(); // householdId -> mealPlans
+  private groceryLists: Map<string, Map<number, GroceryList>> = new Map(); // householdId -> groceryLists
+  private currentMealPlanIds: Map<string, number> = new Map(); // householdId -> currentMealPlanId
+  private mealPlanCounters: Map<string, number> = new Map(); // householdId -> counter
+  private groceryListCounters: Map<string, number> = new Map(); // householdId -> counter
 
   constructor() {
     // Initialize with demo data only if we haven't already loaded from a persistent store
@@ -568,10 +568,10 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Meal methods
-  async getAllMeals(): Promise<any[]> {
+  async getAllMeals(householdId: string): Promise<any[]> {
     try {
-      // Get the current meal plan
-      const currentMealPlan = await this.getCurrentMealPlan();
+      // Get the current meal plan for this household
+      const currentMealPlan = await this.getCurrentMealPlan(householdId);
       
       if (!currentMealPlan || !currentMealPlan.meals) {
         return [];

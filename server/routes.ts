@@ -686,7 +686,8 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
   // Household routes
   app.get("/api/household", async (req, res) => {
     try {
-      const household = await storage.getHousehold();
+      const householdId = getHouseholdIdFromRequest(req);
+      const household = await storage.getHousehold(householdId);
       res.json(household);
     } catch (error) {
       res.status(500).json({ message: "Failed to get household" });
