@@ -758,18 +758,24 @@ export class DatabaseStorage implements IStorage {
         console.log(`[DATABASE] No household found for ID: ${clientHouseholdId}, no meal plans available`);
         return undefined;
       }
+      
+      console.log(`[DEBUG] Found household - ID: ${household.id}, householdId: ${household.householdId}, client requested: ${clientHouseholdId}`);
 
       // Get all meal plans for this specific household
       const allMealPlans = await db
         .select()
         .from(mealPlans)
-        .where(eq(mealPlans.householdId, household.id))
+        .where(eq(mealPlans.householdId, household.householdId))
         .orderBy(mealPlans.createdAt, 'desc');
+      
+      console.log(`[API GET CURRENT] Database query for household ${clientHouseholdId} (householdId: ${household.householdId}) returned ${allMealPlans.length} meal plans`);
       
       // Log basic info about available meal plans for debugging
       if (allMealPlans.length > 0) {
-        const idsList = allMealPlans.map(p => p.id).join(', ');
-        console.log(`[API GET CURRENT] Available meal plans for household ${clientHouseholdId}: ${idsList}`);
+        const idsList = allMealPlans.map(p => `${p.id}(active:${p.isActive})`).join(', ');
+        console.log(`[API GET CURRENT] Available meal plans: ${idsList}`);
+      } else {
+        console.log(`[API GET CURRENT] No meal plans found in database for household: ${household.householdId}`);
       }
       
       // First try to find all active meal plans
