@@ -613,39 +613,43 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-  async getHousehold(): Promise<Household | undefined> {
-    // Get the most recently created household (highest ID)
+  async getHousehold(clientHouseholdId: string): Promise<Household | undefined> {
+    // Get household by the client's unique household ID
     const [household] = await db
       .select()
       .from(households)
-      .orderBy(households.id, 'desc')
+      .where(eq(households.householdId, clientHouseholdId))
       .limit(1);
     
-    console.log('[DATABASE] Retrieved household with ID:', household?.id);
+    console.log('[DATABASE] Retrieved household with household ID:', clientHouseholdId, 'found:', !!household);
     return household;
   }
 
-  async createHousehold(data: InsertHousehold): Promise<Household> {
-    const [household] = await db.insert(households).values(data).returning();
+  async createHousehold(data: InsertHousehold, clientHouseholdId: string): Promise<Household> {
+    const householdData = {
+      ...data,
+      householdId: clientHouseholdId
+    };
+    const [household] = await db.insert(households).values(householdData).returning();
     return household;
   }
 
-  async updateHousehold(data: Partial<Household>): Promise<Household> {
-    // Always use the existing household ID to prevent creating new households
-    const household = await this.getHousehold();
+  async updateHousehold(data: Partial<Household>, clientHouseholdId: string): Promise<Household> {
+    // Find household by client household ID
+    const household = await this.getHousehold(clientHouseholdId);
     if (!household) {
       throw new Error("No household found to update");
     }
     
-    // Force the ID to be the same as the existing household
+    // Update the specific household
     const updateData = { ...data, id: household.id };
     
-    console.log('[DATABASE] Updating household with ID:', household.id);
+    console.log('[DATABASE] Updating household with client ID:', clientHouseholdId);
     
     const [updatedHousehold] = await db
       .update(households)
       .set(updateData)
-      .where(eq(households.id, household.id))
+      .where(eq(households.householdId, clientHouseholdId))
       .returning();
     
     return updatedHousehold;

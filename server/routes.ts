@@ -697,8 +697,9 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
   app.post("/api/household", async (req, res) => {
     try {
       console.log('[HOUSEHOLD] Creating household with data:', JSON.stringify(req.body, null, 2));
+      const householdId = getHouseholdIdFromRequest(req);
       const data = insertHouseholdSchema.parse(req.body);
-      const household = await storage.createHousehold(data);
+      const household = await storage.createHousehold(data, householdId);
       console.log('[HOUSEHOLD] Created household:', JSON.stringify(household, null, 2));
       res.json(household);
     } catch (error) {
