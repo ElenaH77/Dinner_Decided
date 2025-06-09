@@ -19,9 +19,16 @@ export default function ProfileSimple() {
   // Clear cache on component mount to ensure fresh data
   useEffect(() => {
     console.log("ProfileSimple - clearing cache and forcing fresh fetch");
-    queryClient.clear(); // Clear all cache
+    // Clear ALL cache including localStorage and React Query cache
+    localStorage.removeItem('dinner-decided-household-id');
+    queryClient.clear();
     queryClient.invalidateQueries({ queryKey: ['/api/household'] });
     queryClient.removeQueries({ queryKey: ['/api/household'] });
+    
+    // Force a new household ID
+    const newId = crypto.randomUUID();
+    localStorage.setItem('dinner-decided-household-id', newId);
+    console.log("ProfileSimple - forced new household ID:", newId);
   }, []);
   
   const { data: household, isLoading, refetch } = useQuery({
@@ -149,6 +156,10 @@ export default function ProfileSimple() {
   ];
 
   console.log("ProfileSimple - household data:", household);
+  console.log("ProfileSimple - household type:", typeof household);
+  console.log("ProfileSimple - household is null:", household === null);
+  console.log("ProfileSimple - household is undefined:", household === undefined);
+  console.log("ProfileSimple - household keys:", household ? Object.keys(household) : 'N/A');
   console.log("ProfileSimple - isLoading:", isLoading);
 
   if (isLoading) {
@@ -156,8 +167,26 @@ export default function ProfileSimple() {
   }
 
   if (!household || Object.keys(household).length === 0) {
-    return <div>No household data found</div>;
+    console.log("ProfileSimple - showing no data message");
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-6">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6">Household Profile</h1>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p>No household data found. Please complete onboarding first.</p>
+            <button 
+              onClick={() => window.location.href = '/chat-onboarding'}
+              className="mt-4 bg-[#21706D] text-white px-4 py-2 rounded hover:bg-[#195957]"
+            >
+              Start Onboarding
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  console.log("ProfileSimple - proceeding to render with data:", household);
 
   const displayData = isEditing ? editedHousehold : (household as any);
 
