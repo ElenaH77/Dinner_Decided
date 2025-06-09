@@ -366,6 +366,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat", async (req, res) => {
     console.log("[CHAT DEBUG] POST /api/chat called with body:", JSON.stringify(req.body, null, 2));
     try {
+      // Extract household ID at the start of the route
+      const householdId = getHouseholdIdFromRequest(req);
+      console.log("[CHAT] Using household ID:", householdId);
+      
       // Support both direct message submissions and array of messages (legacy support)
       if (req.body.message) {
         // Handle string message format (convert to user message object)
@@ -428,9 +432,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Get household ID for message association - create one if needed for onboarding
-        const altHouseholdId = getHouseholdIdFromRequest(req);
-        let household = await storage.getHousehold(altHouseholdId);
+        // Use the household ID extracted at the start of the route
+        let household = await storage.getHousehold(householdId);
         if (!household) {
           // Create a basic household for onboarding
           household = await storage.createHousehold({
@@ -441,12 +444,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             challenges: null,
             location: null,
             appliances: []
-          }, altHouseholdId);
+          }, householdId);
           console.log("[CHAT] Created new household for onboarding:", household.id);
         }
         
         // Get previous messages for context
-        const previousMessages = await storage.getMessages(altHouseholdId);
+        const previousMessages = await storage.getMessages(householdId);
         const recentMessages = previousMessages.slice(-10);
         
         // Check onboarding status to determine which system prompt to use
@@ -486,7 +489,7 @@ Keep your response brief and friendly, explaining that they need to set up their
           householdId: household.id,
           timestamp: new Date()
         };
-        await storage.saveMessage(userMessage);
+        await storage.saveMessage(userMessage, householdId);
         
         // Get response from OpenAI
         const aiResponse = await generateChatResponse(formattedMessages, household);
