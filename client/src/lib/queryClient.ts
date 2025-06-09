@@ -123,7 +123,19 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    // Handle empty responses (like when household doesn't exist)
+    const text = await res.text();
+    if (!text.trim()) {
+      return null;
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      console.error('Failed to parse JSON response:', text);
+      return null;
+    }
   };
 
 export const queryClient = new QueryClient({

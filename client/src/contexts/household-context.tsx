@@ -28,7 +28,19 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await apiRequest('GET', '/api/household');
-      const data = await response.json();
+      
+      // Handle empty responses (when household doesn't exist)
+      const text = await response.text();
+      let data = null;
+      
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          console.error('Failed to parse household JSON response:', text);
+          data = null;
+        }
+      }
       
       console.log('Fetched household data:', data);
       

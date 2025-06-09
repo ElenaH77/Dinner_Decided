@@ -38,9 +38,25 @@ function App() {
   useEffect(() => {
     if (location === "/" && !isLoading) {
       // Check if household exists by making an API call
-      fetch('/api/household')
-        .then(response => response.json())
-        .then(household => {
+      fetch('/api/household', {
+        headers: {
+          'X-Household-Id': localStorage.getItem('dinner-decided-household-id') || crypto.randomUUID()
+        }
+      })
+        .then(async response => {
+          // Handle empty responses (when household doesn't exist)
+          const text = await response.text();
+          let household = null;
+          
+          if (text.trim()) {
+            try {
+              household = JSON.parse(text);
+            } catch (error) {
+              console.error('Failed to parse household JSON:', text);
+              household = null;
+            }
+          }
+          
           if (!household || !household.id) {
             console.log('No household found, redirecting to chat-onboarding');
             setLocation("/chat-onboarding");
