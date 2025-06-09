@@ -684,7 +684,7 @@ export class DatabaseStorage implements IStorage {
     // Process data to handle date conversion issues
     const processedMessage = { 
       ...message,
-      householdId: household.id
+      householdId: household.householdId
     };
     
     // Ensure timestamp is a valid Date object

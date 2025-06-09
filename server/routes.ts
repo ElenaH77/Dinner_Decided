@@ -486,7 +486,7 @@ Keep your response brief and friendly, explaining that they need to set up their
           id: uuidv4(),
           role: singleMessage.role,
           content: singleMessage.content,
-          householdId: household.id,
+          householdId: household.householdId,
           timestamp: new Date()
         };
         await storage.saveMessage(userMessage, householdId);
@@ -519,12 +519,12 @@ Keep your response brief and friendly, explaining that they need to set up their
           id: responseId,
           role: "assistant",
           content: aiResponse,
-          householdId: household.id,
+          householdId: household.householdId,
           timestamp: new Date()
         };
         
         // Save the AI response
-        await storage.saveMessage(responseMessage);
+        await storage.saveMessage(responseMessage, householdId);
         
         // Return the formatted response
         return res.json({
