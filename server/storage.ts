@@ -302,51 +302,54 @@ export class MemStorage implements IStorage {
   }
 
   // Household methods
-  async getHousehold(): Promise<Household | undefined> {
-    return this.household;
+  async getHousehold(householdId: string): Promise<Household | undefined> {
+    console.log(`[DATABASE] Retrieved household with household ID: ${householdId} found: ${this.households.has(householdId)}`);
+    return this.households.get(householdId);
   }
 
-  async createHousehold(data: InsertHousehold): Promise<Household> {
-    this.household = {
-      id: 1,
+  async createHousehold(data: InsertHousehold, householdId: string): Promise<Household> {
+    const household: Household = {
+      id: householdId,
       ...data
     };
-    return this.household;
+    this.households.set(householdId, household);
+    console.log(`[DATABASE] Created household with ID: ${householdId}`);
+    return household;
   }
 
-  async updateHousehold(data: Partial<Household>): Promise<Household> {
-    if (!this.household) {
-      throw new Error("No household exists");
+  async updateHousehold(data: Partial<Household>, householdId: string): Promise<Household> {
+    const existing = this.households.get(householdId);
+    if (!existing) {
+      throw new Error(`No household exists with ID: ${householdId}`);
     }
     
-    // Handle special case for members to avoid new household creation
-    if (data.id && data.id !== this.household.id) {
-      console.log('[HOUSEHOLD] Keeping existing household ID instead of creating new one');
-      data.id = this.household.id;
-    }
-    
-    this.household = {
-      ...this.household,
-      ...data
+    const updated: Household = {
+      ...existing,
+      ...data,
+      id: householdId // Ensure ID stays consistent
     };
     
-    return this.household;
+    this.households.set(householdId, updated);
+    console.log(`[DATABASE] Updated household with ID: ${householdId}`);
+    return updated;
   }
 
   // Message methods
-  async getMessages(): Promise<Message[]> {
-    return this.messages;
+  async getMessages(householdId: string): Promise<Message[]> {
+    return this.messages.get(householdId) || [];
   }
 
-  async saveMessage(message: Message): Promise<Message> {
-    this.messages.push(message);
+  async saveMessage(message: Message, householdId: string): Promise<Message> {
+    if (!this.messages.has(householdId)) {
+      this.messages.set(householdId, []);
+    }
+    const householdMessages = this.messages.get(householdId)!;
+    householdMessages.push(message);
     return message;
   }
 
-  async clearMessages(): Promise<void> {
-    this.messages = [];
-    // Save the empty messages array to the persistent store
-    this.saveToPersistentStore();
+  async clearMessages(householdId: string): Promise<void> {
+    this.messages.set(householdId, []);
   }
 
   // MealPlan methods
@@ -626,11 +629,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createHousehold(data: InsertHousehold, clientHouseholdId: string): Promise<Household> {
+    console.log('[DATABASE] Creating household with client ID:', clientHouseholdId);
+    console.log('[DATABASE] Household data:', data);
+    
     const householdData = {
       ...data,
       householdId: clientHouseholdId
     };
+    
+    console.log('[DATABASE] Final household data for insert:', householdData);
     const [household] = await db.insert(households).values(householdData).returning();
+    console.log('[DATABASE] Created household:', household);
     return household;
   }
 
