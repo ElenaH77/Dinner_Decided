@@ -646,11 +646,15 @@ Keep your response brief and friendly, explaining that they need to set up their
 
   app.post("/api/household", async (req, res) => {
     try {
-      console.log('[HOUSEHOLD] Creating household with data:', JSON.stringify(req.body, null, 2));
       const householdId = getHouseholdIdFromRequest(req);
-      const data = insertHouseholdSchema.parse(req.body);
+      console.log('[HOUSEHOLD] Creating household for ID:', householdId);
+      console.log('[HOUSEHOLD] Request body:', JSON.stringify(req.body, null, 2));
+      
+      // Add householdId from header to the request data
+      const requestData = { ...req.body, householdId };
+      const data = insertHouseholdSchema.parse(requestData);
       const household = await storage.createHousehold(data, householdId);
-      console.log('[HOUSEHOLD] Created household:', JSON.stringify(household, null, 2));
+      console.log('[HOUSEHOLD] Successfully created household:', household.id);
       res.json(household);
     } catch (error) {
       console.error('[HOUSEHOLD] Error creating household:', error);
@@ -859,8 +863,11 @@ Keep your response brief and friendly, explaining that they need to set up their
   app.post("/api/meal-plan/generate", async (req, res) => {
     try {
       const householdId = getHouseholdIdFromRequest(req);
-      console.log('[MEAL PLAN] Generating meal plan with preferences:', JSON.stringify(req.body.preferences || {}, null, 2));
+      console.log('[MEAL PLAN GENERATE] Starting generation for household:', householdId);
+      console.log('[MEAL PLAN GENERATE] Request preferences:', JSON.stringify(req.body.preferences || {}, null, 2));
+      
       const household = await storage.getHousehold(householdId);
+      console.log('[MEAL PLAN GENERATE] Retrieved household:', household ? `ID: ${household.id}, householdId: ${household.householdId}, onboardingComplete: ${household.onboardingComplete}` : 'null');
       
       if (!household) {
         console.log('[MEAL PLAN] No household found to generate meal plan');
@@ -937,6 +944,7 @@ Keep your response brief and friendly, explaining that they need to set up their
       console.log('[MEAL PLAN] Added stable IDs to meals');
       
       // Create meal plan in storage
+      console.log('[MEAL PLAN GENERATE] Creating meal plan in storage with householdId:', household.householdId);
       const mealPlan = await storage.createMealPlan({
         name: "Weekly Meal Plan",
         householdId: household.householdId,
@@ -944,9 +952,12 @@ Keep your response brief and friendly, explaining that they need to set up their
         isActive: true,
         meals: mealsWithIds,
       });
+      console.log('[MEAL PLAN GENERATE] Created meal plan with ID:', mealPlan.id);
       
       // Generate grocery list from meal plan
+      console.log('[MEAL PLAN GENERATE] Generating grocery list for meal plan:', mealPlan.id);
       await generateAndSaveGroceryList(mealPlan.id, household.id);
+      console.log('[MEAL PLAN GENERATE] Successfully completed meal plan generation');
       
       res.json(mealPlan);
     } catch (error) {
