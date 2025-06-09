@@ -33,6 +33,54 @@ export function deepClone<T>(data: T): T {
 }
 
 /**
+ * Clear all localStorage data when household ID changes
+ */
+export function clearStaleHouseholdData(): void {
+  const keysToRemove = [
+    'dinner_decided_meal_plan',
+    'dinner_decided_household', 
+    'dinner_decided_messages',
+    'dinner_decided_grocery_list',
+    'dinner_decided_preferences',
+    'meal_plan_cache',
+    'current_meal_plan',
+    'household_data',
+    'grocery_list_cache'
+  ];
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
+  });
+  
+  console.log('Cleared stale household data from localStorage');
+}
+
+/**
+ * Check if localStorage data belongs to current household
+ */
+export function validateHouseholdData(data: any): boolean {
+  if (!data || !data.householdId) return false;
+  
+  // Get current household ID from header
+  const currentHouseholdId = document.querySelector('meta[name="household-id"]')?.getAttribute('content') || 
+                            localStorage.getItem('dinner-decided-household-id');
+  
+  if (!currentHouseholdId) return false;
+  
+  // If householdId is a number and current is string, compare as strings
+  const dataHouseholdId = String(data.householdId);
+  const currentHouseholdIdStr = String(currentHouseholdId);
+  
+  if (dataHouseholdId !== currentHouseholdIdStr) {
+    console.log(`Household ID mismatch: localStorage has ${dataHouseholdId}, current session is ${currentHouseholdIdStr}`);
+    clearStaleHouseholdData();
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Save data to localStorage with error handling
  */
 export function saveToStorage<T>(key: string, data: T): StorageResult<T> {
@@ -180,10 +228,14 @@ export async function loadMealPlan() {
   // First try localStorage for immediate response
   const localResult = loadFromStorage(STORAGE_KEYS.MEAL_PLAN);
   
-  // If we have a valid local meal plan, use it
+  // If we have local data, validate it belongs to current household
   if (localResult.success && localResult.data && localResult.data.id) {
-    console.log("Loaded meal plan from localStorage:", localResult.data);
-    return localResult;
+    if (validateHouseholdData(localResult.data)) {
+      console.log("Loaded meal plan from localStorage:", localResult.data);
+      return localResult;
+    } else {
+      console.log("localStorage meal plan belongs to different household, ignoring");
+    }
   }
   
   // Try to load from API as a fallback
