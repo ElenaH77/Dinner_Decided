@@ -905,8 +905,9 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
 
   app.post("/api/meal-plan/generate", async (req, res) => {
     try {
+      const householdId = getHouseholdIdFromRequest(req);
       console.log('[MEAL PLAN] Generating meal plan with preferences:', JSON.stringify(req.body.preferences || {}, null, 2));
-      const household = await storage.getHousehold();
+      const household = await storage.getHousehold(householdId);
       
       if (!household) {
         console.log('[MEAL PLAN] No household found to generate meal plan');
