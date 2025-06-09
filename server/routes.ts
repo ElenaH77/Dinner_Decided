@@ -452,9 +452,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const previousMessages = await storage.getMessages(householdId);
         const recentMessages = previousMessages.slice(-10);
         
-        // Check onboarding status to determine which system prompt to use
-        const isOnboardingComplete = household.onboardingComplete;
-        
         // Format messages for OpenAI with appropriate system prompt
         const formattedMessages = [
           ...recentMessages.map(m => ({
@@ -469,13 +466,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: "system",
             content: analysisContext
           });
-        } else if (!isOnboardingComplete) {
-          // If onboarding not complete, direct user to profile setup instead of chat onboarding
+        } else {
+          // Always direct users to complete their profile first
           formattedMessages.unshift({
             role: "system",
-            content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. The user hasn't completed their profile setup yet. 
+            content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
 
-Instead of asking onboarding questions, politely direct them to complete their profile first by visiting the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
+Always politely direct them to visit the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
 
 Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning. Don't ask onboarding questions - just direct them to the profile setup.`
           });
@@ -493,25 +490,6 @@ Keep your response brief and friendly, explaining that they need to set up their
         
         // Get response from OpenAI
         const aiResponse = await generateChatResponse(formattedMessages, household);
-        
-        // Check if onboarding should be marked complete
-        if (!isOnboardingComplete && aiResponse && aiResponse.includes("That's all I need to know for now")) {
-          console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
-          
-          // Get all messages including the ones we just processed
-          const allMessages = await storage.getMessages();
-          console.log("[ONBOARDING] Full conversation:", allMessages.map(m => `${m.role}: ${m.content}`));
-          
-          // Extract onboarding information from the conversation
-          const householdInfo = extractHouseholdInfoFromChat(allMessages);
-          console.log("[ONBOARDING] Extracted household info:", householdInfo);
-          
-          await storage.updateHousehold({ 
-            onboardingComplete: true,
-            ...householdInfo
-          });
-          console.log("[ONBOARDING] Household updated with extracted info");
-        }
         
         // Create a response message
         const responseId = uuidv4();
