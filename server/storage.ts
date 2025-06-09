@@ -655,13 +655,28 @@ export class DatabaseStorage implements IStorage {
     return updatedHousehold;
   }
 
-  async getMessages(): Promise<Message[]> {
-    return db.select().from(messages).orderBy(messages.timestamp);
+  async getMessages(clientHouseholdId: string): Promise<Message[]> {
+    // First find the household
+    const household = await this.getHousehold(clientHouseholdId);
+    if (!household) return [];
+
+    return db.select().from(messages)
+      .where(eq(messages.householdId, household.id))
+      .orderBy(messages.timestamp);
   }
 
-  async saveMessage(message: Message): Promise<Message> {
+  async saveMessage(message: Message, clientHouseholdId: string): Promise<Message> {
+    // First find the household
+    const household = await this.getHousehold(clientHouseholdId);
+    if (!household) {
+      throw new Error("No household found for message");
+    }
+
     // Process data to handle date conversion issues
-    const processedMessage = { ...message };
+    const processedMessage = { 
+      ...message,
+      householdId: household.id
+    };
     
     // Ensure timestamp is a valid Date object
     if (processedMessage.timestamp && typeof processedMessage.timestamp === 'string') {
@@ -684,10 +699,14 @@ export class DatabaseStorage implements IStorage {
     return savedMessage;
   }
   
-  async clearMessages(): Promise<void> {
-    // Delete all messages from the database
-    await db.delete(messages);
-    console.log('[DATABASE] Cleared all chat messages');
+  async clearMessages(clientHouseholdId: string): Promise<void> {
+    // First find the household
+    const household = await this.getHousehold(clientHouseholdId);
+    if (!household) return;
+
+    // Delete messages only for this household
+    await db.delete(messages).where(eq(messages.householdId, household.id));
+    console.log('[DATABASE] Cleared chat messages for household:', clientHouseholdId);
   }
 
   async getMealPlan(id: number): Promise<MealPlan | undefined> {

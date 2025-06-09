@@ -234,7 +234,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat routes
   app.get("/api/chat/messages", async (req, res) => {
     try {
-      const messages = await storage.getMessages();
+      const householdId = getHouseholdIdFromRequest(req);
+      const messages = await storage.getMessages(householdId);
       res.json(messages);
     } catch (error) {
       res.status(500).json({ message: "Failed to get messages" });
@@ -293,14 +294,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Normal message processing - save the user message and generate AI response
+      const householdId = getHouseholdIdFromRequest(req);
       const userMessage = {
         id: uuidv4(),
         ...messageData,
-        householdId: 1, // Default household ID
         timestamp: new Date()
       };
       
-      await storage.saveMessage(userMessage);
+      await storage.saveMessage(userMessage, householdId);
       
       // Generate AI response (simplified for DinnerBot)
       const aiResponse = await generateChatResponse([{
@@ -312,11 +313,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: uuidv4(),
         role: "assistant",
         content: aiResponse,
-        householdId: 1,
         timestamp: new Date()
       };
       
-      await storage.saveMessage(assistantMessage);
+      await storage.saveMessage(assistantMessage, householdId);
       res.json(assistantMessage);
       
     } catch (error) {
@@ -345,8 +345,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reset chat endpoint
   app.post("/api/chat/reset", async (req, res) => {
     try {
-      // Clear all messages
-      await storage.clearMessages();
+      const householdId = getHouseholdIdFromRequest(req);
+      // Clear messages only for this household
+      await storage.clearMessages(householdId);
       
       // Return simple success - no household needed for fresh start
       res.json({ 
