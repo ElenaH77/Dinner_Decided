@@ -582,7 +582,8 @@ Keep your response brief and friendly, explaining that they need to set up their
         }
         
         // Get household ID for message association - create one if needed for onboarding
-        let household = await storage.getHousehold();
+        const householdId = getHouseholdIdFromRequest(req);
+        let household = await storage.getHousehold(householdId);
         if (!household) {
           // Create a basic household for onboarding
           household = await storage.createHousehold({
@@ -593,7 +594,8 @@ Keep your response brief and friendly, explaining that they need to set up their
             challenges: null,
             location: null,
             appliances: []
-          });
+          }, householdId);
+          console.log("[CHAT] Created new household for onboarding:", household.id);
         }
         
         // Save user message (after reset check)
@@ -605,7 +607,7 @@ Keep your response brief and friendly, explaining that they need to set up their
             householdId: household.id,
             timestamp: new Date(userMessage.timestamp)
           };
-          await storage.saveMessage(messageToSave);
+          await storage.saveMessage(messageToSave, householdId);
         }
         
         // Check onboarding status and use appropriate system prompt
@@ -645,7 +647,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
           console.log("[ONBOARDING] Onboarding complete detected, extracting household info...");
           
           // Get the complete conversation history from storage (including the current message)
-          const allMessages = await storage.getMessages();
+          const allMessages = await storage.getMessages(householdId);
           console.log("[ONBOARDING] Retrieved", allMessages.length, "messages from storage");
           console.log("[ONBOARDING] Full conversation:", allMessages.map(m => `${m.role}: ${m.content}`).join(' | '));
           
@@ -655,7 +657,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
           await storage.updateHousehold({ 
             onboardingComplete: true,
             ...householdInfo
-          });
+          }, householdId);
           console.log("[ONBOARDING] Household updated with extracted info");
         }
       
@@ -669,7 +671,7 @@ Be warm, efficient, and focused. Don't ask follow-up questions unless absolutely
             timestamp: new Date()
           };
         
-          await storage.saveMessage(newMessage);
+          await storage.saveMessage(newMessage, householdId);
           res.json(newMessage);
         } else {
           res.status(500).json({ message: "Failed to generate AI response" });
