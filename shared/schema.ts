@@ -60,7 +60,7 @@ export type MealPlan = typeof mealPlans.$inferSelect;
 export const groceryLists = pgTable("grocery_lists", {
   id: serial("id").primaryKey(),
   mealPlanId: integer("meal_plan_id").references(() => mealPlans.id).notNull(),
-  householdId: integer("household_id").references(() => households.id).notNull(),
+  householdId: text("household_id").references(() => households.householdId).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   sections: jsonb("sections").notNull().$type<{
     name: string;
