@@ -18,17 +18,8 @@ export default function ProfileSimple() {
   
   // Clear cache on component mount to ensure fresh data
   useEffect(() => {
-    console.log("ProfileSimple - clearing cache and forcing fresh fetch");
-    // Clear ALL cache including localStorage and React Query cache
-    localStorage.removeItem('dinner-decided-household-id');
-    queryClient.clear();
     queryClient.invalidateQueries({ queryKey: ['/api/household'] });
     queryClient.removeQueries({ queryKey: ['/api/household'] });
-    
-    // Force a new household ID
-    const newId = crypto.randomUUID();
-    localStorage.setItem('dinner-decided-household-id', newId);
-    console.log("ProfileSimple - forced new household ID:", newId);
   }, []);
   
   const { data: household, isLoading, refetch } = useQuery({
