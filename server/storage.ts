@@ -17,32 +17,32 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
   // Meal methods
-  getAllMeals(): Promise<any[]>;
-  updateMeal(id: string, data: any): Promise<any>;
+  getAllMeals(householdId: string): Promise<any[]>;
+  updateMeal(id: string, data: any, householdId: string): Promise<any>;
   // Household methods
-  getHousehold(): Promise<Household | undefined>;
-  createHousehold(data: InsertHousehold): Promise<Household>;
-  updateHousehold(data: Partial<Household>): Promise<Household>;
+  getHousehold(householdId: string): Promise<Household | undefined>;
+  createHousehold(data: InsertHousehold, householdId: string): Promise<Household>;
+  updateHousehold(data: Partial<Household>, householdId: string): Promise<Household>;
   
   // Message methods
-  getMessages(): Promise<Message[]>;
-  saveMessage(message: Message): Promise<Message>;
-  clearMessages(): Promise<void>;
+  getMessages(householdId: string): Promise<Message[]>;
+  saveMessage(message: Message, householdId: string): Promise<Message>;
+  clearMessages(householdId: string): Promise<void>;
   
   // MealPlan methods
-  getMealPlan(id: number): Promise<MealPlan | undefined>;
-  getAllMealPlans(): Promise<MealPlan[]>;
-  getCurrentMealPlan(): Promise<MealPlan | undefined>;
-  createMealPlan(data: InsertMealPlan): Promise<MealPlan>;
-  updateMealPlan(id: number, data: Partial<MealPlan>): Promise<MealPlan>;
+  getMealPlan(id: number, householdId: string): Promise<MealPlan | undefined>;
+  getAllMealPlans(householdId: string): Promise<MealPlan[]>;
+  getCurrentMealPlan(householdId: string): Promise<MealPlan | undefined>;
+  createMealPlan(data: InsertMealPlan, householdId: string): Promise<MealPlan>;
+  updateMealPlan(id: number, data: Partial<MealPlan>, householdId: string): Promise<MealPlan>;
   
   // GroceryList methods
-  getGroceryList(id: number): Promise<GroceryList | undefined>;
-  getGroceryListByMealPlanId(mealPlanId: number): Promise<GroceryList | undefined>;
-  getCurrentGroceryList(): Promise<GroceryList | undefined>;
-  createGroceryList(data: InsertGroceryList): Promise<GroceryList>;
-  updateGroceryList(id: number, data: Partial<GroceryList>): Promise<GroceryList>;
-  ensureMealInGroceryList(groceryListId: number, meal: any): Promise<GroceryList>;
+  getGroceryList(id: number, householdId: string): Promise<GroceryList | undefined>;
+  getGroceryListByMealPlanId(mealPlanId: number, householdId: string): Promise<GroceryList | undefined>;
+  getCurrentGroceryList(householdId: string): Promise<GroceryList | undefined>;
+  createGroceryList(data: InsertGroceryList, householdId: string): Promise<GroceryList>;
+  updateGroceryList(id: number, data: Partial<GroceryList>, householdId: string): Promise<GroceryList>;
+  ensureMealInGroceryList(groceryListId: number, meal: any, householdId: string): Promise<GroceryList>;
 }
 
 export class MemStorage implements IStorage {

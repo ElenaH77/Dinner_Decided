@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateChatResponse, generateMealPlan, generateGroceryList, modifyMeal, replaceMeal } from "./openai";
@@ -8,6 +8,15 @@ import { insertHouseholdSchema, insertMealPlanSchema, insertGroceryListSchema } 
 import settingsRouter from "./api/settings";
 import { v4 as uuidv4 } from "uuid";
 import { getWeatherContextForMealPlanning } from "./weather";
+
+// Helper function to extract household ID from request headers
+function getHouseholdIdFromRequest(req: Request): string {
+  const householdId = req.headers['x-household-id'] as string;
+  if (!householdId) {
+    throw new Error('Missing household ID in request headers');
+  }
+  return householdId;
+}
 
 // Extract household information from onboarding chat conversation
 function extractHouseholdInfoFromChat(messages: any[]) {

@@ -7,6 +7,20 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Get household ID from localStorage
+function getHouseholdId(): string {
+  const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
+  let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
+  
+  if (!householdId) {
+    householdId = crypto.randomUUID();
+    localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
+    console.log('[API] Generated new household ID:', householdId);
+  }
+  
+  return householdId;
+}
+
 export async function apiRequest(
   url: string,
   options?: {
@@ -37,7 +51,11 @@ export async function apiRequest(
     
     const res = await fetch(url, {
       method: options.method || 'GET',
-      headers: options.body ? { 'Content-Type': 'application/json', ...options.headers || {} } : options.headers || {},
+      headers: {
+        'X-Household-Id': getHouseholdId(),
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers || {}
+      },
       body: options.body ? JSON.stringify(options.body) : undefined,
       credentials: 'include',
       signal: options.signal
@@ -54,7 +72,10 @@ export async function apiRequest(
   
   const res = await fetch(url, {
     method,
-    headers: data ? { 'Content-Type': 'application/json' } : {},
+    headers: {
+      'X-Household-Id': getHouseholdId(),
+      ...(data ? { 'Content-Type': 'application/json' } : {})
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: 'include',
     signal: options?.signal
@@ -72,6 +93,9 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        'X-Household-Id': getHouseholdId()
+      }
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
