@@ -665,9 +665,26 @@ Keep your response brief and friendly, explaining that they need to set up their
   app.patch("/api/household", async (req, res) => {
     try {
       const householdId = getHouseholdIdFromRequest(req);
-      const household = await storage.updateHousehold(req.body, householdId);
+      
+      // Get existing household to preserve critical flags
+      const existingHousehold = await storage.getHousehold(householdId);
+      if (!existingHousehold) {
+        return res.status(404).json({ message: "Household not found" });
+      }
+      
+      // Preserve onboardingComplete flag and other critical data
+      const updateData = {
+        ...req.body,
+        onboardingComplete: existingHousehold.onboardingComplete, // Always preserve this
+        householdId: existingHousehold.householdId // Preserve the ID
+      };
+      
+      console.log('[HOUSEHOLD UPDATE] Preserving onboardingComplete:', existingHousehold.onboardingComplete);
+      
+      const household = await storage.updateHousehold(updateData, householdId);
       res.json(household);
     } catch (error) {
+      console.error('[HOUSEHOLD UPDATE] Error:', error);
       res.status(500).json({ message: "Failed to update household" });
     }
   });
