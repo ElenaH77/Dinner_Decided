@@ -243,12 +243,10 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
       const totalMeals = Object.keys(preferences.mealsByDay).length;
       
       promptContent = `Create a personalized meal plan with ${totalMeals} dinner ideas for a family with the following profile:
-        - Family size: ${household.members.length} people
-        - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
-        - Available kitchen equipment: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
-        - Cooking skill level (1-5): ${household.cookingSkill || 3}
-        - Preferences: ${household.preferences || "Family-friendly meals"}
-        - Location: ${household.location || "Unknown location"}
+        - Owner name: ${household.ownerName || "Family"}
+        - Household size: ${household.householdSize || "Not specified"}
+        - Location: ${household.zipCode || "Unknown location"}
+        - Additional notes: ${household.additionalNotes || "No specific preferences mentioned"}
         ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
         
         Special notes for this week: ${preferences.specialNotes || "No special notes"}
