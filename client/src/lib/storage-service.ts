@@ -347,17 +347,16 @@ export async function updateMealInPlan(mealPlanId: number, mealId: string, updat
   console.log(`Making direct API call to update meal ${mealId} in plan ${mealPlanId}`);
   
   try {
-    // First attempt the direct API call pattern
-    const response = await fetch(`/api/meal-plan/${mealPlanId}`, {
+    // First attempt the direct API call pattern using apiRequest
+    const response = await apiRequest(`/api/meal-plan/${mealPlanId}`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
+      body: {
         mealId: mealId,
         updatedMeal: updatedMeal
-      })
+      }
     });
     
     if (response.ok) {
