@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ResetButton } from "@/components/buttons/ResetButton";
 import { useMealPlan } from "@/contexts/meal-plan-context";
-import { AccountSwitcher } from "@/components/AccountSwitcher";
 
 // Meal types with their descriptions
 const MEAL_TYPES = [
@@ -1213,7 +1212,6 @@ export default function SimpleMealPlan() {
   
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4 overflow-y-auto h-full pb-24">
-      <AccountSwitcher />
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white py-4 border-b border-gray-100 mb-6">
         <div className="flex flex-col gap-3">
