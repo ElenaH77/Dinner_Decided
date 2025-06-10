@@ -120,10 +120,13 @@ export async function apiRequest(
     const requestUrl = url.startsWith('/') ? url : `/${url}`;
     console.log('[API REQUEST] Making request to:', requestUrl);
     
+    const householdId = getHouseholdId();
+    console.log('[API REQUEST] Using household ID:', householdId);
+    
     const res = await fetch(requestUrl, {
       method: options.method || 'GET',
       headers: {
-        'X-Household-Id': getHouseholdId(),
+        'X-Household-Id': householdId,
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...options.headers || {}
       },
