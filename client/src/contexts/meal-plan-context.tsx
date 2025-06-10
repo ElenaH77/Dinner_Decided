@@ -103,12 +103,14 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // Save to state
     setCurrentPlanState(processedPlan);
     
-    // Use the centralized storage service to save the plan
+    // Only save to localStorage, not to server to avoid overriding server state
     try {
-      console.log("Saving processed plan via storage service:", processedPlan);
-      saveMealPlan(processedPlan);
+      console.log("Saving processed plan to localStorage only:", processedPlan);
+      if (processedPlan) {
+        localStorage.setItem('current_meal_plan', JSON.stringify(processedPlan));
+      }
     } catch (error) {
-      console.error("Error saving meal plan:", error);
+      console.error("Error saving meal plan to localStorage:", error);
     }
   };
 
@@ -184,39 +186,23 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   }, []);
   
   // Function to manually refetch meal plan data
-  const refetchMealPlan = async () => {
+  const refetchMealPlan = async (forceFresh = false) => {
     try {
       setIsLoading(true);
-      const response = await apiRequest('GET', '/api/users/1/meal-plans/current');
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Refetched meal plan:", data);
-        
-        if (data && data.id) {
-          // Load meals for this meal plan
-          try {
-            const mealsResponse = await apiRequest('GET', '/api/users/1/meals');
-            if (mealsResponse.ok) {
-              const mealsData = await mealsResponse.json();
-              console.log("Fetched meals:", mealsData);
-              
-              // Filter to only get meals in this plan
-              const planMeals = Array.isArray(mealsData) ? mealsData.filter((meal: any) => 
-                data.mealIds && data.mealIds.includes(meal.id)
-              ) : [];
-              
-              // Set the meal plan with meals included
-              setCurrentPlan({
-                ...data,
-                meals: planMeals
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching meals:", error);
-            // Still set the meal plan without meals if we can't fetch them
-            setCurrentPlan(data);
-          }
-        }
+      console.log("Refetching meal plan data from API", forceFresh ? "(forcing fresh)" : "");
+      
+      // Clear all meal plan cache if forcing fresh
+      if (forceFresh) {
+        const { clearAllMealPlanCache } = await import('@/lib/storage-service');
+        clearAllMealPlanCache();
+      }
+      
+      const result = await loadMealPlan(forceFresh);
+      if (result.success && result.data) {
+        setCurrentPlan(result.data);
+      } else {
+        console.log("Failed to refetch meal plan:", result.error);
+        setCurrentPlan(null);
       }
     } catch (error) {
       console.error("Error refetching meal plan:", error);
