@@ -1099,7 +1099,7 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
     }
   });
 
-  // Add a single meal to meal plan
+  // Add a single meal to meal plan - async with immediate response
   app.post("/api/meal-plan/add-meal", async (req, res) => {
     try {
       console.log('[ADD MEAL] Request received:', { mealType: req.body.mealType, preferences: req.body.preferences });
@@ -1124,78 +1124,93 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
         return res.status(404).json({ message: "No active meal plan found" });
       }
       
-      console.log('[ADD MEAL] Generating meal with OpenAI...');
-      
-      // Generate a single meal with OpenAI
-      const newMeals = await generateMealPlan(household, { 
-        singleMeal: true, 
-        mealType,
-        additionalPreferences: preferences 
+      // Return immediate response to avoid Replit timeout
+      console.log('[ADD MEAL] Sending immediate response, processing in background...');
+      res.json({ 
+        status: "processing", 
+        message: "Meal generation started",
+        expectedTime: "60-90 seconds"
       });
       
-      console.log('[ADD MEAL] OpenAI response type:', typeof newMeals);
-      console.log('[ADD MEAL] OpenAI response length:', Array.isArray(newMeals) ? newMeals.length : 'not array');
-      
-      // Add extra validation and fallback for the returned meals
-      if (!newMeals) {
-        console.log('[SINGLE MEAL] No meals returned from OpenAI');
-        return res.status(500).json({ message: "Failed to generate new meal - no response from AI" });
-      }
-      
-      if (!Array.isArray(newMeals)) {
-        console.log('[SINGLE MEAL] Non-array response from OpenAI:', typeof newMeals);
-        return res.status(500).json({ message: "Failed to generate new meal - invalid response format" });
-      }
-      
-      if (newMeals.length === 0) {
-        console.log('[SINGLE MEAL] Empty meals array from OpenAI');
-        return res.status(500).json({ message: "Failed to generate new meal - no meals returned" });
-      }
-      
-      // Verify meal has critical fields
-      if (!newMeals[0].name || typeof newMeals[0].name !== 'string') {
-        console.log('[SINGLE MEAL] Invalid meal without name:', newMeals[0]);
-        return res.status(500).json({ message: "Failed to generate new meal - invalid meal format" });
-      }
-      
-      console.log('[ADD MEAL] Generated meal name:', newMeals[0].name);
-      
-      // Import normalizeMeal for field name consistency
-      const { normalizeMeal } = await import('./openai');
-      
-      // Get the meal, assign ID if needed, and normalize field names
-      let newMeal = newMeals[0];
-      if (!newMeal.id) {
-        newMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      }
-      
-      // Normalize field names for consistency
-      newMeal = normalizeMeal(newMeal);
-      
-      console.log('[ADD MEAL] Generated new meal with ID:', newMeal.id);
-      console.log('[ADD MEAL] Current plan has', currentPlan.meals?.length || 0, 'meals');
-      
-      // Add the new meal to the plan
-      const updatedMeals = [...(currentPlan.meals || []), newMeal];
-      
-      console.log('[ADD MEAL] Updating meal plan with', updatedMeals.length, 'meals');
-      
-      const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
-        ...currentPlan, 
-        meals: updatedMeals 
-      }, householdId);
-      
-      console.log('[ADD MEAL] Updated plan successfully');
-      
-      // Update grocery list
-      if (household) {
-        console.log('[ADD MEAL] Updating grocery list...');
-        await generateAndSaveGroceryList(currentPlan.id, householdId);
-        console.log('[ADD MEAL] Grocery list updated');
-      }
-      
-      console.log('[ADD MEAL] Sending response with', updatedPlan.meals?.length || 0, 'meals');
-      res.json(updatedPlan);
+      // Process meal generation in background
+      (async () => {
+        try {
+          console.log('[ADD MEAL] Starting background meal generation...');
+          
+          // Generate a single meal with OpenAI
+          const newMeals = await generateMealPlan(household, { 
+            singleMeal: true, 
+            mealType,
+            additionalPreferences: preferences 
+          });
+          
+          console.log('[ADD MEAL] OpenAI response type:', typeof newMeals);
+          console.log('[ADD MEAL] OpenAI response length:', Array.isArray(newMeals) ? newMeals.length : 'not array');
+          
+          // Add extra validation and fallback for the returned meals
+          if (!newMeals) {
+            console.log('[SINGLE MEAL] No meals returned from OpenAI');
+            return;
+          }
+          
+          if (!Array.isArray(newMeals)) {
+            console.log('[SINGLE MEAL] Non-array response from OpenAI:', typeof newMeals);
+            return;
+          }
+          
+          if (newMeals.length === 0) {
+            console.log('[SINGLE MEAL] Empty meals array from OpenAI');
+            return;
+          }
+          
+          // Verify meal has critical fields
+          if (!newMeals[0].name || typeof newMeals[0].name !== 'string') {
+            console.log('[SINGLE MEAL] Invalid meal without name:', newMeals[0]);
+            return;
+          }
+          
+          console.log('[ADD MEAL] Generated meal name:', newMeals[0].name);
+          
+          // Import normalizeMeal for field name consistency
+          const { normalizeMeal } = await import('./openai');
+          
+          // Get the meal, assign ID if needed, and normalize field names
+          let newMeal = newMeals[0];
+          if (!newMeal.id) {
+            newMeal.id = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          }
+          
+          // Normalize field names for consistency
+          newMeal = normalizeMeal(newMeal);
+          
+          console.log('[ADD MEAL] Generated new meal with ID:', newMeal.id);
+          console.log('[ADD MEAL] Current plan has', currentPlan.meals?.length || 0, 'meals');
+          
+          // Add the new meal to the plan
+          const updatedMeals = [...(currentPlan.meals || []), newMeal];
+          
+          console.log('[ADD MEAL] Updating meal plan with', updatedMeals.length, 'meals');
+          
+          const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
+            ...currentPlan, 
+            meals: updatedMeals 
+          }, householdId);
+          
+          console.log('[ADD MEAL] Updated plan successfully');
+          
+          // Update grocery list
+          if (household) {
+            console.log('[ADD MEAL] Updating grocery list...');
+            await generateAndSaveGroceryList(currentPlan.id, householdId);
+            console.log('[ADD MEAL] Grocery list updated');
+          }
+          
+          console.log('[ADD MEAL] Background processing complete');
+          
+        } catch (error) {
+          console.error("[ADD MEAL] Background processing error:", error);
+        }
+      })();
     } catch (error) {
       console.error("[ADD MEAL] Error details:", error);
       console.error("[ADD MEAL] Error stack:", error.stack);
