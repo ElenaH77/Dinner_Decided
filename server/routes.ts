@@ -2921,9 +2921,12 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
   app.post("/api/grocery-list/clear", async (req, res) => {
     try {
       // Get household context
+      console.log(`[GROCERY CLEAR] Request received`);
+      console.log(`[GROCERY CLEAR] All headers:`, JSON.stringify(req.headers, null, 2));
+      console.log(`[GROCERY CLEAR] X-Household-Id header:`, req.headers['x-household-id']);
+      
       const householdId = getHouseholdIdFromRequest(req);
       console.log(`[GROCERY CLEAR] Extracted household ID: ${householdId}`);
-      console.log(`[GROCERY CLEAR] Request headers:`, req.headers);
       
       if (!householdId) {
         console.log('[GROCERY CLEAR] No household ID found in headers');
