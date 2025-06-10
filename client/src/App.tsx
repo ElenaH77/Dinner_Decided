@@ -19,6 +19,7 @@ import { MealPlanProvider } from "@/contexts/meal-plan-context";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import "@/lib/reset-household";
+import "@/utils/household-recovery";
 
 function App() {
   return (
