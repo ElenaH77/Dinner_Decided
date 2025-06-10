@@ -103,14 +103,21 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // Save to state
     setCurrentPlanState(processedPlan);
     
-    // Only save to localStorage, not to server to avoid overriding server state
-    try {
-      console.log("Saving processed plan to localStorage only:", processedPlan);
-      if (processedPlan) {
-        localStorage.setItem('current_meal_plan', JSON.stringify(processedPlan));
+    // Check if we're in a deletion context and should skip localStorage saves
+    const isDeletionContext = localStorage.getItem('_deletion_in_progress') === 'true';
+    
+    // Only save to localStorage if we're not in a deletion context
+    if (!isDeletionContext) {
+      try {
+        console.log("Saving processed plan to localStorage only:", processedPlan);
+        if (processedPlan) {
+          localStorage.setItem('current_meal_plan', JSON.stringify(processedPlan));
+        }
+      } catch (error) {
+        console.error("Error saving meal plan to localStorage:", error);
       }
-    } catch (error) {
-      console.error("Error saving meal plan to localStorage:", error);
+    } else {
+      console.log("Skipping localStorage save during deletion context");
     }
   };
 

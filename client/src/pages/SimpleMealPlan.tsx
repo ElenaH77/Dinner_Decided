@@ -632,6 +632,9 @@ export default function SimpleMealPlan() {
     console.log('Before removal, meals count:', meals.length);
     
     try {
+      // Set deletion context to prevent localStorage saves during deletion
+      localStorage.setItem('_deletion_in_progress', 'true');
+      
       // Make a copy of the current meals before removal
       const prevMeals = [...meals];
       
@@ -691,9 +694,8 @@ export default function SimpleMealPlan() {
         console.log('[DELETE] Server successfully updated meal plan');
         
         // Clear all meal-related caches to prevent restoration of deleted meals
-        localStorage.removeItem('current_meals');
-        localStorage.removeItem('current_meal_plan');
-        localStorage.removeItem('meal_plan_cache');
+        const { clearAllMealPlanCaches } = await import('@/lib/storage-service');
+        clearAllMealPlanCaches();
         cachedMeals = updatedMeals;
         
         // Force refresh the query cache
@@ -707,11 +709,19 @@ export default function SimpleMealPlan() {
           
           // Update all caches with the verified server data
           cachedMeals = verifiedPlan.meals || [];
-          localStorage.setItem('current_meals', JSON.stringify(verifiedPlan.meals || []));
-          localStorage.setItem('current_meal_plan', JSON.stringify(verifiedPlan));
+          
+          // Clear ALL possible cache keys that could restore deleted meals
+          localStorage.removeItem('current_meals');
+          localStorage.removeItem('current_meal_plan'); 
+          localStorage.removeItem('meal_plan_cache');
+          localStorage.removeItem('processed_meal_plan');
+          localStorage.removeItem('dinner-decided-meal-plan');
           
           // Update local state to match server
           setMeals(verifiedPlan.meals || []);
+          
+          // Force clear the React Query cache for this specific query
+          queryClient.removeQueries({ queryKey: ["/api/meal-plan/current"] });
         }
         
         toast({

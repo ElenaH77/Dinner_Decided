@@ -33,6 +33,29 @@ export function deepClone<T>(data: T): T {
 }
 
 /**
+ * Clear all meal plan related caches to prevent restoration of deleted meals
+ */
+export function clearAllMealPlanCaches(): void {
+  console.log('[CACHE CLEAR] Clearing all meal plan related caches');
+  
+  // Clear all possible meal plan cache keys
+  const allKeys = [
+    'dinner_decided_meal_plan',
+    'current_meal_plan',
+    'current_meals', 
+    'meal_plan_cache',
+    'processed_meal_plan',
+    'dinner-decided-meal-plan',
+    'meal_plan_storage'
+  ];
+  
+  allKeys.forEach(key => {
+    localStorage.removeItem(key);
+    console.log(`[CACHE CLEAR] Removed ${key}`);
+  });
+}
+
+/**
  * Clear all localStorage data when household ID changes
  */
 export function clearStaleHouseholdData(): void {
