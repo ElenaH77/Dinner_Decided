@@ -1477,7 +1477,7 @@ Keep your response brief and friendly, explaining that they need to set up their
           // Create a new empty list
           groceryList = await storage.createGroceryList({
             mealPlanId,
-            householdId: household.id,
+            householdId: household.householdId,
             createdAt: new Date(),
             sections: []
           });
@@ -1487,7 +1487,7 @@ Keep your response brief and friendly, explaining that they need to set up their
       }
       
       // Generate grocery list
-      const groceryList = await generateAndSaveGroceryList(mealPlanId, household.id);
+      const groceryList = await generateAndSaveGroceryList(mealPlanId, household.householdId);
       
       res.json(groceryList);
     } catch (error) {
