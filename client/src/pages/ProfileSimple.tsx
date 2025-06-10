@@ -21,6 +21,15 @@ export default function ProfileSimple() {
     retry: 2,
   });
 
+  // Debug logging
+  console.log("ProfileSimple - Debug Info:", {
+    household,
+    isLoading,
+    error,
+    householdType: typeof household,
+    householdKeys: household ? Object.keys(household) : null
+  });
+
   const handleResetProfile = async () => {
     if (confirm("Are you sure you want to reset your profile? This will clear all your data and restart onboarding.")) {
       try {
