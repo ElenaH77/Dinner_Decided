@@ -34,44 +34,7 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
   
-  // Check if household exists and redirect to onboarding if needed
-  // Only check for household on routes that require meal planning features
-  useEffect(() => {
-    const mealPlanningRoutes = ["/this-week", "/grocery", "/profile"];
-    const needsHousehold = mealPlanningRoutes.some(route => location.startsWith(route));
-    
-    if (needsHousehold && !isLoading) {
-      // Check if household exists by making an API call
-      fetch('/api/household', {
-        headers: {
-          'X-Household-Id': localStorage.getItem('dinner-decided-household-id') || crypto.randomUUID()
-        }
-      })
-        .then(async response => {
-          // Handle empty responses (when household doesn't exist)
-          const text = await response.text();
-          let household = null;
-          
-          if (text.trim()) {
-            try {
-              household = JSON.parse(text);
-            } catch (error) {
-              console.error('Failed to parse household JSON:', text);
-              household = null;
-            }
-          }
-          
-          if (!household || !household.id) {
-            console.log('No household found, redirecting to chat-onboarding');
-            setLocation("/chat-onboarding");
-          }
-        })
-        .catch(error => {
-          console.log('Error checking household, redirecting to chat-onboarding:', error);
-          setLocation("/chat-onboarding");
-        });
-    }
-  }, [location, setLocation, isLoading]);
+  // Removed household checking logic that was causing chat-onboarding redirects
   
   // Show loading indicator while app initializes
   if (isLoading) {

@@ -166,12 +166,12 @@ export default function ProfileSimple() {
         <div className="max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Household Profile</h1>
           <div className="bg-white p-6 rounded-lg shadow">
-            <p>No household data found. Please complete onboarding first.</p>
+            <p>Loading profile data...</p>
             <button 
-              onClick={() => window.location.href = '/chat-onboarding'}
+              onClick={() => window.location.reload()}
               className="mt-4 bg-[#21706D] text-white px-4 py-2 rounded hover:bg-[#195957]"
             >
-              Start Onboarding
+              Refresh
             </button>
           </div>
         </div>
