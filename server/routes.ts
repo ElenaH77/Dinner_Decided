@@ -2564,6 +2564,60 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
     }
   });
 
+  // Update the current active meal plan
+  app.patch('/api/meal-plan/current', async (req, res) => {
+    try {
+      console.log('[PATCH CURRENT] Updating current meal plan');
+      
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        console.log('[PATCH CURRENT] No household ID found');
+        return res.status(401).json({ error: 'No household context found' });
+      }
+      
+      console.log(`[PATCH CURRENT] Processing request for household: ${householdId}`);
+      
+      // Get the current active meal plan for this household
+      const currentPlans = await storage.getMealPlans(householdId);
+      const activePlan = currentPlans.find(plan => plan.isActive);
+      
+      if (!activePlan) {
+        console.log('[PATCH CURRENT] No active meal plan found');
+        return res.status(404).json({ error: 'No active meal plan found' });
+      }
+      
+      console.log(`[PATCH CURRENT] Found active plan ${activePlan.id} with ${activePlan.meals?.length || 0} meals`);
+      
+      // Extract the updated plan data - could be nested in updatedPlanData
+      let updatedPlanData = req.body.updatedPlanData || req.body;
+      
+      if (!updatedPlanData || !updatedPlanData.meals) {
+        console.log('[PATCH CURRENT] Invalid request format - missing meal data');
+        return res.status(400).json({ error: 'Invalid request format - expected meal plan with meals array' });
+      }
+      
+      console.log(`[PATCH CURRENT] Updating plan with ${updatedPlanData.meals.length} meals`);
+      
+      // Normalize all meals for consistency
+      const { normalizeMeal } = await import('./openai');
+      const normalizedMeals = updatedPlanData.meals.map((meal: any) => normalizeMeal(meal));
+      
+      // Update the meal plan with the new meals
+      const updatedPlan = await storage.updateMealPlan(activePlan.id, {
+        ...activePlan,
+        meals: normalizedMeals
+      });
+      
+      console.log(`[PATCH CURRENT] Successfully updated plan, now has ${updatedPlan.meals?.length || 0} meals`);
+      
+      return res.json(updatedPlan);
+    } catch (error) {
+      console.error('[PATCH CURRENT] Error updating current meal plan:', error);
+      res.status(500).json({ error: 'Failed to update meal plan' });
+    }
+  });
+
   // Update a specific meal in a meal plan
   app.patch('/api/meal-plan/:planId', async (req, res) => {
     try {
