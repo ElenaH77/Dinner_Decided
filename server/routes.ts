@@ -1998,27 +1998,7 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
     }
   });
   
-  // Clear grocery list
-  app.post("/api/grocery-list/clear", async (req, res) => {
-    try {
-      const currentList = await storage.getCurrentGroceryList();
-      
-      if (!currentList) {
-        return res.status(404).json({ message: "No active grocery list found" });
-      }
-      
-      // Update with empty sections
-      const updatedList = await storage.updateGroceryList(currentList.id, {
-        ...currentList,
-        sections: []
-      });
-      
-      res.json(updatedList);
-    } catch (error) {
-      console.error("Error clearing grocery list:", error);
-      res.status(500).json({ message: "Failed to clear grocery list" });
-    }
-  });
+
   
   // Update grocery list (for adding items manually)
   app.patch("/api/meal-plan/current", async (req, res) => {
