@@ -7,7 +7,7 @@ import MealPlanBuilder from "@/pages/MealPlanBuilder";
 import GroceryList from "@/pages/GroceryList";
 import ProfileSimple from "@/pages/ProfileSimple";
 import QuickProfile from "@/pages/QuickProfile";
-import Onboarding from "@/pages/onboarding";
+import Onboarding from "@/pages/Onboarding";
 import ChatOnboarding from "@/pages/chat-onboarding";
 import TestErrorHandling from "@/pages/test-error-handling";
 import NotFound from "@/pages/not-found";
@@ -17,27 +17,20 @@ import { useEffect, useState } from "react";
 import { HouseholdProvider } from "@/contexts/household-context";
 import { MealPlanProvider } from "@/contexts/meal-plan-context";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import "@/lib/reset-household";
 
 function App() {
   const [location, setLocation] = useLocation();
-  const [isLoading, setIsLoading] = useState(true);
   
-  // Handle initial loading state
-  useEffect(() => {
-    console.log('App component mounted');
-    // Add a slight delay to show loading indicator
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      console.log('App ready to render');
-    }, 1500);
-    
-    return () => clearTimeout(timer);
-  }, []);
+  // Check if user has completed onboarding
+  const { data: household, isLoading: householdLoading, error } = useQuery({
+    queryKey: ['/api/household'],
+    retry: false, // Don't retry if household doesn't exist
+  });
   
-  // Removed household checking logic that was causing chat-onboarding redirects
-  
-  // Show loading indicator while app initializes
-  if (isLoading) {
+  // Show loading indicator while checking household status
+  if (householdLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
@@ -47,6 +40,13 @@ function App() {
         </div>
       </div>
     );
+  }
+  
+  // If no household exists or onboarding not complete, redirect to onboarding
+  const needsOnboarding = !household || !household.onboardingComplete;
+  
+  if (needsOnboarding && location !== "/onboarding") {
+    return <Onboarding />;
   }
   
   return (
