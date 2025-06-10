@@ -1,21 +1,46 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 export default function ProfileTest() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/household'],
-    retry: false,
+  const [state, setState] = useState({
+    loading: true,
+    data: null,
+    error: null
   });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const householdId = localStorage.getItem('dinner-decided-household-id');
+        const response = await fetch('/api/household', {
+          headers: {
+            'X-Household-Id': householdId || 'unknown'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setState({ loading: false, data, error: null });
+      } catch (error) {
+        setState({ loading: false, data: null, error: String(error) });
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="p-4">
-      <h1>Profile Test</h1>
+      <h1>Profile Test (Direct Fetch)</h1>
       <div className="bg-white p-4 rounded border">
-        <p><strong>Loading:</strong> {isLoading ? "true" : "false"}</p>
-        <p><strong>Error:</strong> {error ? String(error) : "none"}</p>
-        <p><strong>Data:</strong> {data ? "exists" : "none"}</p>
-        {data && (
-          <pre className="mt-4 text-xs bg-gray-100 p-2 rounded">
-            {JSON.stringify(data, null, 2)}
+        <p><strong>Loading:</strong> {state.loading ? "true" : "false"}</p>
+        <p><strong>Error:</strong> {state.error || "none"}</p>
+        <p><strong>Data:</strong> {state.data ? "exists" : "none"}</p>
+        {state.data && (
+          <pre className="mt-4 text-xs bg-gray-100 p-2 rounded overflow-auto">
+            {JSON.stringify(state.data, null, 2)}
           </pre>
         )}
       </div>
