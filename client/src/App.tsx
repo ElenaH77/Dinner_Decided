@@ -21,37 +21,45 @@ import { useQuery } from "@tanstack/react-query";
 import "@/lib/reset-household";
 
 function App() {
-  
   return (
-    <HouseholdProvider>
-      <MealPlanProvider>
-        <Switch>
-          <Route path="/onboarding" component={Onboarding} />
-          <Route path="/chat-onboarding" component={ChatOnboarding} />
-          
-          <Route>
-            {/* All other routes use the AppLayout */}
-            <AppLayout>
-              <Switch>
-                <Route path="/" component={Home} />
-                <Route path="/this-week" component={SimpleMealPlan} />
-                <Route path="/meal-plan" component={SimpleMealPlan} /> {/* Alias for backward compatibility */}
-                <Route path="/meals" component={SimpleMealPlan} /> {/* Alias for backward compatibility */}
-                <Route path="/meal-plan-builder" component={MealPlanBuilder} />
-                <Route path="/old-meal-plan" component={MealPlan} /> {/* Old version in case we need to revert */}
-                <Route path="/grocery" component={GroceryList} />
-                <Route path="/profile" component={ProfileSimple} />
-                <Route path="/quick-profile" component={QuickProfile} />
-                <Route path="/settings" component={Settings} />
-                <Route path="/test-errors" component={TestErrorHandling} />
-                <Route path="/show-meal-plan" component={ShowMealPlan} />
-                <Route component={NotFound} />
-              </Switch>
-            </AppLayout>
-          </Route>
-        </Switch>
-      </MealPlanProvider>
-    </HouseholdProvider>
+    <Switch>
+      <Route path="/profile">
+        <div className="p-4">
+          <h1>Direct Profile Route Test</h1>
+          <ProfileSimple />
+        </div>
+      </Route>
+      
+      <Route>
+        <HouseholdProvider>
+          <MealPlanProvider>
+            <Switch>
+              <Route path="/onboarding" component={Onboarding} />
+              <Route path="/chat-onboarding" component={ChatOnboarding} />
+              
+              <Route>
+                <AppLayout>
+                  <Switch>
+                    <Route path="/" component={Home} />
+                    <Route path="/this-week" component={SimpleMealPlan} />
+                    <Route path="/meal-plan" component={SimpleMealPlan} />
+                    <Route path="/meals" component={SimpleMealPlan} />
+                    <Route path="/meal-plan-builder" component={MealPlanBuilder} />
+                    <Route path="/old-meal-plan" component={MealPlan} />
+                    <Route path="/grocery" component={GroceryList} />
+                    <Route path="/quick-profile" component={QuickProfile} />
+                    <Route path="/settings" component={Settings} />
+                    <Route path="/test-errors" component={TestErrorHandling} />
+                    <Route path="/show-meal-plan" component={ShowMealPlan} />
+                    <Route component={NotFound} />
+                  </Switch>
+                </AppLayout>
+              </Route>
+            </Switch>
+          </MealPlanProvider>
+        </HouseholdProvider>
+      </Route>
+    </Switch>
   );
 }
 
