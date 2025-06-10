@@ -1676,10 +1676,16 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
         return res.status(400).json({ message: "Item name is required" });
       }
       
-      console.log(`[GROCERY] Adding manual item: ${name}, quantity: ${quantity || 'none'}, section: ${section || 'Other'}`);
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(401).json({ error: 'No household context found' });
+      }
       
-      // Get current grocery list
-      const currentList = await storage.getCurrentGroceryList();
+      console.log(`[GROCERY] Adding manual item: ${name}, quantity: ${quantity || 'none'}, section: ${section || 'Other'} for household: ${householdId}`);
+      
+      // Get current grocery list with household context
+      const currentList = await storage.getCurrentGroceryList(householdId);
       
       if (!currentList) {
         console.log('[GROCERY] No active grocery list found');
@@ -1726,11 +1732,11 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
         });
       }
       
-      // Update the grocery list
+      // Update the grocery list with household context
       const updatedList = await storage.updateGroceryList(currentList.id, {
         ...currentList,
         sections: updatedSections
-      });
+      }, householdId);
       
       console.log(`[GROCERY] Successfully added item "${name}" to section "${targetSectionName}"`);
       
