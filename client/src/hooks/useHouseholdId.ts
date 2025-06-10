@@ -8,7 +8,16 @@ export function useHouseholdId() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get household ID with fallback mechanisms
+    // Force AltElena for testing - override any stored values
+    console.log('[HOUSEHOLD ID] Force switching to AltElena account');
+    const altElenaId = '971194b1-c94c-42c5-9b09-c800290fa380';
+    localStorage.setItem(HOUSEHOLD_ID_KEY, altElenaId);
+    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, altElenaId);
+    setHouseholdId(altElenaId);
+    setIsLoading(false);
+    return;
+    
+    // Get household ID with fallback mechanisms (disabled for testing)
     let storedId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     let backupId = localStorage.getItem(BACKUP_HOUSEHOLD_ID_KEY);
     

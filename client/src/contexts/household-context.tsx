@@ -89,7 +89,17 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
           try {
             // Check if preferences is a string that needs parsing
             if (typeof data.preferences === 'string') {
-              const parsedPreferences = JSON.parse(data.preferences);
+              // Try to parse as JSON first
+              let parsedPreferences;
+              try {
+                parsedPreferences = JSON.parse(data.preferences);
+              } catch (jsonError) {
+                // If JSON parsing fails, treat as plain text description
+                console.log('Preferences is plain text, not JSON:', data.preferences);
+                parsedPreferences = {
+                  description: data.preferences
+                };
+              }
               
               // Create a complete preferences object
               const completePreferences = {
@@ -100,7 +110,8 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
                 weekendCookingStyle: parsedPreferences.weekendCookingStyle || 'Keep it simple',
                 preferredCuisines: parsedPreferences.preferredCuisines || [],
                 location: parsedPreferences.location || data.location || '',
-                appliances: data.appliances || []
+                appliances: data.appliances || [],
+                description: parsedPreferences.description || data.preferences
               };
               
               setPreferences(completePreferences);
