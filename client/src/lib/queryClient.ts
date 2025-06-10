@@ -122,6 +122,8 @@ export async function apiRequest(
     
     const householdId = getHouseholdId();
     console.log('[API REQUEST] Using household ID:', householdId);
+    console.log('[API REQUEST] Method:', options.method || 'GET');
+    console.log('[API REQUEST] Headers will include X-Household-Id:', householdId);
     
     const res = await fetch(requestUrl, {
       method: options.method || 'GET',
