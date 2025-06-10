@@ -77,6 +77,16 @@ export async function apiRequest(
     const url = methodOrUrl;
     const options = urlOrOptions as { method?: string, body?: any, headers?: Record<string, string>, signal?: AbortSignal } || {};
     
+    // Create a default timeout controller if no signal is provided and this looks like a long-running operation
+    let timeoutController: AbortController | null = null;
+    let finalSignal = options.signal;
+    
+    if (!options.signal && (url.includes('/add-meal') || url.includes('/generate') || options.method === 'POST')) {
+      timeoutController = new AbortController();
+      setTimeout(() => timeoutController!.abort(), 120000); // 2 minute default timeout for long operations
+      finalSignal = timeoutController.signal;
+    }
+    
     const res = await fetch(url, {
       method: options.method || 'GET',
       headers: {
@@ -86,7 +96,7 @@ export async function apiRequest(
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
       credentials: 'include',
-      signal: options.signal
+      signal: finalSignal
     });
     
     await throwIfResNotOk(res);
@@ -98,6 +108,16 @@ export async function apiRequest(
   const url = urlOrOptions as string;
   const options = extraOptions as { signal?: AbortSignal } || {};
   
+  // Create a default timeout controller if no signal is provided and this looks like a long-running operation
+  let timeoutController: AbortController | null = null;
+  let finalSignal = options?.signal;
+  
+  if (!options?.signal && (url.includes('/add-meal') || url.includes('/generate') || method === 'POST')) {
+    timeoutController = new AbortController();
+    setTimeout(() => timeoutController!.abort(), 120000); // 2 minute default timeout for long operations
+    finalSignal = timeoutController.signal;
+  }
+  
   const res = await fetch(url, {
     method,
     headers: {
@@ -106,7 +126,7 @@ export async function apiRequest(
     },
     body: data ? JSON.stringify(data) : undefined,
     credentials: 'include',
-    signal: options?.signal
+    signal: finalSignal
   });
 
   await throwIfResNotOk(res);
