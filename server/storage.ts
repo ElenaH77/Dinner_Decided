@@ -955,8 +955,8 @@ export class DatabaseStorage implements IStorage {
     return groceryList;
   }
 
-  async getCurrentGroceryList(): Promise<GroceryList | undefined> {
-    const currentMealPlan = await this.getCurrentMealPlan();
+  async getCurrentGroceryList(clientHouseholdId?: string): Promise<GroceryList | undefined> {
+    const currentMealPlan = await this.getCurrentMealPlan(clientHouseholdId);
     if (!currentMealPlan) return undefined;
     
     return this.getGroceryListByMealPlanId(currentMealPlan.id);

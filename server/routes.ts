@@ -1378,7 +1378,8 @@ Keep your response brief and friendly, explaining that they need to set up their
   // Grocery list routes
   app.get("/api/grocery-list/current", async (req, res) => {
     try {
-      const groceryList = await storage.getCurrentGroceryList();
+      const householdId = getHouseholdIdFromRequest(req);
+      const groceryList = await storage.getCurrentGroceryList(householdId);
       
       // Normalize the grocery list sections to ensure it's always an array
       if (groceryList) {
