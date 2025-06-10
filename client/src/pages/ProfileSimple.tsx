@@ -16,43 +16,9 @@ export default function ProfileSimple() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedHousehold, setEditedHousehold] = useState<any>(null);
   
-  // Clear cache on component mount to ensure fresh data
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['/api/household'] });
-    queryClient.removeQueries({ queryKey: ['/api/household'] });
-  }, []);
-  
-  const { data: household, isLoading, refetch } = useQuery({
+  const { data: household, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/household'],
-    staleTime: 0,
-    gcTime: 0, // Garbage collect immediately
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    enabled: true,
-    queryFn: async () => {
-      console.log("ProfileSimple - executing custom query function");
-      const response = await fetch('/api/household', {
-        headers: {
-          'X-Household-Id': localStorage.getItem('dinner-decided-household-id') || 'unknown'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`${response.status}: ${response.statusText}`);
-      }
-      
-      const text = await response.text();
-      console.log("ProfileSimple - raw response text:", text);
-      
-      if (!text.trim()) {
-        console.log("ProfileSimple - empty response, returning null");
-        return null;
-      }
-      
-      const data = JSON.parse(text);
-      console.log("ProfileSimple - parsed data:", data);
-      return data;
-    }
+    retry: 2,
   });
 
   const handleResetProfile = async () => {
@@ -148,31 +114,51 @@ export default function ProfileSimple() {
     { id: "standMixer", name: "Stand Mixer" },
   ];
 
-  console.log("ProfileSimple - household data:", household);
-  console.log("ProfileSimple - household type:", typeof household);
-  console.log("ProfileSimple - household is null:", household === null);
-  console.log("ProfileSimple - household is undefined:", household === undefined);
-  console.log("ProfileSimple - household keys:", household ? Object.keys(household) : 'N/A');
-  console.log("ProfileSimple - isLoading:", isLoading);
-
   if (isLoading) {
-    return <div>Loading profile...</div>;
-  }
-
-  if (!household || Object.keys(household).length === 0) {
-    console.log("ProfileSimple - showing no data message");
     return (
       <div className="min-h-screen bg-gray-50 px-4 py-6">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">Household Profile</h1>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p>Loading profile data...</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-4 bg-[#21706D] text-white px-4 py-2 rounded hover:bg-[#195957]"
+        <div className="max-w-screen-sm mx-auto">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#21706D] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-6">
+        <div className="max-w-screen-sm mx-auto">
+          <div className="text-center py-8">
+            <h1 className="text-2xl font-semibold text-[#212121] mb-4">Profile Error</h1>
+            <p className="text-gray-600 mb-4">Unable to load your profile data.</p>
+            <Button 
+              onClick={() => refetch()}
+              className="bg-[#21706D] hover:bg-[#195957]"
             >
-              Refresh
-            </button>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!household) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-6">
+        <div className="max-w-screen-sm mx-auto">
+          <div className="text-center py-8">
+            <h1 className="text-2xl font-semibold text-[#212121] mb-4">No Profile Found</h1>
+            <p className="text-gray-600 mb-4">Your household profile couldn't be found.</p>
+            <Button 
+              onClick={() => window.location.href = '/onboarding'}
+              className="bg-[#21706D] hover:bg-[#195957]"
+            >
+              Set Up Profile
+            </Button>
           </div>
         </div>
       </div>
