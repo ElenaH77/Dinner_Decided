@@ -1104,8 +1104,16 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       console.log('[ADD MEAL] Request received:', { mealType: req.body.mealType, preferences: req.body.preferences });
       
       const { mealType, preferences } = req.body;
-      const currentPlan = await storage.getCurrentMealPlan();
-      const household = await storage.getHousehold();
+      const householdId = getHouseholdIdFromRequest(req);
+      
+      if (!householdId) {
+        console.log('[ADD MEAL] No household ID found in request');
+        return res.status(400).json({ message: "Household ID is required" });
+      }
+      
+      console.log('[ADD MEAL] Using household ID:', householdId);
+      const currentPlan = await storage.getCurrentMealPlan(householdId);
+      const household = await storage.getHousehold(householdId);
       
       console.log('[ADD MEAL] Current plan exists:', !!currentPlan);
       console.log('[ADD MEAL] Household exists:', !!household);
@@ -1174,14 +1182,14 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       const updatedPlan = await storage.updateMealPlan(currentPlan.id, { 
         ...currentPlan, 
         meals: updatedMeals 
-      });
+      }, householdId);
       
       console.log('[ADD MEAL] Updated plan successfully');
       
       // Update grocery list
       if (household) {
         console.log('[ADD MEAL] Updating grocery list...');
-        await generateAndSaveGroceryList(currentPlan.id, household.id);
+        await generateAndSaveGroceryList(currentPlan.id, householdId);
         console.log('[ADD MEAL] Grocery list updated');
       }
       
