@@ -2010,7 +2010,12 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
   app.patch("/api/meal-plan/current", async (req, res) => {
     try {
       const { meals, updatedPlanData } = req.body;
-      const currentPlan = await storage.getCurrentMealPlan();
+      const householdId = getHouseholdIdFromRequest(req);
+      
+      console.log('[PATCH MEAL PLAN] Request for household:', householdId);
+      console.log('[PATCH MEAL PLAN] updatedPlanData meals count:', updatedPlanData?.meals?.length || 0);
+      
+      const currentPlan = await storage.getCurrentMealPlan(householdId);
       
       if (!currentPlan) {
         return res.status(404).json({ message: "No active meal plan found" });
@@ -2080,10 +2085,10 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
         updateData.meals = uniqueMeals;
       }
       
-      // Perform database update with complete update data
-      const updatedPlan = await storage.updateMealPlan(currentPlan.id, updateData);
+      // Perform database update with complete update data and household isolation
+      const updatedPlan = await storage.updateMealPlan(currentPlan.id, updateData, householdId);
       
-      console.log(`[DEBUG] After update, plan has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
+      console.log(`[PATCH MEAL PLAN] Successfully updated plan for household ${householdId}, now has ${updatedPlan.meals ? updatedPlan.meals.length : 0} meals`);
       
       // IMPORTANT: Only regenerate the grocery list if explicitly requested
       // This prevents the meal plan refresh from clearing existing grocery items

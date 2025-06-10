@@ -688,20 +688,35 @@ export default function SimpleMealPlan() {
       });
       
       if (response.ok) {
+        console.log('[DELETE] Server successfully updated meal plan');
+        
+        // Update all local caches immediately with the new meal count
+        cachedMeals = updatedMeals;
+        localStorage.setItem('current_meals', JSON.stringify(updatedMeals));
+        localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+        
         // Force refresh the query cache
         await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
-        
-        toast({
-          title: "Meal removed",
-          description: "The meal has been removed from your plan"
-        });
         
         // Make a direct server request to confirm the update was applied
         const verifyResponse = await apiRequest("GET", "/api/meal-plan/current");
         if (verifyResponse.ok) {
           const verifiedPlan = await verifyResponse.json();
-          console.log('Verified plan after update has', verifiedPlan.meals?.length || 0, 'meals');
+          console.log('[DELETE] Verified plan after update has', verifiedPlan.meals?.length || 0, 'meals');
+          
+          // Update all caches with the verified server data
+          cachedMeals = verifiedPlan.meals || [];
+          localStorage.setItem('current_meals', JSON.stringify(verifiedPlan.meals || []));
+          localStorage.setItem('current_meal_plan', JSON.stringify(verifiedPlan));
+          
+          // Update local state to match server
+          setMeals(verifiedPlan.meals || []);
         }
+        
+        toast({
+          title: "Meal removed",
+          description: "The meal has been removed from your plan"
+        });
       } else {
         // If server update fails, revert the local change
         const errorData = await response.json();
