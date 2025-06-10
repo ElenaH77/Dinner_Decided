@@ -15,7 +15,8 @@ function getHouseholdIdFromRequest(req: Request): string {
   const householdId = req.headers['x-household-id'] as string;
   console.log('[HOUSEHOLD ID] Extracted household ID:', householdId);
   if (!householdId) {
-    throw new Error('Missing household ID in request headers');
+    console.log('[HOUSEHOLD ID] No household ID found in headers');
+    return '';
   }
   return householdId;
 }
@@ -1420,12 +1421,21 @@ Keep your response brief and friendly, explaining that they need to set up their
 
   app.post("/api/grocery-list/generate", async (req, res) => {
     try {
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(400).json({ message: "Missing household ID" });
+      }
+      
       const { mealPlanId, empty } = req.body;
       const mealPlan = await storage.getMealPlan(mealPlanId);
-      const household = await storage.getHousehold();
+      const household = await storage.getHousehold(householdId);
       
       if (!mealPlan) {
         return res.status(404).json({ message: "Meal plan not found" });
+      }
+      
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
       }
       
       if (empty) {
