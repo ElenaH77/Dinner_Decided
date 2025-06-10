@@ -1054,11 +1054,20 @@ export default function SimpleMealPlan() {
       // We'll skip the meal plan clearing since it's causing issues
       // Instead we'll just add the new meal and handle duplicates on the client side
       
-      // Now add the new meal
-      const addResponse = await apiRequest("POST", "/api/meal-plan/add-meal", {
-        mealType,
-        preferences
+      // Now add the new meal with extended timeout for OpenAI generation
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for OpenAI
+      
+      const addResponse = await apiRequest("/api/meal-plan/add-meal", {
+        method: "POST",
+        body: {
+          mealType,
+          preferences
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (addResponse.ok) {
         // Get only the single new meal
@@ -1166,11 +1175,30 @@ export default function SimpleMealPlan() {
       }
     } catch (error) {
       console.error("Error adding meal:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add a new meal. Please try again.",
-        variant: "destructive"
-      });
+      
+      // Check if it's a timeout error
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast({
+          title: "Request Timeout",
+          description: "The meal generation is taking longer than expected. The meal may still be created - please check your meal plan in a moment.",
+          variant: "destructive"
+        });
+      } else if (error instanceof Error && error.message.includes('404')) {
+        toast({
+          title: "Setup Required",
+          description: "Please complete your household profile and generate an initial meal plan first.",
+          variant: "destructive"
+        });
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast({
+          title: "Error",
+          description: errorMessage.includes('API key') ? 
+            "OpenAI API access is required to generate meals. Please check your settings." : 
+            "Failed to add a new meal. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsAddingMeal(false);
     }
