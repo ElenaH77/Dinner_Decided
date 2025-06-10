@@ -71,54 +71,27 @@ export default function GroceryList() {
       
       console.log("Adding item:", newItem);
       
-      // Call API to add the item using fetch directly for debugging
-      const response = await fetch('/api/grocery-list/add-item', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newItem.name,
-          quantity: newItem.quantity,
-          section: newItem.section
-        })
+      // Use apiRequest to ensure household ID header is included
+      const updatedList = await apiRequest("POST", "/api/grocery-list/add-item", {
+        name: newItem.name,
+        quantity: newItem.quantity,
+        section: newItem.section
       });
       
-      if (response.ok) {
-        // Get the updated grocery list
-        const updatedList = await response.json();
-        
-        // Update the query cache with the latest data
-        queryClient.setQueryData(['/api/grocery-list/current'], updatedList);
-        
-        // Reset the form and close the dialog
-        setNewItem({ name: '', quantity: '', section: 'Other' });
-        setAddItemOpen(false);
-        
-        toast({
-          title: "Item added",
-          description: `"${newItem.name}" has been added to your grocery list.`
-        });
-        
-        // Manually trigger a refetch to ensure we have the latest data
-        queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
-      } else {
-        const errorText = await response.text();
-        let errorMessage = "Failed to add item to the grocery list";
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error("Error parsing error response:", e);
-        }
-        
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
-      }
+      // Update the query cache with the latest data
+      queryClient.setQueryData(['/api/grocery-list/current'], updatedList);
+      
+      // Reset the form and close the dialog
+      setNewItem({ name: '', quantity: '', section: 'Other' });
+      setAddItemOpen(false);
+      
+      toast({
+        title: "Item added",
+        description: `"${newItem.name}" has been added to your grocery list.`
+      });
+      
+      // Manually trigger a refetch to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ['/api/grocery-list/current'] });
     } catch (error) {
       console.error("Error adding item to grocery list:", error);
       toast({
