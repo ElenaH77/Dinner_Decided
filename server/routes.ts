@@ -628,6 +628,18 @@ Keep your response brief and friendly, explaining that they need to set up their
           await storage.saveMessage(messageToSave, householdId);
         }
         
+        // Auto-complete onboarding for households that have essential data but weren't marked complete
+        const hasEssentialData = household.ownerName && 
+          household.preferences && 
+          household.appliances && 
+          household.appliances.length > 0;
+        
+        if (!household.onboardingComplete && hasEssentialData) {
+          console.log(`[DINNERBOT] Auto-completing onboarding for household ${household.ownerName} with existing data`);
+          await storage.updateHousehold({ onboardingComplete: true });
+          household.onboardingComplete = true;
+        }
+
         // Check if user needs to complete profile setup or can use DinnerBot normally
         if (!household.onboardingComplete) {
           // Direct users to complete their profile first if onboarding is incomplete
