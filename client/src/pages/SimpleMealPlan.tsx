@@ -1062,12 +1062,10 @@ export default function SimpleMealPlan() {
         controller.abort();
       }, 90000); // 90 second timeout for OpenAI
       
-      const addResponse = await apiRequest("/api/meal-plan/add-meal", {
-        method: "POST",
-        body: {
-          mealType,
-          preferences
-        },
+      const addResponse = await apiRequest("POST", "/api/meal-plan/add-meal", {
+        mealType,
+        preferences
+      }, {
         signal: controller.signal
       });
       
