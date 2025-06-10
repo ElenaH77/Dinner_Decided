@@ -31,7 +31,7 @@ function App() {
             <AppLayout>
               <Switch>
                 <Route path="/" component={Home} />
-                <Route path="/onboarding" component={Onboarding} />
+                <Route path="/onboarding" component={ProfileSimple} />
                 <Route path="/this-week" component={SimpleMealPlan} />
                 <Route path="/meal-plan" component={SimpleMealPlan} />
                 <Route path="/meals" component={SimpleMealPlan} />
