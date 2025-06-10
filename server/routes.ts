@@ -2165,21 +2165,14 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
     
     // If we're just refreshing the meal plan (not explicitly generating a new list)
     // and there's an existing grocery list with items, we should preserve those items
+    // WITHOUT automatically adding new meal ingredients
     if (preserveExistingItems && groceryList && groceryList.sections && 
         Array.isArray(groceryList.sections) && groceryList.sections.length > 0) {
       
-      console.log(`[GROCERY] Preserving existing grocery list with ${groceryList.sections.length} sections`);
+      console.log(`[GROCERY] Preserving existing grocery list with ${groceryList.sections.length} sections - NOT auto-adding meal ingredients`);
       
-      // Process each meal and add its ingredients to the existing list without replacing it
-      if (Array.isArray(mealPlan.meals) && mealPlan.meals.length > 0) {
-        for (const meal of mealPlan.meals) {
-          if (meal && meal.id) {
-            // This adds the meal's ingredients to the grocery list without replacing existing items
-            groceryList = await storage.ensureMealInGroceryList(groceryList.id, meal);
-          }
-        }
-      }
-      
+      // Simply return the existing grocery list without modifications
+      // Users must explicitly add meal ingredients to the grocery list
       return groceryList;
     }
     
@@ -2939,6 +2932,65 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
     } catch (error) {
       console.error("Error clearing grocery list:", error);
       res.status(500).json({ message: "Failed to clear grocery list" });
+    }
+  });
+
+  // Add a specific meal to grocery list (manual user action)
+  app.post("/api/grocery-list/add-meal", async (req, res) => {
+    try {
+      const { mealId } = req.body;
+      
+      if (!mealId) {
+        return res.status(400).json({ message: "Meal ID is required" });
+      }
+
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(401).json({ error: 'No household context found' });
+      }
+
+      console.log(`[ADD MEAL TO GROCERY] User explicitly adding meal ${mealId} to grocery list`);
+
+      // Get the current meal plan to find the meal
+      const currentMealPlan = await storage.getCurrentMealPlan(householdId);
+      if (!currentMealPlan) {
+        return res.status(404).json({ message: "No active meal plan found" });
+      }
+
+      // Find the specific meal
+      const meal = currentMealPlan.meals.find((m: any) => m.id === mealId);
+      if (!meal) {
+        return res.status(404).json({ message: "Meal not found in current plan" });
+      }
+
+      // Get or create grocery list
+      let groceryList = await storage.getCurrentGroceryList(householdId);
+      if (!groceryList) {
+        // Create a new grocery list if none exists
+        groceryList = await storage.createGroceryList({
+          mealPlanId: currentMealPlan.id,
+          householdId: parseInt(householdId),
+          createdAt: new Date(),
+          sections: []
+        });
+      }
+
+      // Add the meal's ingredients to the grocery list
+      const updatedGroceryList = await storage.ensureMealInGroceryList(groceryList.id, meal);
+      
+      console.log(`[ADD MEAL TO GROCERY] Successfully added meal "${meal.name}" ingredients to grocery list`);
+      res.json({
+        message: `Added "${meal.name}" ingredients to grocery list`,
+        groceryList: updatedGroceryList,
+        addedMeal: {
+          id: meal.id,
+          name: meal.name
+        }
+      });
+    } catch (error) {
+      console.error("Error adding meal to grocery list:", error);
+      res.status(500).json({ message: "Failed to add meal to grocery list" });
     }
   });
 

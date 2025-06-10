@@ -189,9 +189,11 @@ const EnhancedMealCard = ({ meal, onRemove, onModify, onReplace }: EnhancedMealC
   const handleAddToGroceryList = async () => {
     try {
       // Make API call to add meal to grocery list
-      const response = await apiRequest("POST", "/api/grocery-list/add-meal", {
-        mealId: meal.id,
-        meal: meal // Send complete meal data
+      const response = await apiRequest("/api/grocery-list/add-meal", {
+        method: "POST",
+        body: {
+          mealId: meal.id
+        }
       });
       
       if (response.ok) {
