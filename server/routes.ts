@@ -2922,7 +2922,11 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
     try {
       // Get household context
       const householdId = getHouseholdIdFromRequest(req);
+      console.log(`[GROCERY CLEAR] Extracted household ID: ${householdId}`);
+      console.log(`[GROCERY CLEAR] Request headers:`, req.headers);
+      
       if (!householdId) {
+        console.log('[GROCERY CLEAR] No household ID found in headers');
         return res.status(401).json({ error: 'No household context found' });
       }
 
