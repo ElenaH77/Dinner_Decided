@@ -106,8 +106,13 @@ export default function GroceryList() {
     try {
       console.log("[API REQUEST] Making request to:", "/api/grocery-list/clear");
       
-      // Call the API to clear the grocery list
-      const clearedList = await apiRequest("POST", "/api/grocery-list/clear", {});
+      // Call the API to clear the grocery list using the newer signature
+      const response = await apiRequest("/api/grocery-list/clear", {
+        method: "POST",
+        body: {}
+      });
+      
+      const clearedList = await response.json();
       
       // Update the query cache with the empty list returned from the server
       queryClient.setQueryData(['/api/grocery-list/current'], clearedList);
