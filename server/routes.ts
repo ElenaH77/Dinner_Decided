@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           // Store this welcome message for consistency
-          await storage.saveMessage(personalizedWelcome);
+          await storage.saveMessage(personalizedWelcome, householdId);
           return res.json([personalizedWelcome]);
         }
       }

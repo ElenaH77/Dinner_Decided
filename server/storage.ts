@@ -1146,8 +1146,9 @@ const storage = new DatabaseStorage();
 // Seed function to add initial data to database if needed
 export async function seedInitialData() {
   try {
-    // Check if we already have a household
-    const existingHousehold = await storage.getHousehold();
+    // Check if we already have Mike's household
+    const MIKE_HOUSEHOLD_ID = '902cde58-c754-4234-b279-8c60f98bd220';
+    const existingHousehold = await storage.getHousehold(MIKE_HOUSEHOLD_ID);
     
     if (!existingHousehold) {
       // Create demo household
