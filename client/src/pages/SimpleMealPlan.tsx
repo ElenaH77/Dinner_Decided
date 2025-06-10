@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ResetButton } from "@/components/buttons/ResetButton";
 import { useMealPlan } from "@/contexts/meal-plan-context";
+import { AccountSwitcher } from "@/components/AccountSwitcher";
 
 // Meal types with their descriptions
 const MEAL_TYPES = [
