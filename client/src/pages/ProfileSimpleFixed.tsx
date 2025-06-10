@@ -16,6 +16,17 @@ export default function ProfileSimpleFixed() {
   
   const { data: household, isLoading, error } = useQuery({
     queryKey: ['/api/household'],
+    retry: false,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Force console logging to see what's happening
+  console.log("ProfileSimpleFixed - Current state:", {
+    isLoading,
+    error: error?.message,
+    household: household ? "data exists" : "no data",
+    dataKeys: household ? Object.keys(household) : null
   });
 
   const handleSave = async () => {
