@@ -19,10 +19,13 @@ function getHouseholdId(): string {
   const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
   let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
   
-  if (!householdId) {
-    householdId = crypto.randomUUID();
+  // Force use of existing household with Mike's data for development
+  const EXISTING_HOUSEHOLD_ID = '902cde58-c754-4234-b279-8c60f98bd220';
+  
+  if (!householdId || householdId !== EXISTING_HOUSEHOLD_ID) {
+    householdId = EXISTING_HOUSEHOLD_ID;
     localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
-    console.log('[API] Generated new household ID:', householdId);
+    console.log('[API] Set to existing household ID with data:', householdId);
   } else {
     console.log('[API] Using existing household ID:', householdId);
   }

@@ -2760,6 +2760,21 @@ Keep your response brief and friendly, explaining that they need to set up their
     }
   });
 
+  // Development helper endpoint to set household ID for testing
+  app.post("/api/set-household-id", async (req, res) => {
+    const { householdId } = req.body;
+    if (!householdId) {
+      return res.status(400).json({ message: "Missing householdId" });
+    }
+    
+    // Return the household ID for the client to store in localStorage
+    res.json({ 
+      success: true, 
+      householdId,
+      message: "Store this household ID in localStorage with key 'dinner-decided-household-id'" 
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
