@@ -690,10 +690,11 @@ export default function SimpleMealPlan() {
       if (response.ok) {
         console.log('[DELETE] Server successfully updated meal plan');
         
-        // Update all local caches immediately with the new meal count
+        // Clear all meal-related caches to prevent restoration of deleted meals
+        localStorage.removeItem('current_meals');
+        localStorage.removeItem('current_meal_plan');
+        localStorage.removeItem('meal_plan_cache');
         cachedMeals = updatedMeals;
-        localStorage.setItem('current_meals', JSON.stringify(updatedMeals));
-        localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
         
         // Force refresh the query cache
         await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
