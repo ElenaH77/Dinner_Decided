@@ -478,9 +478,14 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
-  async getCurrentGroceryList(): Promise<GroceryList | undefined> {
-    if (!this.currentMealPlanId) return undefined;
+  async getCurrentGroceryList(householdId?: string): Promise<GroceryList | undefined> {
+    if (householdId) {
+      const currentMealPlan = await this.getCurrentMealPlan(householdId);
+      if (!currentMealPlan) return undefined;
+      return this.getGroceryListByMealPlanId(currentMealPlan.id);
+    }
     
+    if (!this.currentMealPlanId) return undefined;
     return this.getGroceryListByMealPlanId(this.currentMealPlanId);
   }
 

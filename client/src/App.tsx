@@ -35,8 +35,12 @@ function App() {
   }, []);
   
   // Check if household exists and redirect to onboarding if needed
+  // Only check for household on routes that require meal planning features
   useEffect(() => {
-    if (location === "/" && !isLoading) {
+    const mealPlanningRoutes = ["/this-week", "/grocery", "/profile"];
+    const needsHousehold = mealPlanningRoutes.some(route => location.startsWith(route));
+    
+    if (needsHousehold && !isLoading) {
       // Check if household exists by making an API call
       fetch('/api/household', {
         headers: {

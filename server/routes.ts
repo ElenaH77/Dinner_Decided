@@ -1696,6 +1696,8 @@ Keep your response brief and friendly, explaining that they need to set up their
 
   app.post("/api/grocery-list/add-meal", async (req, res) => {
     try {
+      const householdId = getHouseholdIdFromRequest(req);
+      
       // Allow both approaches: sending mealId or the complete meal object
       const { mealId, meal: mealData } = req.body;
       console.log('[GROCERY] Add meal request - mealId:', mealId);
@@ -1707,8 +1709,8 @@ Keep your response brief and friendly, explaining that they need to set up their
                    mealData.ingredients ? mealData.ingredients.length : 0);
       }
       
-      const currentPlan = await storage.getCurrentMealPlan();
-      const currentList = await storage.getCurrentGroceryList();
+      const currentPlan = await storage.getCurrentMealPlan(householdId);
+      const currentList = await storage.getCurrentGroceryList(householdId);
       
       if (!currentList) {
         console.log('[GROCERY] No active grocery list found');
