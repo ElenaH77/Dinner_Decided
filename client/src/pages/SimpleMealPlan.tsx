@@ -1056,123 +1056,97 @@ export default function SimpleMealPlan() {
       // We'll skip the meal plan clearing since it's causing issues
       // Instead we'll just add the new meal and handle duplicates on the client side
       
-      // Now add the new meal with extended timeout for OpenAI generation
-      console.log('[ADD MEAL] Starting meal addition with 120s timeout...');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('[ADD MEAL] Request timed out after 120 seconds');
-        controller.abort();
-      }, 120000); // 120 second timeout for OpenAI (longer than server timeout)
+      // Start meal generation (server processes in background)
+      console.log('[ADD MEAL] Starting meal addition...');
+      const initialMealCount = meals.length;
       
       const addResponse = await apiRequest("/api/meal-plan/add-meal", {
         method: "POST",
         body: {
           mealType,
           preferences
-        },
-        signal: controller.signal
+        }
       });
       
-      console.log('[ADD MEAL] Request completed successfully');
-      clearTimeout(timeoutId);
-      
       if (addResponse.ok) {
-        // Get only the single new meal
-        const newMealPlan = await addResponse.json();
-        if (newMealPlan?.meals) {
-          // Find the newly added meal (should be the last one)
-          const newMeal = newMealPlan.meals[newMealPlan.meals.length - 1];
-          if (newMeal) {
-            // Add the new meal to our existing meals array with a unique ID
-            const uniqueId = `meal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const result = await addResponse.json();
+        console.log('[ADD MEAL] Server response:', result);
+        
+        if (result.status === "processing") {
+          console.log('[ADD MEAL] Server processing meal in background, starting polling...');
+          
+          // Show progress toast
+          toast({
+            title: "Generating meal...",
+            description: "Your meal is being created. This usually takes 60-90 seconds."
+          });
+          
+          // Start polling for the completed meal
+          let pollCount = 0;
+          const maxPolls = 30; // 3 minutes max
+          
+          const pollForMeal = async (): Promise<void> => {
+            pollCount++;
+            console.log(`[ADD MEAL] Polling attempt ${pollCount}/${maxPolls}...`);
             
-            // Ensure the meal has a category and prepTime
-            const enhancedMeal = {
-              ...newMeal,
-              id: newMeal.id || uniqueId,
-              category: newMeal.category || mealType,
-              prepTime: newMeal.prepTime || (mealType === "Quick & Easy" ? 15 : 30)
-            };
-            
-            // For crock pot meals, ensure the right category and prep time
-            if (preferences.toLowerCase().includes("crock pot") || 
-                preferences.toLowerCase().includes("crockpot") || 
-                preferences.toLowerCase().includes("slow cooker")) {
-              enhancedMeal.category = "Split Prep";
-              enhancedMeal.prepTime = 20; // 20 mins of actual prep work
-            }
-            
-            // First get the current plan from the server to make sure we have the latest data
-            const planResponse = await apiRequest("GET", "/api/meal-plan/current");
-            let currentPlan;
-            
-            if (planResponse.ok) {
-              currentPlan = await planResponse.json();
-              console.log('Retrieved current plan with', currentPlan.meals?.length || 0, 'meals');
-            } else {
-              console.warn('Could not fetch current plan, using cached data');
-              currentPlan = queryClient.getQueryData(["/api/meal-plan/current"]);
-            }
-            
-            // If we still don't have a plan, create a basic one
-            if (!currentPlan || !currentPlan.id) {
-              console.warn('No current meal plan found, constructing a new one');
-              currentPlan = {
-                id: 1,
-                name: "Weekly Meal Plan",
-                householdId: 1,
-                isActive: true,
-                meals: [],
-                createdAt: new Date().toISOString()
-              };
-            }
-            
-            // Create a copy of the current meals and add the new one
-            const updatedMeals = [...(currentPlan.meals || []), enhancedMeal];
-            
-            // Update the plan on the server with ALL meals including the new one
-            const updateResponse = await apiRequest("PATCH", "/api/meal-plan/current", {
-              updatedPlanData: {
-                ...currentPlan,
-                meals: updatedMeals
+            try {
+              // Refetch meal plan to check for new meal
+              const { data: updatedPlan } = await refetch();
+              
+              if (updatedPlan?.meals && updatedPlan.meals.length > initialMealCount) {
+                console.log('[ADD MEAL] New meal detected! Updating UI...');
+                
+                // Find the newest meal (should be last in array)
+                const newMeal = updatedPlan.meals[updatedPlan.meals.length - 1];
+                console.log('[ADD MEAL] New meal added:', newMeal.name);
+                
+                // Update local state
+                setMeals(updatedPlan.meals);
+                
+                // Update localStorage cache
+                localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+                cachedMeals = updatedPlan.meals;
+                localStorage.setItem('current_meals', JSON.stringify(updatedPlan.meals));
+                
+                toast({
+                  title: "Meal added!",
+                  description: `${newMeal.name} has been added to your plan`
+                });
+                
+                return; // Success - stop polling
               }
-            });
-            
-            if (updateResponse.ok) {
-              console.log('Successfully updated plan with new meal');
               
-              // Update the local meals state including the new meal
-              setMeals(prevMeals => [...prevMeals, enhancedMeal]);
-              console.log("Added a single new meal to existing meals");
+              if (pollCount >= maxPolls) {
+                console.log('[ADD MEAL] Polling timeout - meal may still be processing');
+                throw new Error('Meal generation is taking longer than expected. Please refresh the page in a few moments.');
+              }
               
-              // Also update cached meals to ensure persistence
-              cachedMeals = [...cachedMeals, enhancedMeal];
-              localStorage.setItem('current_meals', JSON.stringify([...cachedMeals]));
-            } else {
-              console.error('Failed to update plan with new meal');
-              toast({
-                title: "Warning",
-                description: "The meal was added but may not persist between pages. Please refresh.",
-                variant: "destructive"
-              });
+              // Continue polling after delay
+              setTimeout(() => pollForMeal(), 6000); // Check every 6 seconds
               
-              // Still update local state for immediate feedback
-              setMeals(prevMeals => [...prevMeals, enhancedMeal]);
+            } catch (error) {
+              console.error('[ADD MEAL] Polling error:', error);
+              throw error;
             }
-          }
+          };
+          
+          // Start polling
+          await pollForMeal();
+        } else if (result.meals) {
+          // Immediate response with meal (fallback)
+          console.log('[ADD MEAL] Received immediate meal response');
+          const newMeal = result.meals[result.meals.length - 1];
+          
+          setMeals(result.meals);
+          localStorage.setItem('current_meal_plan', JSON.stringify(result));
+          cachedMeals = result.meals;
+          localStorage.setItem('current_meals', JSON.stringify(result.meals));
+          
+          toast({
+            title: "Meal added!",
+            description: `${newMeal.name} has been added to your plan`
+          });
         }
-        
-        // Force refresh the meal plan from server
-        await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
-        await queryClient.refetchQueries({ queryKey: ["/api/meal-plan/current"] });
-        
-        toast({
-          title: "Meal added",
-          description: "A new meal has been added to your plan"
-        });
-        
-        setIsDialogOpen(false);
-        resetForm();
       } else {
         const errorData = await addResponse.json();
         toast({
@@ -1184,29 +1158,14 @@ export default function SimpleMealPlan() {
     } catch (error) {
       console.error("Error adding meal:", error);
       
-      // Check if it's a timeout error
-      if (error instanceof Error && error.name === 'AbortError') {
-        toast({
-          title: "Request Timeout",
-          description: "The meal generation is taking longer than expected. The meal may still be created - please check your meal plan in a moment.",
-          variant: "destructive"
-        });
-      } else if (error instanceof Error && error.message.includes('404')) {
-        toast({
-          title: "Setup Required",
-          description: "Please complete your household profile and generate an initial meal plan first.",
-          variant: "destructive"
-        });
-      } else {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        toast({
-          title: "Error",
-          description: errorMessage.includes('API key') ? 
-            "OpenAI API access is required to generate meals. Please check your settings." : 
-            "Failed to add a new meal. Please try again.",
-          variant: "destructive"
-        });
-      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast({
+        title: "Error",
+        description: errorMessage.includes('API key') ? 
+          "OpenAI API access is required to generate meals. Please check your settings." : 
+          "Failed to add a new meal. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsAddingMeal(false);
     }
