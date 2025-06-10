@@ -2579,7 +2579,7 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       console.log(`[PATCH CURRENT] Processing request for household: ${householdId}`);
       
       // Get the current active meal plan for this household
-      const currentPlans = await storage.getMealPlans(householdId);
+      const currentPlans = await storage.getAllMealPlans(householdId);
       const activePlan = currentPlans.find(plan => plan.isActive);
       
       if (!activePlan) {
@@ -2607,7 +2607,7 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       const updatedPlan = await storage.updateMealPlan(activePlan.id, {
         ...activePlan,
         meals: normalizedMeals
-      });
+      }, householdId);
       
       console.log(`[PATCH CURRENT] Successfully updated plan, now has ${updatedPlan.meals?.length || 0} meals`);
       

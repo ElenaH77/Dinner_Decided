@@ -489,11 +489,11 @@ export default function SimpleMealPlan() {
     return cachedMeals.length ? cachedMeals : storedMeals;
   });
   
-  // Fetch meal plan data with cache busting
+  // Fetch meal plan data
   const { data: mealPlan, isLoading, refetch } = useQuery({
-    queryKey: ["/api/meal-plan/current", Date.now()], // Cache busting
-    staleTime: 0, // Always refetch
-    cacheTime: 0, // Don't cache
+    queryKey: ["/api/meal-plan/current"],
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false,
   });
   
   // Process meals when data is loaded
