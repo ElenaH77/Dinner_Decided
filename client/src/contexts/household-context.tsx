@@ -27,20 +27,18 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const fetchHouseholdData = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('GET', '/api/household');
+      const response = await apiRequest('/api/household');
       
-      // Handle empty responses (when household doesn't exist)
-      const text = await response.text();
-      let data = null;
-      
-      if (text.trim()) {
-        try {
-          data = JSON.parse(text);
-        } catch (error) {
-          console.error('Failed to parse household JSON response:', text);
-          data = null;
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log('Household not found (404) - user may need to complete onboarding');
+          setIsLoading(false);
+          return;
         }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+      
+      const data = await response.json();
       
       console.log('Fetched household data:', data);
       
