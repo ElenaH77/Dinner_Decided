@@ -25,7 +25,7 @@ function App() {
     <HouseholdProvider>
       <MealPlanProvider>
         <Switch>
-          <Route path="/onboarding" component={Onboarding} />
+          <Route path="/onboarding" component={ProfileSimple} />
           <Route path="/chat-onboarding" component={ChatOnboarding} />
           
           <Route>
