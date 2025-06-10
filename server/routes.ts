@@ -1535,9 +1535,15 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
 
   app.post("/api/grocery-list/regenerate", async (req, res) => {
     try {
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(401).json({ error: 'No household context found' });
+      }
+      
       // First, get the current meal plan and log details for debugging
-      const currentPlan = await storage.getCurrentMealPlan();
-      const household = await storage.getHousehold();
+      const currentPlan = await storage.getCurrentMealPlan(householdId);
+      const household = await storage.getHousehold(householdId);
       
       if (!currentPlan) {
         return res.status(404).json({ message: "No active meal plan found" });
@@ -1555,7 +1561,7 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       }
       
       // Generate fresh grocery list
-      const groceryList = await generateAndSaveGroceryList(currentPlan.id, household.id);
+      const groceryList = await generateAndSaveGroceryList(currentPlan.id, household.householdId);
       
       console.log(`[GROCERY REGEN] Successfully generated grocery list with ${groceryList.sections?.length || 0} sections`);
       
@@ -2909,6 +2915,37 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       householdId,
       message: "Store this household ID in localStorage with key 'dinner-decided-household-id'" 
     });
+  });
+
+  // Clear grocery list endpoint
+  app.post("/api/grocery-list/clear", async (req, res) => {
+    try {
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(401).json({ error: 'No household context found' });
+      }
+
+      // Get the current grocery list
+      const currentGroceryList = await storage.getCurrentGroceryList(householdId);
+      
+      if (!currentGroceryList) {
+        return res.status(404).json({ message: "No active grocery list found" });
+      }
+
+      // Clear the grocery list by updating it with empty sections
+      const clearedList = await storage.updateGroceryList(currentGroceryList.id, {
+        ...currentGroceryList,
+        sections: []
+      }, householdId);
+
+      console.log(`[GROCERY CLEAR] Successfully cleared grocery list ${currentGroceryList.id}`);
+      
+      res.json(clearedList);
+    } catch (error) {
+      console.error("Error clearing grocery list:", error);
+      res.status(500).json({ message: "Failed to clear grocery list" });
+    }
   });
 
   const httpServer = createServer(app);
