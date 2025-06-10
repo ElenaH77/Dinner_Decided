@@ -1055,12 +1055,12 @@ export default function SimpleMealPlan() {
       // Instead we'll just add the new meal and handle duplicates on the client side
       
       // Now add the new meal with extended timeout for OpenAI generation
-      console.log('[ADD MEAL] Starting meal addition with 90s timeout...');
+      console.log('[ADD MEAL] Starting meal addition with 120s timeout...');
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log('[ADD MEAL] Request timed out after 90 seconds');
+        console.log('[ADD MEAL] Request timed out after 120 seconds');
         controller.abort();
-      }, 90000); // 90 second timeout for OpenAI
+      }, 120000); // 120 second timeout for OpenAI (longer than server timeout)
       
       const addResponse = await apiRequest("POST", "/api/meal-plan/add-meal", {
         mealType,
