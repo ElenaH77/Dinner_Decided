@@ -2237,65 +2237,69 @@ Keep your response brief and friendly, explaining that they need to set up their
         return res.status(400).json({ error: 'Meal data and modification request are required' });
       }
       
-      console.log(`[MEAL] Modifying meal: ${meal.name} with request: ${modificationRequest}`);
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(401).json({ error: 'No household context found' });
+      }
+      
+      console.log(`[MEAL MODIFY] Modifying meal: ${meal.name} with request: ${modificationRequest}`);
       
       // Use OpenAI to modify the meal
       const modifiedMeal = await modifyMeal(meal, modificationRequest);
       
-      // Update the grocery list if we have a meal plan ID
+      // CRITICAL: Update the meal plan in database to persist changes
       if (mealPlanId) {
         try {
-          // Get the household ID for the grocery list
-          const household = await storage.getHousehold();
+          console.log(`[MEAL MODIFY] Updating meal plan ${mealPlanId} with modified meal`);
           
-          if (household) {
-            console.log(`[MEAL] Updating meal plan and grocery list after meal modification`);
+          // Get the current meal plan from database
+          const mealPlan = await storage.getMealPlan(mealPlanId, householdId);
+          
+          if (mealPlan) {
+            let updatedMeals;
             
-            // Get the current meal plan
-            const mealPlan = await storage.getMealPlan(mealPlanId);
+            // If currentMeals is provided by the client, use that as the most up-to-date source
+            if (currentMeals && Array.isArray(currentMeals)) {
+              console.log(`[MEAL MODIFY] Using ${currentMeals.length} client-provided meals for update`);
+              
+              // Replace the meal with the modified version
+              updatedMeals = currentMeals.map(m => 
+                m.id === modifiedMeal.id ? modifiedMeal : m
+              );
+            } else {
+              // Otherwise, update the meal in the existing plan
+              console.log(`[MEAL MODIFY] Using existing meal plan meals for update`);
+              updatedMeals = Array.isArray(mealPlan.meals) 
+                ? mealPlan.meals.map(m => 
+                    m.id === modifiedMeal.id ? modifiedMeal : m
+                  )
+                : [modifiedMeal];
+            }
             
-            if (mealPlan) {
-              let updatedMeals;
-              
-              // If currentMeals is provided by the client, use that as the source of truth
-              if (currentMeals && Array.isArray(currentMeals)) {
-                console.log(`[MEAL] Using ${currentMeals.length} client-provided meals for update`);
-                
-                // Replace the meal with the modified version
-                updatedMeals = currentMeals.map(m => 
-                  m.id === modifiedMeal.id ? modifiedMeal : m
-                );
-              } else {
-                // Otherwise, update the meal in the existing plan
-                console.log(`[MEAL] Using existing meal plan meals for update`);
-                updatedMeals = Array.isArray(mealPlan.meals) 
-                  ? mealPlan.meals.map(m => 
-                      m.id === modifiedMeal.id ? modifiedMeal : m
-                    )
-                  : [modifiedMeal];
-              }
-              
-              // Update the meal plan with the modified meal - don't use deep copy to avoid Date issues
-              const updatedPlan = await storage.updateMealPlan(mealPlanId, {
-                ...mealPlan,
-                meals: updatedMeals
-              });
-              
-              console.log(`[MEAL] Updated meal plan with modified meal`);
-              
-              // Check if a grocery list already exists for this meal plan
-              const existingList = await storage.getGroceryListByMealPlanId(mealPlanId);
-              
-              if (existingList) {
-                // We have an existing list, so regenerate it with the modified meal
+            // Update the meal plan with the modified meal
+            const updatedPlan = await storage.updateMealPlan(mealPlanId, {
+              meals: updatedMeals
+            }, householdId);
+            
+            console.log(`[MEAL MODIFY] Successfully updated meal plan with modified meal`);
+            
+            // Update grocery list if it exists
+            const existingList = await storage.getGroceryListByMealPlanId(mealPlanId, householdId);
+            
+            if (existingList) {
+              const household = await storage.getHousehold(householdId);
+              if (household) {
                 await generateAndSaveGroceryList(mealPlanId, household.id);
-                console.log(`[MEAL] Successfully regenerated grocery list for meal plan ${mealPlanId}`);
+                console.log(`[MEAL MODIFY] Successfully regenerated grocery list for meal plan ${mealPlanId}`);
               }
             }
+          } else {
+            console.error(`[MEAL MODIFY] Meal plan ${mealPlanId} not found`);
           }
-        } catch (groceryError) {
-          // Log but don't fail the whole request if grocery list regeneration fails
-          console.error('Error updating meal plan or grocery list after meal modification:', groceryError);
+        } catch (updateError) {
+          console.error('Error updating meal plan after modification:', updateError);
+          // Don't fail the whole request, but log the error
         }
       }
       
@@ -2408,101 +2412,106 @@ Keep your response brief and friendly, explaining that they need to set up their
         return res.status(400).json({ error: 'Meal data is required' });
       }
       
-      console.log(`[MEAL] Replacing meal: ${meal.name || 'unknown'} with ID: ${meal.id || 'unknown'}`);
+      // Get household context
+      const householdId = getHouseholdIdFromRequest(req);
+      if (!householdId) {
+        return res.status(401).json({ error: 'No household context found' });
+      }
+      
+      console.log(`[MEAL REPLACE] Replacing meal: ${meal.name || 'unknown'} with ID: ${meal.id || 'unknown'}`);
       
       try {
         // Use OpenAI to generate a replacement meal
         const replacementMeal = await replaceMeal(meal);
-        console.log(`[MEAL] Replacement meal generated:`, { id: replacementMeal.id, name: replacementMeal.name });
+        console.log(`[MEAL REPLACE] Replacement meal generated:`, { id: replacementMeal.id, name: replacementMeal.name });
         
         // Always make sure ID is preserved
         replacementMeal.id = meal.id;
         
-        // Always update the meal in storage first
-        if (meal.id) {
-          await storage.updateMeal(meal.id, replacementMeal);
-          console.log(`[MEAL] Updated meal in storage with ID: ${meal.id}`);
-        }
-        
-        // Update the grocery list if we have a meal plan ID
+        // CRITICAL: Update the meal plan in database to persist changes
         if (mealPlanId) {
           try {
-            // Get the household ID for the grocery list
-            const household = await storage.getHousehold();
+            console.log(`[MEAL REPLACE] Updating meal plan ${mealPlanId} with replacement meal`);
             
-            if (household) {
-              console.log(`[MEAL] Updating meal plan and grocery list after meal replacement`);
+            // Get the current meal plan from database
+            const mealPlan = await storage.getMealPlan(mealPlanId, householdId);
+            
+            if (mealPlan) {
+              let updatedMeals;
               
-              // Get the current meal plan
-              const mealPlan = await storage.getMealPlan(mealPlanId);
+              // If currentMeals is provided by the client, use that as the most up-to-date source
+              if (currentMeals && Array.isArray(currentMeals)) {
+                console.log(`[MEAL REPLACE] Using ${currentMeals.length} client-provided meals for update`);
+                
+                // Replace the meal with the replacement version
+                updatedMeals = currentMeals.map(m => 
+                  m.id === replacementMeal.id ? replacementMeal : m
+                );
+              } else {
+                // Otherwise, update the meal in the existing plan
+                console.log(`[MEAL REPLACE] Using existing meal plan meals for update`);
+                updatedMeals = Array.isArray(mealPlan.meals) 
+                  ? mealPlan.meals.map(m => 
+                      m.id === replacementMeal.id ? replacementMeal : m
+                    )
+                  : [replacementMeal];
+              }
               
-              if (mealPlan) {
-                let updatedMeals;
-                
-                // If currentMeals is provided by the client, use that as the source of truth
-                if (currentMeals && Array.isArray(currentMeals)) {
-                  console.log(`[MEAL] Using ${currentMeals.length} client-provided meals for update`);
-                  
-                  // Replace the meal with the replacement version
-                  updatedMeals = currentMeals.map(m => 
-                    m.id === replacementMeal.id ? replacementMeal : m
-                  );
-                } else {
-                  // Otherwise, update the meal in the existing plan
-                  console.log(`[MEAL] Using existing meal plan meals for update`);
-                  updatedMeals = Array.isArray(mealPlan.meals) 
-                    ? mealPlan.meals.map(m => 
-                        m.id === replacementMeal.id ? replacementMeal : m
-                      )
-                    : [replacementMeal];
-                }
-                
-                // Update the meal plan with the replaced meal
-                const updatedPlan = await storage.updateMealPlan(mealPlanId, {
-                  ...mealPlan,
-                  meals: updatedMeals,
-                  lastUpdated: new Date().toISOString()
-                });
-                
-                console.log(`[MEAL] Updated meal plan with replacement meal`);
-                
-                // Check if a grocery list already exists for this meal plan
-                const existingList = await storage.getGroceryListByMealPlanId(mealPlanId);
-                
-                if (existingList) {
-                  // We have an existing list, so regenerate it with the replaced meal
+              // Update the meal plan with the replaced meal
+              const updatedPlan = await storage.updateMealPlan(mealPlanId, {
+                meals: updatedMeals
+              }, householdId);
+              
+              console.log(`[MEAL REPLACE] Successfully updated meal plan with replacement meal`);
+              
+              // Update grocery list if it exists
+              const existingList = await storage.getGroceryListByMealPlanId(mealPlanId, householdId);
+              
+              if (existingList) {
+                const household = await storage.getHousehold(householdId);
+                if (household) {
                   await generateAndSaveGroceryList(mealPlanId, household.id);
-                  console.log(`[MEAL] Successfully regenerated grocery list for meal plan ${mealPlanId}`);
+                  console.log(`[MEAL REPLACE] Successfully regenerated grocery list for meal plan ${mealPlanId}`);
                 }
               }
+            } else {
+              console.error(`[MEAL REPLACE] Meal plan ${mealPlanId} not found`);
             }
-          } catch (groceryError) {
-            // Log but don't fail the whole request if grocery list regeneration fails
-            console.error('Error updating meal plan or grocery list after meal replacement:', groceryError);
+          } catch (updateError) {
+            console.error('Error updating meal plan after replacement:', updateError);
+            // Don't fail the whole request, but log the error
           }
         }
         
         res.status(200).json(replacementMeal);
       } catch (replacementError) {
         console.error('Error during meal replacement:', replacementError);
-        throw replacementError;
+        // Provide detailed error information instead of empty object
+        const errorMessage = replacementError?.message || replacementError?.toString() || 'Unknown error during meal replacement';
+        return res.status(500).json({ 
+          error: 'Failed to replace meal', 
+          message: errorMessage,
+          details: replacementError
+        });
       }
     } catch (error) {
       console.error('Error replacing meal:', error);
       
+      // Ensure we always return proper error objects
+      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+      
       // Handle specific OpenAI errors
-      if (error.message && typeof error.message === 'string') {
-        const errorMsg = error.message.toLowerCase();
-        if (errorMsg.includes('api key') || errorMsg.includes('authentication')) {
-          res.status(500).json({ 
-            error: 'Authentication error', 
-            message: 'OpenAI API authentication error. Please check your API key.' 
-          });
-        } else {
-          res.status(500).json({ error: 'Failed to replace meal', message: error.message });
-        }
+      if (errorMessage.toLowerCase().includes('api key') || errorMessage.toLowerCase().includes('authentication')) {
+        res.status(500).json({ 
+          error: 'Authentication error', 
+          message: 'OpenAI API authentication error. Please check your API key.' 
+        });
       } else {
-        res.status(500).json({ error: 'Failed to replace meal' });
+        res.status(500).json({ 
+          error: 'Failed to replace meal', 
+          message: errorMessage,
+          details: error
+        });
       }
     }
   });
