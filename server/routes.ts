@@ -2736,7 +2736,8 @@ Keep your response brief and friendly, explaining that they need to set up their
       return res.json({ 
         success: true,
         message: "Meal plan reset successfully",
-        plan: updatedPlan
+        plan: updatedPlan,
+        clearCache: true // Signal frontend to clear all cached data
       });
       
     } catch (error) {

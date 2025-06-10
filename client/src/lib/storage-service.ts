@@ -66,6 +66,29 @@ export function clearStaleHouseholdData(): void {
 }
 
 /**
+ * Clear all meal plan cache data - used when reset is performed
+ */
+export function clearAllMealPlanCache(): void {
+  console.log('[CACHE] Clearing all meal plan cache data');
+  
+  // Remove all meal plan related keys
+  const keysToRemove = [
+    STORAGE_KEYS.MEAL_PLAN,
+    'meal_plan_cache',
+    'current_meal_plan',
+    'dinner_decided_meal_plan',
+    'active_meal_plan_id'
+  ];
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
+    console.log(`[CACHE] Removed: ${key}`);
+  });
+  
+  console.log('[CACHE] All meal plan cache cleared');
+}
+
+/**
  * Check if localStorage data belongs to current household
  */
 export function validateHouseholdData(data: any): boolean {
@@ -234,18 +257,23 @@ export async function updateToApi<T>(endpoint: string, data: T): Promise<Storage
 
 // Meal Plan specific methods
 
-export async function loadMealPlan() {
-  // First try localStorage for immediate response
-  const localResult = loadFromStorage(STORAGE_KEYS.MEAL_PLAN);
-  
-  // If we have local data, validate it belongs to current household
-  if (localResult.success && localResult.data && localResult.data.id) {
-    if (validateHouseholdData(localResult.data)) {
-      console.log("Loaded meal plan from localStorage:", localResult.data);
-      return localResult;
-    } else {
-      console.log("localStorage meal plan belongs to different household, ignoring");
+export async function loadMealPlan(forceFresh = false) {
+  // If forceFresh is true, skip localStorage and go directly to API
+  if (!forceFresh) {
+    // First try localStorage for immediate response
+    const localResult = loadFromStorage(STORAGE_KEYS.MEAL_PLAN);
+    
+    // If we have local data, validate it belongs to current household
+    if (localResult.success && localResult.data && localResult.data.id) {
+      if (validateHouseholdData(localResult.data)) {
+        console.log("Loaded meal plan from localStorage:", localResult.data);
+        return localResult;
+      } else {
+        console.log("localStorage meal plan belongs to different household, ignoring");
+      }
     }
+  } else {
+    console.log("Force refresh requested, skipping localStorage");
   }
   
   // Try to load from API as a fallback
@@ -260,6 +288,12 @@ export async function loadMealPlan() {
     // For legacy support, also save to the old storage keys
     localStorage.setItem('meal_plan_cache', JSON.stringify(apiResult.data));
     localStorage.setItem('current_meal_plan', JSON.stringify(apiResult.data));
+    
+    // Check if the API response includes a clearCache signal
+    if (apiResult.data.clearCache) {
+      console.log("API response includes clearCache signal, clearing all meal plan cache");
+      clearAllMealPlanCache();
+    }
   }
   
   return apiResult;
