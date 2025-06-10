@@ -12,9 +12,6 @@ let cachedHouseholdId: string | null = null;
 
 // Get household ID from localStorage with caching to prevent race conditions
 function getHouseholdId(): string {
-  // Force use of existing household with Mike's data for development
-  const EXISTING_HOUSEHOLD_ID = '902cde58-c754-4234-b279-8c60f98bd220';
-  
   if (cachedHouseholdId) {
     return cachedHouseholdId;
   }
@@ -23,10 +20,11 @@ function getHouseholdId(): string {
     const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
     let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     
-    if (!householdId || householdId !== EXISTING_HOUSEHOLD_ID) {
-      householdId = EXISTING_HOUSEHOLD_ID;
+    if (!householdId) {
+      // Generate new unique household ID for new users
+      householdId = crypto.randomUUID();
       localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
-      console.log('[API] Set to existing household ID with data:', householdId);
+      console.log('[API] Generated new household ID for new user:', householdId);
     } else {
       console.log('[API] Using existing household ID:', householdId);
     }
@@ -35,9 +33,9 @@ function getHouseholdId(): string {
     return householdId;
   } catch (error) {
     // Fallback if localStorage isn't available
-    console.warn('[API] localStorage not available, using fallback household ID');
-    cachedHouseholdId = EXISTING_HOUSEHOLD_ID;
-    return EXISTING_HOUSEHOLD_ID;
+    console.warn('[API] localStorage not available, generating fallback household ID');
+    cachedHouseholdId = crypto.randomUUID();
+    return cachedHouseholdId;
   }
 }
 
