@@ -87,7 +87,11 @@ export async function apiRequest(
       finalSignal = timeoutController.signal;
     }
     
-    const res = await fetch(url, {
+    // Force relative URLs to use current origin in development
+    const requestUrl = url.startsWith('/') ? url : `/${url}`;
+    console.log('[API REQUEST] Making request to:', requestUrl);
+    
+    const res = await fetch(requestUrl, {
       method: options.method || 'GET',
       headers: {
         'X-Household-Id': getHouseholdId(),
@@ -118,7 +122,11 @@ export async function apiRequest(
     finalSignal = timeoutController.signal;
   }
   
-  const res = await fetch(url, {
+  // Force relative URLs to use current origin in development
+  const requestUrl = url.startsWith('/') ? url : `/${url}`;
+  console.log('[API REQUEST] Making request to:', requestUrl);
+  
+  const res = await fetch(requestUrl, {
     method,
     headers: {
       'X-Household-Id': getHouseholdId(),
