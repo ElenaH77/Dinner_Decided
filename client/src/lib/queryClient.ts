@@ -12,26 +12,33 @@ let cachedHouseholdId: string | null = null;
 
 // Get household ID from localStorage with caching to prevent race conditions
 function getHouseholdId(): string {
+  // Force use of existing household with Mike's data for development
+  const EXISTING_HOUSEHOLD_ID = '902cde58-c754-4234-b279-8c60f98bd220';
+  
   if (cachedHouseholdId) {
     return cachedHouseholdId;
   }
   
-  const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
-  let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
-  
-  // Force use of existing household with Mike's data for development
-  const EXISTING_HOUSEHOLD_ID = '902cde58-c754-4234-b279-8c60f98bd220';
-  
-  if (!householdId || householdId !== EXISTING_HOUSEHOLD_ID) {
-    householdId = EXISTING_HOUSEHOLD_ID;
-    localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
-    console.log('[API] Set to existing household ID with data:', householdId);
-  } else {
-    console.log('[API] Using existing household ID:', householdId);
+  try {
+    const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
+    let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
+    
+    if (!householdId || householdId !== EXISTING_HOUSEHOLD_ID) {
+      householdId = EXISTING_HOUSEHOLD_ID;
+      localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
+      console.log('[API] Set to existing household ID with data:', householdId);
+    } else {
+      console.log('[API] Using existing household ID:', householdId);
+    }
+    
+    cachedHouseholdId = householdId;
+    return householdId;
+  } catch (error) {
+    // Fallback if localStorage isn't available
+    console.warn('[API] localStorage not available, using fallback household ID');
+    cachedHouseholdId = EXISTING_HOUSEHOLD_ID;
+    return EXISTING_HOUSEHOLD_ID;
   }
-  
-  cachedHouseholdId = householdId;
-  return householdId;
 }
 
 // Export function to reset household ID (for testing or user reset)

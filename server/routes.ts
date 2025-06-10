@@ -14,9 +14,9 @@ function getHouseholdIdFromRequest(req: Request): string {
   console.log('[HOUSEHOLD ID] Request headers:', req.headers);
   const householdId = req.headers['x-household-id'] as string;
   console.log('[HOUSEHOLD ID] Extracted household ID:', householdId);
-  if (!householdId) {
+  if (!householdId || householdId === 'undefined' || householdId === 'null') {
     console.log('[HOUSEHOLD ID] No household ID found in headers');
-    return '';
+    throw new Error('Missing household ID in request headers');
   }
   return householdId;
 }
@@ -262,7 +262,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(messages);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get messages" });
+      console.error("Error in chat messages endpoint:", error);
+      // If household ID is missing, return empty messages array to trigger onboarding
+      res.json([]);
     }
   });
 
