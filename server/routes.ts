@@ -636,8 +636,12 @@ Keep your response brief and friendly, explaining that they need to set up their
         
         if (!household.onboardingComplete && hasEssentialData) {
           console.log(`[DINNERBOT] Auto-completing onboarding for household ${household.ownerName} with existing data`);
-          await storage.updateHousehold({ onboardingComplete: true });
+          await storage.updateHousehold({ onboardingComplete: true }, householdId);
           household.onboardingComplete = true;
+          
+          // Clear any existing onboarding messages to start fresh with DinnerBot
+          await storage.clearMessages(householdId);
+          console.log(`[DINNERBOT] Cleared old onboarding messages for clean DinnerBot start`);
         }
 
         // Check if user needs to complete profile setup or can use DinnerBot normally
