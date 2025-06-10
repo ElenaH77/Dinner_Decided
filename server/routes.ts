@@ -619,15 +619,28 @@ Keep your response brief and friendly, explaining that they need to set up their
           await storage.saveMessage(messageToSave, householdId);
         }
         
-        // Always direct users to complete their profile first
-        messages.unshift({
-          role: "system",
-          content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
+        // Check if user needs to complete profile setup or can use DinnerBot normally
+        if (!household.onboardingComplete) {
+          // Direct users to complete their profile first if onboarding is incomplete
+          messages.unshift({
+            role: "system",
+            content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
 
 Always politely direct them to visit the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
 
 Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning. Don't ask onboarding questions - just direct them to the profile setup.`
-        });
+          });
+        } else {
+          // User has completed onboarding, provide full DinnerBot functionality
+          messages.unshift({
+            role: "system",
+            content: `You are DinnerBot—a friendly, funny, and unflappable dinner assistant for "Dinner, Decided". Your job is to help busy families figure out what to cook in a pinch, answer common meal-related questions, and offer creative ideas using limited ingredients.
+
+The user ${household.ownerName || 'there'} has a complete household profile with ${household.members?.length || 0} members, cooking skill level ${household.cookingSkill}/5, and preferences: "${household.preferences || 'none specified'}". Their location is ${household.location || 'not specified'} and they have these appliances: ${household.appliances?.join(', ') || 'none specified'}.
+
+Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient suggestions, cooking tips, and quick meal ideas. You can suggest specific recipes when appropriate, but keep them accessible and family-friendly. Don't try to create full meal plans - that's handled elsewhere in the app.`
+          });
+        }
 
         // Get response from OpenAI
         const aiResponse = await generateChatResponse(messages, household);
