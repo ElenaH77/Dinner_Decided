@@ -1,31 +1,53 @@
 import { useState, useEffect } from 'react';
 
 const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
+const BACKUP_HOUSEHOLD_ID_KEY = 'dinner-decided-household-backup';
 
 export function useHouseholdId() {
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get or create household ID
+    // Get household ID with fallback mechanisms
     let storedId = localStorage.getItem(HOUSEHOLD_ID_KEY);
+    let backupId = localStorage.getItem(BACKUP_HOUSEHOLD_ID_KEY);
     
-    if (!storedId) {
-      // Generate new unique household ID
-      storedId = crypto.randomUUID();
-      localStorage.setItem(HOUSEHOLD_ID_KEY, storedId);
-      console.log('[HOUSEHOLD ID] Generated new household ID:', storedId);
-    } else {
-      console.log('[HOUSEHOLD ID] Using existing household ID:', storedId);
+    // Try primary storage first
+    if (storedId) {
+      console.log('[HOUSEHOLD ID] Using primary stored ID:', storedId);
+      // Ensure backup is in sync
+      if (backupId !== storedId) {
+        localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, storedId);
+      }
+      setHouseholdId(storedId);
+      setIsLoading(false);
+      return;
     }
     
-    setHouseholdId(storedId);
+    // Try backup storage
+    if (backupId) {
+      console.log('[HOUSEHOLD ID] Recovering from backup ID:', backupId);
+      localStorage.setItem(HOUSEHOLD_ID_KEY, backupId);
+      setHouseholdId(backupId);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Only create new ID if no existing ID found anywhere
+    console.log('[HOUSEHOLD ID] No existing ID found, creating new household');
+    const newId = crypto.randomUUID();
+    localStorage.setItem(HOUSEHOLD_ID_KEY, newId);
+    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, newId);
+    console.log('[HOUSEHOLD ID] Generated new household ID:', newId);
+    
+    setHouseholdId(newId);
     setIsLoading(false);
   }, []);
 
   const resetHouseholdId = () => {
     const newId = crypto.randomUUID();
     localStorage.setItem(HOUSEHOLD_ID_KEY, newId);
+    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, newId);
     setHouseholdId(newId);
     console.log('[HOUSEHOLD ID] Reset to new household ID:', newId);
     return newId;
