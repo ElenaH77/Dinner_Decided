@@ -753,6 +753,10 @@ export default function SimpleMealPlan() {
         description: "Something went wrong when removing the meal",
         variant: "destructive"
       });
+    } finally {
+      // Always clear the deletion context flag when done
+      localStorage.removeItem('_deletion_in_progress');
+      console.log('[DELETE] Cleared deletion context flag');
     }
   };
   
