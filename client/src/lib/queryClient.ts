@@ -21,8 +21,8 @@ function getHouseholdId(): string {
     let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     
     if (!householdId) {
-      // Use existing household ID with data instead of creating new orphaned IDs
-      householdId = '2c05041d-bfad-434c-b085-93dad8ea3cc0';
+      // Use KidsElena's household ID for testing
+      householdId = 'e971dd06-ce76-49bf-ad89-12b4106e4e7e';
       localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
       console.log('[API] Using existing household ID with data:', householdId);
     } else {

@@ -33,9 +33,9 @@ export function useHouseholdId() {
       return;
     }
     
-    // Force use of existing household ID with data instead of creating new ones
-    console.log('[HOUSEHOLD ID] Using existing household ID with data');
-    const existingId = '2c05041d-bfad-434c-b085-93dad8ea3cc0';
+    // Force use of KidsElena's household ID for testing
+    console.log('[HOUSEHOLD ID] Using KidsElena household ID');
+    const existingId = 'e971dd06-ce76-49bf-ad89-12b4106e4e7e';
     localStorage.setItem(HOUSEHOLD_ID_KEY, existingId);
     localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, existingId);
     setHouseholdId(existingId);

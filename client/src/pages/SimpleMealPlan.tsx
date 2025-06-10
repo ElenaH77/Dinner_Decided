@@ -1158,8 +1158,9 @@ export default function SimpleMealPlan() {
           }
         }
         
-        // Also refresh query cache
-        queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        // Force refresh the meal plan from server
+        await queryClient.invalidateQueries({ queryKey: ["/api/meal-plan/current"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/meal-plan/current"] });
         
         toast({
           title: "Meal added",
