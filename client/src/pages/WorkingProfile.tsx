@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Save, X, User, Users, ChefHat, MapPin } from "lucide-react";
+import { Redirect } from "wouter";
 
 export default function WorkingProfile() {
   const { toast } = useToast();
@@ -20,7 +21,15 @@ export default function WorkingProfile() {
   // Fetch household data with proper error handling
   const { data: household, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/household'],
-    queryFn: async () => await apiRequest("GET", "/api/household"),
+    queryFn: async () => {
+      try {
+        const data = await apiRequest("GET", "/api/household");
+        return data;
+      } catch (err) {
+        console.error("Failed to fetch household:", err);
+        return null;
+      }
+    },
     retry: false,
   });
 
@@ -48,15 +57,17 @@ export default function WorkingProfile() {
   });
 
   const startEditing = () => {
+    if (!household) return;
+    
     setEditedData({
-      name: household?.name || "",
-      ownerName: household?.ownerName || "",
-      cookingSkill: household?.cookingSkill || 1,
-      preferences: household?.preferences || "",
-      challenges: household?.challenges || "",
-      location: household?.location || "",
-      appliances: household?.appliances || [],
-      members: household?.members || []
+      name: household.name || "",
+      ownerName: household.ownerName || "",
+      cookingSkill: household.cookingSkill || 1,
+      preferences: household.preferences || "",
+      challenges: household.challenges || "",
+      location: household.location || "",
+      appliances: household.appliances || [],
+      members: household.members || []
     });
     setIsEditing(true);
   };
@@ -93,6 +104,11 @@ export default function WorkingProfile() {
         </Card>
       </div>
     );
+  }
+
+  // Redirect to onboarding if no household found
+  if (!isLoading && !household) {
+    return <Redirect to="/onboarding" />;
   }
 
   const currentData = isEditing ? editedData : household;
