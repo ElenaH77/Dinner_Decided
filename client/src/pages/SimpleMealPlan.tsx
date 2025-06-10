@@ -1064,10 +1064,10 @@ export default function SimpleMealPlan() {
       
       const addResponse = await apiRequest("/api/meal-plan/add-meal", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           mealType,
           preferences
-        }),
+        },
         signal: controller.signal
       });
       
