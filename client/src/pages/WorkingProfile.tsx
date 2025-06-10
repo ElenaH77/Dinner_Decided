@@ -20,6 +20,7 @@ export default function WorkingProfile() {
   // Fetch household data with proper error handling
   const { data: household, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/household'],
+    queryFn: async () => await apiRequest("GET", "/api/household"),
     retry: false,
   });
 
