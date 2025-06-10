@@ -21,10 +21,23 @@ function getHouseholdId(): string {
     let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     
     if (!householdId) {
-      // Use KidsElena's household ID for testing
-      householdId = 'e971dd06-ce76-49bf-ad89-12b4106e4e7e';
+      // Check if user has selected an account via URL or localStorage preference
+      const urlParams = new URLSearchParams(window.location.search);
+      const accountParam = urlParams.get('account');
+      const storedAccount = localStorage.getItem('selected-account');
+      
+      // Use AltElena for fancy meals, KidsElena for kid-friendly meals
+      if (accountParam === 'alt' || storedAccount === 'alt') {
+        householdId = '971194b1-c94c-42c5-9b09-c800290fa380'; // AltElena
+        localStorage.setItem('selected-account', 'alt');
+        console.log('[API] Using AltElena household ID for fancy meals');
+      } else {
+        householdId = 'e971dd06-ce76-49bf-ad89-12b4106e4e7e'; // KidsElena  
+        localStorage.setItem('selected-account', 'kids');
+        console.log('[API] Using KidsElena household ID for kid-friendly meals');
+      }
+      
       localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
-      console.log('[API] Using existing household ID with data:', householdId);
     } else {
       console.log('[API] Using existing household ID:', householdId);
     }
@@ -47,6 +60,22 @@ export function resetHouseholdId(): string {
   cachedHouseholdId = newId;
   console.log('[API] Reset to new household ID:', newId);
   return newId;
+}
+
+// Export function to switch accounts
+export function switchToAccount(account: 'kids' | 'alt'): void {
+  const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
+  
+  // Clear all cached data
+  localStorage.removeItem(HOUSEHOLD_ID_KEY);
+  localStorage.removeItem('selected-account');
+  cachedHouseholdId = null;
+  
+  // Set the account preference
+  localStorage.setItem('selected-account', account);
+  
+  // Force reload to pick up new household ID
+  window.location.reload();
 }
 
 export async function apiRequest(
