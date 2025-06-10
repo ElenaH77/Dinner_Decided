@@ -25,13 +25,13 @@ function App() {
     <HouseholdProvider>
       <MealPlanProvider>
         <Switch>
-          <Route path="/onboarding" component={ProfileSimple} />
           <Route path="/chat-onboarding" component={ChatOnboarding} />
           
           <Route>
             <AppLayout>
               <Switch>
                 <Route path="/" component={Home} />
+                <Route path="/onboarding" component={ProfileSimple} />
                 <Route path="/this-week" component={SimpleMealPlan} />
                 <Route path="/meal-plan" component={SimpleMealPlan} />
                 <Route path="/meals" component={SimpleMealPlan} />
