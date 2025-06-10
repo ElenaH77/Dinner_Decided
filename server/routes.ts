@@ -2935,7 +2935,6 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
 
       // Clear the grocery list by updating it with empty sections
       const clearedList = await storage.updateGroceryList(currentGroceryList.id, {
-        ...currentGroceryList,
         sections: []
       }, householdId);
 
