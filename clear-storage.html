@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+</head>
+<body>
+    <h1>Clear Storage and Switch to AltElena</h1>
+    <button onclick="clearAndSwitch()">Clear Storage & Switch to AltElena</button>
+    
+    <script>
+    function clearAndSwitch() {
+        // Clear all localStorage
+        localStorage.clear();
+        
+        // Set AltElena's household ID
+        localStorage.setItem('dinner-decided-household-id', '971194b1-c94c-42c5-9b09-c800290fa380');
+        localStorage.setItem('dinner-decided-household-backup', '971194b1-c94c-42c5-9b09-c800290fa380');
+        
+        alert('Storage cleared and set to AltElena account. Redirecting...');
+        
+        // Redirect to main app
+        window.location.href = '/';
+    }
+    </script>
+</body>
+</html>
