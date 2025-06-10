@@ -239,6 +239,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const householdId = getHouseholdIdFromRequest(req);
       const messages = await storage.getMessages(householdId);
+      
+      // If no messages exist, check if household is already complete
+      if (!messages || messages.length === 0) {
+        const household = await storage.getHousehold(householdId);
+        
+        // If household exists and onboarding is complete, provide a personalized welcome
+        if (household && household.onboardingComplete) {
+          const personalizedWelcome = {
+            id: `welcome-${Date.now()}`,
+            role: "assistant",
+            content: `Hello ${household.ownerName || 'there'}! Welcome back to DinnerBot. I'm here to help with meal ideas, cooking tips, and recipe suggestions. What can I help you with today?`,
+            timestamp: new Date(),
+            householdId: householdId
+          };
+          
+          // Store this welcome message for consistency
+          await storage.saveMessage(personalizedWelcome);
+          return res.json([personalizedWelcome]);
+        }
+      }
+      
       res.json(messages);
     } catch (error) {
       res.status(500).json({ message: "Failed to get messages" });
