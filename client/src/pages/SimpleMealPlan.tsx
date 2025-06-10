@@ -1085,53 +1085,64 @@ export default function SimpleMealPlan() {
           let pollCount = 0;
           const maxPolls = 30; // 3 minutes max
           
-          const pollForMeal = async (): Promise<void> => {
+          const pollForMeal = () => {
             pollCount++;
             console.log(`[ADD MEAL] Polling attempt ${pollCount}/${maxPolls}...`);
             
-            try {
-              // Refetch meal plan to check for new meal
-              const { data: updatedPlan } = await refetch();
-              
-              if (updatedPlan?.meals && updatedPlan.meals.length > initialMealCount) {
-                console.log('[ADD MEAL] New meal detected! Updating UI...');
+            setTimeout(async () => {
+              try {
+                // Refetch meal plan to check for new meal
+                const { data: updatedPlan } = await refetch();
                 
-                // Find the newest meal (should be last in array)
-                const newMeal = updatedPlan.meals[updatedPlan.meals.length - 1];
-                console.log('[ADD MEAL] New meal added:', newMeal.name);
+                if (updatedPlan?.meals && updatedPlan.meals.length > initialMealCount) {
+                  console.log('[ADD MEAL] New meal detected! Updating UI...');
+                  
+                  // Find the newest meal (should be last in array)
+                  const newMeal = updatedPlan.meals[updatedPlan.meals.length - 1];
+                  console.log('[ADD MEAL] New meal added:', newMeal.name);
+                  
+                  // Update local state
+                  setMeals(updatedPlan.meals);
+                  
+                  // Update localStorage cache
+                  localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
+                  cachedMeals = updatedPlan.meals;
+                  localStorage.setItem('current_meals', JSON.stringify(updatedPlan.meals));
+                  
+                  toast({
+                    title: "Meal added!",
+                    description: `${newMeal.name} has been added to your plan`
+                  });
+                  
+                  return; // Success - stop polling
+                }
                 
-                // Update local state
-                setMeals(updatedPlan.meals);
+                if (pollCount >= maxPolls) {
+                  console.log('[ADD MEAL] Polling timeout - meal may still be processing');
+                  toast({
+                    title: "Still processing...",
+                    description: "Meal generation is taking longer than expected. Please refresh the page in a few moments.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
                 
-                // Update localStorage cache
-                localStorage.setItem('current_meal_plan', JSON.stringify(updatedPlan));
-                cachedMeals = updatedPlan.meals;
-                localStorage.setItem('current_meals', JSON.stringify(updatedPlan.meals));
+                // Continue polling
+                pollForMeal();
                 
+              } catch (error) {
+                console.error('[ADD MEAL] Polling error:', error);
                 toast({
-                  title: "Meal added!",
-                  description: `${newMeal.name} has been added to your plan`
+                  title: "Error",
+                  description: "Failed to check for new meal. Please refresh the page.",
+                  variant: "destructive"
                 });
-                
-                return; // Success - stop polling
               }
-              
-              if (pollCount >= maxPolls) {
-                console.log('[ADD MEAL] Polling timeout - meal may still be processing');
-                throw new Error('Meal generation is taking longer than expected. Please refresh the page in a few moments.');
-              }
-              
-              // Continue polling after delay
-              setTimeout(() => pollForMeal(), 6000); // Check every 6 seconds
-              
-            } catch (error) {
-              console.error('[ADD MEAL] Polling error:', error);
-              throw error;
-            }
+            }, 6000); // Check every 6 seconds
           };
           
           // Start polling
-          await pollForMeal();
+          pollForMeal();
         } else if (result.meals) {
           // Immediate response with meal (fallback)
           console.log('[ADD MEAL] Received immediate meal response');
