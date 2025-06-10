@@ -12,6 +12,8 @@ function getHouseholdId(): string {
   const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
   const householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
   
+  console.log('[API REQUEST] localStorage household ID:', householdId);
+  
   if (!householdId) {
     throw new Error('No household ID found. Please refresh the page to create a new household.');
   }
