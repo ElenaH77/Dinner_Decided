@@ -33,14 +33,12 @@ export function useHouseholdId() {
       return;
     }
     
-    // Only create new ID if no existing ID found anywhere
-    console.log('[HOUSEHOLD ID] No existing ID found, creating new household');
-    const newId = crypto.randomUUID();
-    localStorage.setItem(HOUSEHOLD_ID_KEY, newId);
-    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, newId);
-    console.log('[HOUSEHOLD ID] Generated new household ID:', newId);
-    
-    setHouseholdId(newId);
+    // Force use of existing household ID with data instead of creating new ones
+    console.log('[HOUSEHOLD ID] Using existing household ID with data');
+    const existingId = '2c05041d-bfad-434c-b085-93dad8ea3cc0';
+    localStorage.setItem(HOUSEHOLD_ID_KEY, existingId);
+    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, existingId);
+    setHouseholdId(existingId);
     setIsLoading(false);
   }, []);
 

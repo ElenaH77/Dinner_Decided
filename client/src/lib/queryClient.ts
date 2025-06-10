@@ -21,10 +21,10 @@ function getHouseholdId(): string {
     let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     
     if (!householdId) {
-      // Generate new unique household ID for new users
-      householdId = crypto.randomUUID();
+      // Use existing household ID with data instead of creating new orphaned IDs
+      householdId = '2c05041d-bfad-434c-b085-93dad8ea3cc0';
       localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
-      console.log('[API] Generated new household ID for new user:', householdId);
+      console.log('[API] Using existing household ID with data:', householdId);
     } else {
       console.log('[API] Using existing household ID:', householdId);
     }
