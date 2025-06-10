@@ -5,7 +5,7 @@ import MealPlan from "@/pages/MealPlan";
 import SimpleMealPlan from "@/pages/SimpleMealPlan";
 import MealPlanBuilder from "@/pages/MealPlanBuilder";
 import GroceryList from "@/pages/GroceryList";
-import ProfileSimple from "@/pages/ProfileSimple";
+import ProfileSimple from "@/pages/ProfileSimpleFixed";
 import QuickProfile from "@/pages/QuickProfile";
 import Onboarding from "@/pages/Onboarding";
 import ChatOnboarding from "@/pages/chat-onboarding";
