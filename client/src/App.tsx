@@ -21,33 +21,6 @@ import { useQuery } from "@tanstack/react-query";
 import "@/lib/reset-household";
 
 function App() {
-  const [location, setLocation] = useLocation();
-  
-  // Check if user has completed onboarding
-  const { data: household, isLoading: householdLoading, error } = useQuery({
-    queryKey: ['/api/household'],
-    retry: false, // Don't retry if household doesn't exist
-  });
-  
-  // Show loading indicator while checking household status
-  if (householdLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <h1 className="mt-4 text-xl font-medium text-foreground">Loading Dinner, Decided</h1>
-          <p className="text-muted-foreground mt-2">Your meal planning assistant is getting ready...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // If no household exists or onboarding not complete, redirect to onboarding
-  const needsOnboarding = !household || !household.onboardingComplete;
-  
-  if (needsOnboarding && location !== "/onboarding") {
-    return <Onboarding />;
-  }
   
   return (
     <HouseholdProvider>
