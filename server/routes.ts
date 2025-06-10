@@ -11,12 +11,13 @@ import { getWeatherContextForMealPlanning } from "./weather";
 
 // Helper function to extract household ID from request headers
 function getHouseholdIdFromRequest(req: Request): string {
-  console.log('[HOUSEHOLD ID] Request headers:', req.headers);
+  console.log('[HOUSEHOLD ID] Request headers:', JSON.stringify(req.headers, null, 2));
   const householdId = req.headers['x-household-id'] as string;
   console.log('[HOUSEHOLD ID] Extracted household ID:', householdId);
+  console.log('[HOUSEHOLD ID] Type of household ID:', typeof householdId);
   if (!householdId || householdId === 'undefined' || householdId === 'null') {
-    console.log('[HOUSEHOLD ID] No household ID found in headers');
-    throw new Error('Missing household ID in request headers');
+    console.log('[HOUSEHOLD ID] No valid household ID found in headers');
+    return '';
   }
   return householdId;
 }
