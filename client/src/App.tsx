@@ -13,6 +13,7 @@ import TestErrorHandling from "@/pages/test-error-handling";
 import NotFound from "@/pages/not-found";
 import ShowMealPlan from "@/pages/show-meal-plan";
 import Settings from "@/pages/settings";
+import TestNewUser from "@/pages/TestNewUser";
 import { useEffect, useState } from "react";
 import { HouseholdProvider } from "@/contexts/household-context";
 import { MealPlanProvider } from "@/contexts/meal-plan-context";
@@ -43,6 +44,7 @@ function App() {
                 <Route path="/quick-profile" component={QuickProfile} />
                 <Route path="/settings" component={Settings} />
                 <Route path="/test-errors" component={TestErrorHandling} />
+                <Route path="/test-new-user" component={TestNewUser} />
                 <Route path="/show-meal-plan" component={ShowMealPlan} />
                 <Route component={NotFound} />
               </Switch>
