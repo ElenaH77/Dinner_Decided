@@ -26,13 +26,11 @@ function getHouseholdId(): string {
     const HOUSEHOLD_ID_KEY = 'dinner-decided-household-id';
     let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     
-    // Force use of Amy's household ID for consistency across devices
-    const DEMO_HOUSEHOLD_ID = '37d9cef8-4e49-4d07-8313-a214aebaa9aa';
-    
-    if (!householdId || householdId !== DEMO_HOUSEHOLD_ID) {
-      householdId = DEMO_HOUSEHOLD_ID;
+    if (!householdId) {
+      // Generate new unique household ID for fresh users
+      householdId = crypto.randomUUID();
       localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
-      console.log('[API] Set to Amy household ID:', householdId);
+      console.log('[API] Generated new household ID for fresh user:', householdId);
     } else {
       console.log('[API] Using existing household ID:', householdId);
     }
@@ -40,9 +38,9 @@ function getHouseholdId(): string {
     cachedHouseholdId = householdId;
     return householdId;
   } catch (error) {
-    // Fallback if localStorage isn't available - use Amy's household
-    console.warn('[API] localStorage not available, using demo household ID');
-    cachedHouseholdId = '37d9cef8-4e49-4d07-8313-a214aebaa9aa';
+    // Fallback if localStorage isn't available
+    console.warn('[API] localStorage not available, generating fallback household ID');
+    cachedHouseholdId = crypto.randomUUID();
     return cachedHouseholdId;
   }
 }
