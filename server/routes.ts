@@ -634,8 +634,18 @@ Keep your response brief and friendly, explaining that they need to set up their
           household.appliances && 
           household.appliances.length > 0;
         
-        if (!household.onboardingComplete && hasEssentialData) {
-          console.log(`[DINNERBOT] Auto-completing onboarding for household ${household.ownerName} with existing data`);
+        // For fresh households with default "New Household" name, allow DinnerBot access immediately
+        // This helps existing users who got new household IDs due to isolation fixes
+        const isFreshDefaultHousehold = household.name === "New Household" && 
+          !household.ownerName && 
+          !household.preferences;
+        
+        if (!household.onboardingComplete && (hasEssentialData || isFreshDefaultHousehold)) {
+          if (hasEssentialData) {
+            console.log(`[DINNERBOT] Auto-completing onboarding for household ${household.ownerName} with existing data`);
+          } else {
+            console.log(`[DINNERBOT] Allowing DinnerBot access for fresh default household`);
+          }
           await storage.updateHousehold({ onboardingComplete: true }, householdId);
           household.onboardingComplete = true;
           
