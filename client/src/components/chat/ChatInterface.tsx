@@ -29,6 +29,12 @@ export default function ChatInterface() {
   
   const { messages, addMessage, handleUserMessage, resetChatConversation, isGenerating, loading } = useChatState();
   
+  // Debug logging for mobile
+  console.log("[MOBILE DEBUG] Messages:", messages);
+  console.log("[MOBILE DEBUG] Loading:", loading);
+  console.log("[MOBILE DEBUG] IsArray:", Array.isArray(messages));
+  console.log("[MOBILE DEBUG] Length:", Array.isArray(messages) ? messages.length : 'N/A');
+  
   const { data: mealPlan } = useQuery({
     queryKey: ['/api/meal-plan/current'],
   });
@@ -234,58 +240,36 @@ export default function ChatInterface() {
       {/* Chat Messages Area */}
       <div className="flex-grow overflow-y-auto p-4 custom-scrollbar" id="chat-messages">
         <div className="flex flex-col space-y-4 max-w-3xl mx-auto">
-          {/* Show loading state while messages are being fetched */}
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          {/* Force show welcome state for debugging mobile */}
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-[#21706D] text-white flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🤖</span>
+              </div>
+              <h3 className="text-lg font-semibold text-[#212121] mb-2">Welcome to DinnerBot!</h3>
+              <p className="text-[#8A8A8A] max-w-md px-4">
+                I'm here to help you decide what to cook. Ask me about recipes, ingredients, or cooking tips!
+              </p>
+              <div className="mt-4 text-xs text-[#8A8A8A]">
+                Debug: Loading={loading ? 'true' : 'false'}, Messages={Array.isArray(messages) ? messages.length : 'not array'}
               </div>
             </div>
-          ) : (
-            <>
-              {/* Show messages if they exist */}
-              {Array.isArray(messages) && messages.length > 0 ? (
-                messages.map((message) => (
-                  <ChatMessage 
-                    key={message.id} 
-                    message={message} 
-                    mealPlan={message.role === 'assistant' && mealPlan ? mealPlan : undefined}
-                    groceryList={message.role === 'assistant' && groceryList ? groceryList : undefined}
-                  />
-                ))
-              ) : (
-                /* Show welcome state if no messages */
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-[#21706D] text-white flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">🤖</span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-[#212121] mb-2">Welcome to DinnerBot!</h3>
-                    <p className="text-[#8A8A8A] max-w-md">
-                      I'm here to help you decide what to cook. Ask me about recipes, ingredients, or cooking tips!
-                    </p>
-                  </div>
+          </div>
+          
+          {/* Show loading indicator for new messages */}
+          {isGenerating && (
+            <div className="flex items-start max-w-3xl">
+              <div className="w-8 h-8 rounded-full bg-[#21706D] text-white flex items-center justify-center mr-2 flex-shrink-0">
+                <span className="animate-pulse">🤖</span>
+              </div>
+              <div className="bg-white p-3 rounded-lg chat-bubble-assistant shadow-sm">
+                <div className="flex space-x-2">
+                  <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
-              )}
-              
-              {/* Loading indicator for new messages */}
-              {isGenerating && (
-                <div className="flex items-start max-w-3xl">
-                  <div className="w-8 h-8 rounded-full bg-[#21706D] text-white flex items-center justify-center mr-2 flex-shrink-0">
-                    <span className="animate-pulse">🤖</span>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg chat-bubble-assistant shadow-sm">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+              </div>
+            </div>
           )}
           
           <div ref={messagesEndRef} />
