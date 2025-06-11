@@ -3,24 +3,24 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { useHouseholdId } from '@/hooks/useHouseholdId';
 
 export default function TestNewUser() {
   const [, setLocation] = useLocation();
   const [isCleared, setIsCleared] = useState(false);
   const [newHouseholdId, setNewHouseholdId] = useState('');
+  const { resetHouseholdId } = useHouseholdId();
 
   const clearStorageAndTest = () => {
     // Clear all localStorage to simulate fresh user
     localStorage.clear();
+    
+    // Force reset household ID in the hook
+    const freshId = resetHouseholdId();
+    setNewHouseholdId(freshId);
     setIsCleared(true);
     
-    console.log('[TEST] Cleared localStorage - simulating fresh user');
-    
-    // Generate new household ID (simulating what useHouseholdId will do)
-    const testId = crypto.randomUUID();
-    setNewHouseholdId(testId);
-    
-    console.log('[TEST] Would generate new household ID:', testId);
+    console.log('[TEST] Cleared localStorage and reset household ID:', freshId);
   };
 
   const navigateToApp = () => {
