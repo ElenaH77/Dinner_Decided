@@ -26,7 +26,7 @@ export default function Sidebar({ activeTab }: SidebarProps) {
       <nav className="flex-grow">
         <ul className="p-2">
           <li className="mb-1">
-            <Link href="/" className={`flex items-center p-3 rounded-lg ${activeTab === 'chat' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
+            <Link href="/dinnerbot" className={`flex items-center p-3 rounded-lg ${activeTab === 'chat' ? 'bg-[#21706D] text-white' : 'text-[#212121] hover:bg-[#F9F9F9]'}`}>
               <MessageSquare className="w-5 h-5 mr-2" />
               <span>DinnerBot</span>
             </Link>

@@ -13,6 +13,7 @@ import ShowMealPlan from "@/pages/show-meal-plan";
 import Settings from "@/pages/settings";
 import TestNewUser from "@/pages/TestNewUser";
 import Start from "@/pages/Start";
+import DinnerBot from "@/pages/DinnerBot";
 import { useEffect, useState } from "react";
 import { HouseholdProvider } from "@/contexts/household-context";
 import { MealPlanProvider } from "@/contexts/meal-plan-context";
@@ -80,6 +81,7 @@ function App() {
             <AppLayout>
               <Switch>
                 <Route path="/" component={OnboardingRouter} />
+                <Route path="/dinnerbot" component={DinnerBot} />
                 <Route path="/this-week" component={SimpleMealPlan} />
                 <Route path="/meal-plan" component={SimpleMealPlan} />
                 <Route path="/meals" component={SimpleMealPlan} />
