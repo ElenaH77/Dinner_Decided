@@ -11,13 +11,18 @@ export function useChatState() {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Get stored messages from API
-  const { data: messages = [], isLoading: loading, error } = useQuery({
+  // Get stored messages from API with forced refresh
+  const { data: messagesData, isLoading: loading, error } = useQuery({
     queryKey: ['/api/chat/messages'],
+    staleTime: 0,
+    cacheTime: 0,
   });
   
+  // Ensure messages is always an array
+  const messages = Array.isArray(messagesData) ? messagesData : [];
+  
   // Debug logging
-  console.log('Chat messages query:', { messages, loading, error, messagesType: typeof messages, messagesLength: messages?.length });
+  console.log('Chat messages query:', { messagesData, messages, loading, error, messagesType: typeof messagesData, messagesLength: messages?.length });
   
   // Also log the household ID being used
   const householdId = localStorage.getItem('dinner-decided-household-id');

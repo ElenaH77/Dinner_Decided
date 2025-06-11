@@ -74,7 +74,7 @@ export default function MobileChatInterface() {
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           </div>
-        ) : messages && messages.length > 0 ? (
+        ) : Array.isArray(messages) && messages.length > 0 ? (
           <div className="space-y-4">
             {messages.map((message) => (
               <div
