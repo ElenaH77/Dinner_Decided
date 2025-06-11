@@ -699,9 +699,27 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
   app.get("/api/household", async (req, res) => {
     try {
       const householdId = getHouseholdIdFromRequest(req);
-      const household = await storage.getHousehold(householdId);
+      let household = await storage.getHousehold(householdId);
+      
+      // If no household exists, create a default one for the new user
+      if (!household && householdId) {
+        console.log('[HOUSEHOLD] No household found, creating default for fresh user:', householdId);
+        household = await storage.createHousehold({
+          name: "New Household",
+          members: [],
+          cookingSkill: 1,
+          preferences: "",
+          challenges: null,
+          location: null,
+          appliances: [],
+          onboardingComplete: false
+        }, householdId);
+        console.log('[HOUSEHOLD] Created default household for fresh user');
+      }
+      
       res.json(household);
     } catch (error) {
+      console.error('[HOUSEHOLD] Error in GET /api/household:', error);
       res.status(500).json({ message: "Failed to get household" });
     }
   });
