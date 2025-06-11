@@ -656,19 +656,21 @@ Keep your response brief and friendly, explaining that they need to set up their
           console.log(`[DINNERBOT] Cleared old onboarding messages for clean DinnerBot start`);
         }
 
-        // Check if user needs to complete profile setup or can use DinnerBot normally
+        // Create system message based on profile completeness
+        let systemMessage;
+        
         if (!household.onboardingComplete) {
           // Direct users to complete their profile first if onboarding is incomplete
-          messages.unshift({
+          systemMessage = {
             role: "system",
             content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
 
 Always politely direct them to visit the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
 
 Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning. Don't ask onboarding questions - just direct them to the profile setup.`
-          });
+          };
         } else {
-          // User has completed onboarding, provide full DinnerBot functionality
+          // User has completed onboarding, provide full DinnerBot functionality with enhanced family context
           const memberDetails = household.members?.map(member => {
             const restrictions = member.dietaryRestrictions && member.dietaryRestrictions.length > 0 ? ` (${member.dietaryRestrictions.join(', ')})` : '';
             return `${member.name} (${member.age})${restrictions}`;
@@ -676,7 +678,7 @@ Keep your response brief and friendly, explaining that they need to set up their
 
           const challengeInfo = household.challenges?.trim() ? ` They mention these cooking challenges: "${household.challenges}".` : '';
 
-          messages.unshift({
+          systemMessage = {
             role: "system",
             content: `You are DinnerBot—a friendly, funny, and unflappable dinner assistant for "Dinner, Decided". Your job is to help busy families figure out what to cook in a pinch, answer common meal-related questions, and offer creative ideas using limited ingredients.
 
@@ -690,8 +692,11 @@ FAMILY CONTEXT:
 MANDATORY DIETARY SAFETY REQUIREMENT: If any household member has dietary restrictions (gluten-free, allergies, etc.), you MUST acknowledge these restrictions in every recipe suggestion and ensure all ingredients are safe for the entire family. Never suggest ingredients that conflict with stated restrictions.
 
 Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient suggestions, cooking tips, and quick meal ideas. Suggest specific recipes when appropriate, keeping them accessible and family-friendly. Consider their appliances and skill level when making suggestions. Don't try to create full meal plans - that's handled elsewhere in the app.`
-          });
+          };
         }
+        
+        // Add system message to the beginning
+        messages.unshift(systemMessage);
 
         // Convert messages to format expected by generateChatResponse
         const formattedMessages = messages.map(msg => ({
