@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useHouseholdId } from '@/hooks/useHouseholdId';
+import { clearCachedHouseholdId } from '@/lib/queryClient';
 
 export default function TestNewUser() {
   const [, setLocation] = useLocation();
@@ -15,12 +16,15 @@ export default function TestNewUser() {
     // Clear all localStorage to simulate fresh user
     localStorage.clear();
     
+    // Clear cached household ID in queryClient
+    clearCachedHouseholdId();
+    
     // Force reset household ID in the hook
     const freshId = resetHouseholdId();
     setNewHouseholdId(freshId);
     setIsCleared(true);
     
-    console.log('[TEST] Cleared localStorage and reset household ID:', freshId);
+    console.log('[TEST] Cleared localStorage, cache, and reset household ID:', freshId);
   };
 
   const navigateToApp = () => {

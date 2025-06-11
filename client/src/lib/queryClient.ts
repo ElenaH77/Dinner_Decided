@@ -10,6 +10,12 @@ async function throwIfResNotOk(res: Response) {
 // Cache the household ID to prevent race conditions
 let cachedHouseholdId: string | null = null;
 
+// Function to clear cached household ID (used by test/reset functions)
+export function clearCachedHouseholdId() {
+  cachedHouseholdId = null;
+  console.log('[API] Cleared cached household ID');
+}
+
 // Get household ID from localStorage with caching to prevent race conditions
 function getHouseholdId(): string {
   if (cachedHouseholdId) {
@@ -21,23 +27,10 @@ function getHouseholdId(): string {
     let householdId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     
     if (!householdId) {
-      // Check if user has selected an account via URL or localStorage preference
-      const urlParams = new URLSearchParams(window.location.search);
-      const accountParam = urlParams.get('account');
-      const storedAccount = localStorage.getItem('selected-account');
-      
-      // Use AltElena for fancy meals, KidsElena for kid-friendly meals
-      if (accountParam === 'alt' || storedAccount === 'alt') {
-        householdId = '971194b1-c94c-42c5-9b09-c800290fa380'; // AltElena
-        localStorage.setItem('selected-account', 'alt');
-        console.log('[API] Using AltElena household ID for fancy meals');
-      } else {
-        householdId = 'e971dd06-ce76-49bf-ad89-12b4106e4e7e'; // KidsElena  
-        localStorage.setItem('selected-account', 'kids');
-        console.log('[API] Using KidsElena household ID for kid-friendly meals');
-      }
-      
+      // Generate new unique household ID for fresh users
+      householdId = crypto.randomUUID();
       localStorage.setItem(HOUSEHOLD_ID_KEY, householdId);
+      console.log('[API] Generated new household ID for fresh user:', householdId);
     } else {
       console.log('[API] Using existing household ID:', householdId);
     }
