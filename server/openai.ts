@@ -244,10 +244,15 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
       
       promptContent = `Create a personalized meal plan with ${totalMeals} dinner ideas for a family with the following profile:
         - Owner name: ${household.ownerName || "Family"}
-        - Household size: ${household.householdSize || "Not specified"}
-        - Location: ${household.zipCode || "Unknown location"}
-        - Additional notes: ${household.additionalNotes || "No specific preferences mentioned"}
+        - Household size: ${household.members?.[0]?.name || "Not specified"}
+        - Family members: ${household.members?.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ') || 'No members listed'}
+        - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
+        - Cooking skill level (1-5): ${household.cookingSkill || 3}
+        - CRITICAL DIETARY RESTRICTIONS: ${household.preferences || "No dietary restrictions specified"}
+        - Location: ${household.location || "Unknown location"}
         ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
+        
+        ⚠️ IMPORTANT DIETARY SAFETY: If any dietary restrictions are mentioned above (especially allergies or intolerances like gluten-free, dairy-free, etc.), you MUST strictly avoid ALL ingredients that violate these restrictions. For example, if someone is gluten-free, use ONLY gluten-free alternatives (gluten-free pizza crust, tamari instead of soy sauce, etc.). This is a safety requirement.
         
         Special notes for this week: ${preferences.specialNotes || "No special notes"}
         
@@ -302,10 +307,12 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
         - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
-        - Preferences: ${household.preferences || "Family-friendly meals"}
+        - CRITICAL DIETARY RESTRICTIONS: ${household.preferences || "No dietary restrictions specified"}
         - Location: ${household.location || "Unknown location"}
         ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
         ${additionalPrefs}
+        
+        ⚠️ IMPORTANT DIETARY SAFETY: If any dietary restrictions are mentioned above (especially allergies or intolerances like gluten-free, dairy-free, etc.), you MUST strictly avoid ALL ingredients that violate these restrictions. For example, if someone is gluten-free, use ONLY gluten-free alternatives (gluten-free pizza crust, tamari instead of soy sauce, etc.). This is a safety requirement.
         
         For the meal, please provide:
         1. Name of dish - be specific and descriptive
@@ -346,9 +353,11 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
         - Family members: ${household.members.map((m: any) => `${m.name} (${m.age || 'Adult'}, ${m.dietaryRestrictions || 'No restrictions'})`).join(', ')}
         - Available appliances: ${household.appliances?.join(", ") || "Standard kitchen equipment"}
         - Cooking skill level (1-5): ${household.cookingSkill || 3}
-        - Preferences: ${household.preferences || "Family-friendly meals"}
+        - CRITICAL DIETARY RESTRICTIONS: ${household.preferences || "No dietary restrictions specified"}
         - Location: ${household.location || "Unknown location"}
         ${weatherContext ? `- Current weather: ${weatherContext}` : ''}
+        
+        ⚠️ IMPORTANT DIETARY SAFETY: If any dietary restrictions are mentioned above (especially allergies or intolerances like gluten-free, dairy-free, etc.), you MUST strictly avoid ALL ingredients that violate these restrictions. For example, if someone is gluten-free, use ONLY gluten-free alternatives (gluten-free pizza crust, tamari instead of soy sauce, etc.). This is a safety requirement.
         
         For each meal, please provide:
         1. Name of dish - be specific and descriptive
