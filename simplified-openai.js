@@ -253,7 +253,9 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
     
     console.log('[MEAL PLAN] Generating meal plan with prompt');
     console.log('[MEAL PLAN DEBUG] Household preferences:', household?.preferences);
+    console.log('[MEAL PLAN DEBUG] Household appliances:', household?.appliances);
     console.log('[MEAL PLAN DEBUG] Prompt contains gluten-free:', promptContent.includes('gluten'));
+    console.log('[MEAL PLAN DEBUG] Prompt contains appliance requirements:', promptContent.includes('MANDATORY APPLIANCE'));
     
     // Apply exponential backoff for retries
     if (retryCount > 0) {
@@ -397,7 +399,15 @@ function buildMealPlanPrompt(household: any, preferences: any, weatherContext: s
 If ANY dietary restrictions are mentioned above (especially gluten-free, dairy-free, allergies), you MUST:
 - Use ONLY safe alternatives (gluten-free pasta, gluten-free pizza crust, tamari instead of soy sauce)
 - Check EVERY ingredient for hidden sources of restricted items
-- This is a medical safety requirement - violations could cause serious harm\\n\`;
+- This is a medical safety requirement - violations could cause serious harm
+
+🔧 MANDATORY APPLIANCE REQUIREMENT:
+You can ONLY suggest recipes using the kitchen equipment listed above. DO NOT suggest:
+- Slow cooker recipes if no slow cooker is listed
+- Instant pot recipes if no instant pot is listed
+- Deep fryer recipes if no deep fryer is listed
+- Stand mixer recipes if no stand mixer is listed
+If equipment is missing, adapt the recipe or choose a different cooking method.\\n\`;
   
   // Handle specific meal preferences
   if (preferences.mealsByDay && Object.keys(preferences.mealsByDay).length > 0) {
