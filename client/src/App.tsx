@@ -14,6 +14,7 @@ import NotFound from "@/pages/not-found";
 import ShowMealPlan from "@/pages/show-meal-plan";
 import Settings from "@/pages/settings";
 import TestNewUser from "@/pages/TestNewUser";
+import Start from "@/pages/Start";
 import { useEffect, useState } from "react";
 import { HouseholdProvider } from "@/contexts/household-context";
 import { MealPlanProvider } from "@/contexts/meal-plan-context";
@@ -27,6 +28,7 @@ function App() {
     <HouseholdProvider>
       <MealPlanProvider>
         <Switch>
+          <Route path="/start" component={Start} />
           <Route path="/chat-onboarding" component={ChatOnboarding} />
           
           <Route>
