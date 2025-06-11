@@ -252,6 +252,8 @@ export async function generateMealPlan(household: any, preferences: any = {}, re
     const promptContent = buildMealPlanPrompt(household, preferences, weatherContext);
     
     console.log('[MEAL PLAN] Generating meal plan with prompt');
+    console.log('[MEAL PLAN DEBUG] Household preferences:', household?.preferences);
+    console.log('[MEAL PLAN DEBUG] Prompt contains gluten-free:', promptContent.includes('gluten'));
     
     // Apply exponential backoff for retries
     if (retryCount > 0) {
@@ -377,7 +379,7 @@ function buildMealPlanPrompt(household: any, preferences: any, weatherContext: s
     }
     
     if (household.preferences) {
-      prompt += \`- Preferences: \${household.preferences}\\n\`;
+      prompt += \`- CRITICAL DIETARY RESTRICTIONS: \${household.preferences}\\n\`;
     }
     
     if (household.location) {
@@ -389,6 +391,13 @@ function buildMealPlanPrompt(household: any, preferences: any, weatherContext: s
   if (weatherContext) {
     prompt += \`- Weather: \${weatherContext}\\n\`;
   }
+  
+  // Add critical dietary safety warning
+  prompt += \`\\n🚨 MANDATORY DIETARY SAFETY REQUIREMENT:
+If ANY dietary restrictions are mentioned above (especially gluten-free, dairy-free, allergies), you MUST:
+- Use ONLY safe alternatives (gluten-free pasta, gluten-free pizza crust, tamari instead of soy sauce)
+- Check EVERY ingredient for hidden sources of restricted items
+- This is a medical safety requirement - violations could cause serious harm\\n\`;
   
   // Handle specific meal preferences
   if (preferences.mealsByDay && Object.keys(preferences.mealsByDay).length > 0) {
