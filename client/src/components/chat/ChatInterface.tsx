@@ -1,5 +1,5 @@
 import { useRef, useEffect, FormEvent, useState, KeyboardEvent, ChangeEvent } from "react";
-import { Info, Settings, Layers, Paperclip, RefreshCw, Image, X } from "lucide-react";
+import { Layers, Paperclip, RefreshCw, Image, X } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import { useChatState } from "@/hooks/useChatState";
 import { useQuery } from "@tanstack/react-query";
@@ -226,12 +226,7 @@ export default function ChatInterface() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <button className="p-2 text-[#8A8A8A] hover:text-[#21706D] rounded-full" aria-label="Info">
-              <Info className="h-5 w-5" />
-            </button>
-            <button className="p-2 text-[#8A8A8A] hover:text-[#21706D] rounded-full" aria-label="Settings">
-              <Settings className="h-5 w-5" />
-            </button>
+
           </div>
         </div>
       </header>
