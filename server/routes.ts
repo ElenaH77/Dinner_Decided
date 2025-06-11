@@ -482,35 +482,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("[CHAT] Created new household for onboarding:", household.id);
         }
         
+        // Auto-complete onboarding for households with essential data
+        const hasEssentialData = household.ownerName && 
+          household.preferences && 
+          household.appliances && 
+          household.appliances.length > 0;
+
+        if (!household.onboardingComplete && hasEssentialData) {
+          await storage.updateHousehold({ onboardingComplete: true }, householdId);
+          household.onboardingComplete = true;
+        }
+
         // Get previous messages for context
         const previousMessages = await storage.getMessages(householdId);
-        const recentMessages = previousMessages.slice(-10);
+        const recentMessages = previousMessages.slice(-6);
         
-        // Format messages for OpenAI with appropriate system prompt
+        // Create enhanced family context system message
+        let systemContent;
+        
+        if (analysisContext) {
+          systemContent = analysisContext;
+        } else if (!household.onboardingComplete) {
+          systemContent = `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
+
+Always politely direct them to visit the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
+
+Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning.`;
+        } else {
+          // Enhanced family context with rich personalization
+          const memberDetails = household.members?.map(member => {
+            const restrictions = member.dietaryRestrictions && member.dietaryRestrictions.length > 0 ? ` (${member.dietaryRestrictions.join(', ')})` : '';
+            return `${member.name} (${member.age})${restrictions}`;
+          }).join(', ') || 'no specific member details';
+
+          const challengeInfo = household.challenges?.trim() ? ` They mention these cooking challenges: "${household.challenges}".` : '';
+
+          systemContent = `You are DinnerBot—a friendly, funny, and unflappable dinner assistant for "Dinner, Decided". Your job is to help busy families figure out what to cook in a pinch, answer common meal-related questions, and offer creative ideas using limited ingredients.
+
+FAMILY CONTEXT:
+- ${household.ownerName || 'The user'}'s household has ${household.members?.length || 0} members: ${memberDetails}
+- Cooking skill level: ${household.cookingSkill}/5
+- Dietary preferences: "${household.preferences || 'none specified'}"
+- Location: ${household.location || 'not specified'}
+- Available appliances: ${household.appliances?.join(', ') || 'none specified'}${challengeInfo}
+
+MANDATORY DIETARY SAFETY REQUIREMENT: If any household member has dietary restrictions (gluten-free, allergies, etc.), you MUST acknowledge these restrictions in every recipe suggestion and ensure all ingredients are safe for the entire family. Never suggest ingredients that conflict with stated restrictions.
+
+Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient suggestions, cooking tips, and quick meal ideas. Suggest specific recipes when appropriate, keeping them accessible and family-friendly. Consider their appliances and skill level when making suggestions.`;
+        }
+        
+        // Format messages for OpenAI
         const formattedMessages = [
+          { role: "system", content: systemContent },
           ...recentMessages.map(m => ({
             role: m.role as "user" | "assistant" | "system",
             content: m.content
           })),
           singleMessage,
         ];
-        
-        if (analysisContext) {
-          formattedMessages.unshift({
-            role: "system",
-            content: analysisContext
-          });
-        } else if (!household.onboardingComplete) {
-          // Only direct to profile setup if onboarding is not complete
-          formattedMessages.unshift({
-            role: "system",
-            content: `You are a helpful assistant for "Dinner, Decided" - a meal planning service. Before you can help with meal planning, users need to complete their profile setup first.
-
-Always politely direct them to visit the Profile page where they can enter their household information, dietary preferences, kitchen equipment, and location.
-
-Keep your response brief and friendly, explaining that they need to set up their profile before you can help with meal planning. Don't ask onboarding questions - just direct them to the profile setup.`
-          });
-        }
         
         // Save the user message first
         const userMessage = {
