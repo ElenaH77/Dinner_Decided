@@ -258,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const personalizedWelcome = {
             id: `welcome-${Date.now()}`,
             role: "assistant",
-            content: `Hello ${household.ownerName || 'there'}! Welcome back to DinnerBot. I'm here to help with meal ideas, cooking tips, and recipe suggestions. What can I help you with today?`,
+            content: `Hey ${household.ownerName || 'there'}! Welcome back to DinnerBot. I'm here to help with meal ideas, cooking tips, and recipe suggestions. What can I help you with today?`,
             timestamp: new Date(),
             householdId: householdId
           };

@@ -4,7 +4,7 @@ export const ONBOARDING_WELCOME_MESSAGE = `Welcome to Dinner, Decided! I'm your 
 Let's get started with a few questions about your household. How many people are you cooking for?`;
 
 // Welcome message for the DinnerBot chat assistant
-export const WELCOME_MESSAGE = `Hi there 👋 Need a hand with dinner? I can help you figure out what to do with that mystery veggie in your fridge, or save your Tuesday with a 10-minute dinner idea. What's going on?
+export const WELCOME_MESSAGE = `Hey 👋 Need a hand with dinner? I can help you figure out what to do with that mystery veggie in your fridge, or save your Tuesday with a 10-minute dinner idea. What's going on?
 
 Try asking me:
 • "What can I make with sweet potatoes and black beans?"
