@@ -8,16 +8,7 @@ export function useHouseholdId() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Force AltElena for testing - override any stored values
-    console.log('[HOUSEHOLD ID] Force switching to AltElena account');
-    const altElenaId = '971194b1-c94c-42c5-9b09-c800290fa380';
-    localStorage.setItem(HOUSEHOLD_ID_KEY, altElenaId);
-    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, altElenaId);
-    setHouseholdId(altElenaId);
-    setIsLoading(false);
-    return;
-    
-    // Get household ID with fallback mechanisms (disabled for testing)
+    // Get household ID with fallback mechanisms
     let storedId = localStorage.getItem(HOUSEHOLD_ID_KEY);
     let backupId = localStorage.getItem(BACKUP_HOUSEHOLD_ID_KEY);
     
@@ -42,12 +33,12 @@ export function useHouseholdId() {
       return;
     }
     
-    // Force use of AltElena's household ID for testing
-    console.log('[HOUSEHOLD ID] Using AltElena household ID');
-    const existingId = '971194b1-c94c-42c5-9b09-c800290fa380';
-    localStorage.setItem(HOUSEHOLD_ID_KEY, existingId);
-    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, existingId);
-    setHouseholdId(existingId);
+    // Generate new unique household ID for fresh users
+    console.log('[HOUSEHOLD ID] Generating new household ID for fresh user');
+    const newId = crypto.randomUUID();
+    localStorage.setItem(HOUSEHOLD_ID_KEY, newId);
+    localStorage.setItem(BACKUP_HOUSEHOLD_ID_KEY, newId);
+    setHouseholdId(newId);
     setIsLoading(false);
   }, []);
 
