@@ -670,7 +670,7 @@ Keep your response brief and friendly, explaining that they need to set up their
         } else {
           // User has completed onboarding, provide full DinnerBot functionality
           const memberDetails = household.members?.map(member => {
-            const restrictions = member.dietaryRestrictions?.length > 0 ? ` (${member.dietaryRestrictions.join(', ')})` : '';
+            const restrictions = member.dietaryRestrictions && member.dietaryRestrictions.length > 0 ? ` (${member.dietaryRestrictions.join(', ')})` : '';
             return `${member.name} (${member.age})${restrictions}`;
           }).join(', ') || 'no specific member details';
 
@@ -717,7 +717,8 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
       }
     } catch (error) {
       console.error("Error in /api/chat:", error);
-      res.status(500).json({ message: "Failed to process message" });
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ message: "Failed to process message", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
