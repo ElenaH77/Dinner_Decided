@@ -15,18 +15,21 @@ export function useChatState() {
   const { data: messagesData, isLoading: loading, error } = useQuery({
     queryKey: ['/api/chat/messages'],
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
   
   // Ensure messages is always an array
   const messages = Array.isArray(messagesData) ? messagesData : [];
   
   // Debug logging
-  console.log('Chat messages query:', { messagesData, messages, loading, error, messagesType: typeof messagesData, messagesLength: messages?.length });
+  console.log('[CHAT DEBUG] Query result:', { messagesData, messages, loading, error, messagesType: typeof messagesData, messagesLength: messages?.length });
+  console.log('[CHAT DEBUG] Messages array check:', Array.isArray(messages), messages);
   
   // Also log the household ID being used
   const householdId = localStorage.getItem('dinner-decided-household-id');
-  console.log('Current household ID in browser:', householdId);
+  console.log('[CHAT DEBUG] Household ID:', householdId);
   
   // Mutation for sending messages
   const messageMutation = useMutation({

@@ -98,13 +98,10 @@ export default function MobileChatInterface() {
             <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-3xl">🍽️</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to DinnerBot!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading DinnerBot...</h2>
             <p className="text-gray-600 mb-4 px-4">
-              I know your family's dietary needs and preferences. Ask me about recipes, ingredients, or cooking tips!
+              Setting up your personalized meal assistant...
             </p>
-            <div className="text-sm text-gray-400">
-              Amy is gluten-free • 2 adults + 1 child • Skill level 1/5
-            </div>
           </div>
         )}
         
