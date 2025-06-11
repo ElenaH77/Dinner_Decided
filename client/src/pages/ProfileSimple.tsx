@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ArrowRight, CheckCircle } from "lucide-react";
 
 export default function ProfileSimple() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [editedHousehold, setEditedHousehold] = useState<any>(null);
   
@@ -111,6 +113,21 @@ export default function ProfileSimple() {
   const cancelEditing = () => {
     setEditedHousehold(null);
     setIsEditing(false);
+  };
+
+  // Check if profile is complete enough to proceed to meal planning
+  const isProfileComplete = (data: any) => {
+    return !!(
+      data?.ownerName?.trim() &&
+      data?.members?.[0]?.name?.trim() &&
+      data?.appliances?.length > 0
+    );
+  };
+
+  const handleNextStep = () => {
+    if (isProfileComplete(household)) {
+      setLocation('/this-week');
+    }
   };
 
   const availableAppliances = [
@@ -366,6 +383,53 @@ export default function ProfileSimple() {
             )}
           </CardContent>
         </Card>
+
+        {/* Next Step Button */}
+        {!isEditing && isProfileComplete(displayData) && (
+          <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div className="flex items-center justify-center gap-2 text-primary">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-semibold">Profile Complete!</span>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  You're all set to start planning your meals
+                </p>
+                <Button 
+                  onClick={handleNextStep}
+                  className="bg-accent hover:bg-accent/90 text-white px-6 py-3 text-base font-medium"
+                >
+                  Next: Plan This Week
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Incomplete Profile Guidance */}
+        {!isEditing && !isProfileComplete(displayData) && (
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-2">
+                <p className="font-medium text-amber-800">Complete your profile to continue</p>
+                <div className="text-sm text-amber-700 space-y-1">
+                  {!displayData?.ownerName?.trim() && <p>• Add your name</p>}
+                  {!displayData?.members?.[0]?.name?.trim() && <p>• Add household size</p>}
+                  {!displayData?.appliances?.length && <p>• Select at least one kitchen appliance</p>}
+                </div>
+                <Button 
+                  onClick={startEditing}
+                  variant="outline"
+                  className="mt-3 border-amber-300 text-amber-800 hover:bg-amber-100"
+                >
+                  Edit Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         </div>
       </div>
     </div>
