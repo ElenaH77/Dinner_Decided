@@ -1,9 +1,9 @@
-import ChatInterface from "@/components/chat/ChatInterface";
+import MobileChatInterface from "@/components/chat/MobileChatInterface";
 
 export default function DinnerBot() {
   return (
     <div className="flex flex-col h-full">
-      <ChatInterface />
+      <MobileChatInterface />
     </div>
   );
 }

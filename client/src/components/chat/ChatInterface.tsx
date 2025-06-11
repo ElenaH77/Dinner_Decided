@@ -197,92 +197,48 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex-grow overflow-hidden flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-[#E2E2E2] py-3 px-4 md:px-6">
-        <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-lg">Meal Planning Assistant</h2>
-          <div className="flex space-x-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button 
-                  className="p-2 text-[#8A8A8A] hover:text-[#21706D] rounded-full" 
-                  aria-label="Reset chat" 
-                  disabled={isResetting || messages.length <= 1}
-                >
-                  <RefreshCw className={`h-5 w-5 ${isResetting ? 'animate-spin' : ''}`} />
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset Chat</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will clear your conversation history with DinnerBot. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleResetChat}
-                    disabled={isResetting}
-                    className="bg-[#F25C05] hover:bg-[#D14D01]"
-                  >
-                    {isResetting ? 'Resetting...' : 'Reset Chat'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Simplified Mobile Header */}
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+        <h1 className="text-xl font-semibold text-gray-900">DinnerBot</h1>
+      </div>
 
-          </div>
-        </div>
-      </header>
-
-      {/* Chat Messages Area */}
-      <div className="flex-grow overflow-y-auto p-4 custom-scrollbar" id="chat-messages">
-        <div className="flex flex-col space-y-4 max-w-3xl mx-auto">
-          {/* Force show welcome state for debugging mobile */}
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-[#21706D] text-white flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <h3 className="text-lg font-semibold text-[#212121] mb-2">Welcome to DinnerBot!</h3>
-              <p className="text-[#8A8A8A] max-w-md px-4">
-                I'm here to help you decide what to cook. Ask me about recipes, ingredients, or cooking tips!
-              </p>
-              <div className="mt-4 text-xs text-[#8A8A8A]">
-                Debug: Loading={loading ? 'true' : 'false'}, Messages={Array.isArray(messages) ? messages.length : 'not array'}
-              </div>
+      {/* Mobile-Optimized Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Messages Area - Mobile Optimized */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Always show welcome for now - mobile debugging */}
+          <div className="text-center py-8">
+            <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white text-3xl">🍽️</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to DinnerBot!</h2>
+            <p className="text-gray-600 mb-4 px-4">
+              I'm here to help you decide what to cook tonight. Just ask me anything about recipes or cooking!
+            </p>
+            <div className="text-sm text-gray-400">
+              Enhanced with your family context • Gluten-free aware
             </div>
           </div>
           
-          {/* Show loading indicator for new messages */}
+          {/* Messages would go here */}
           {isGenerating && (
-            <div className="flex items-start max-w-3xl">
-              <div className="w-8 h-8 rounded-full bg-[#21706D] text-white flex items-center justify-center mr-2 flex-shrink-0">
-                <span className="animate-pulse">🤖</span>
-              </div>
-              <div className="bg-white p-3 rounded-lg chat-bubble-assistant shadow-sm">
-                <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-[#21706D] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
+            <div className="flex justify-center py-4">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </div>
           )}
-          
-          <div ref={messagesEndRef} />
         </div>
-      </div>
 
-      {/* Chat Input Area */}
-      <div className="bg-white border-t border-[#E2E2E2] p-3">
-        <form onSubmit={handleSubmit}>
+        {/* Chat Input Area - Mobile Optimized */}
+        <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
           {/* File preview area */}
           {previewUrl && (
             <div className="mb-3 relative">
-              <div className="relative rounded-lg overflow-hidden border border-[#E2E2E2] w-full max-h-60">
+              <div className="relative rounded-lg overflow-hidden border border-gray-200 w-full max-h-60">
                 <img 
                   src={previewUrl} 
                   alt="File preview" 
@@ -291,7 +247,7 @@ export default function ChatInterface() {
                 <button 
                   type="button"
                   onClick={handleRemoveFile}
-                  className="absolute top-2 right-2 bg-[#212121] bg-opacity-70 rounded-full p-1 text-white hover:bg-opacity-90"
+                  className="absolute top-2 right-2 bg-black bg-opacity-70 rounded-full p-1 text-white hover:bg-opacity-90"
                   aria-label="Remove file"
                 >
                   <X className="h-4 w-4" />
@@ -300,14 +256,14 @@ export default function ChatInterface() {
             </div>
           )}
           
-          <div className="flex items-end">
+          <form onSubmit={handleSubmit} className="flex items-end space-x-2">
             <div className="flex-grow relative">
               <textarea 
                 ref={textareaRef}
-                placeholder="Type your message..." 
-                className="w-full border border-[#E2E2E2] rounded-lg px-4 py-2 focus:outline-none focus:ring-1 focus:ring-[#21706D] resize-none text-[#212121]"
+                placeholder="Ask me about recipes or cooking..." 
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none text-gray-900 text-base"
                 rows={1}
-                style={{ minHeight: '60px' }}
+                style={{ minHeight: '50px' }}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -334,18 +290,14 @@ export default function ChatInterface() {
             </div>
             <button 
               type="submit" 
-              className="ml-2 bg-[#21706D] hover:bg-[#195957] text-white rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50"
+              className="ml-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-12 h-12 flex items-center justify-center disabled:opacity-50 flex-shrink-0"
               disabled={(!input.trim() && !selectedFile) || isGenerating}
               aria-label="Send message"
             >
-              <Layers className="h-5 w-5" />
+              <Send className="h-5 w-5" />
             </button>
-          </div>
-          <div className="flex justify-between mt-2 text-xs text-[#8A8A8A] px-2">
-            <span>Try: "What can I make with chicken and pasta?"</span>
-            <span>Shift+Enter for new line</span>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
