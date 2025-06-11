@@ -624,7 +624,7 @@ Keep your response brief and friendly, explaining that they need to set up their
             ...userMessage,
             // Generate a new unique ID for each user message to prevent duplicates
             id: uuidv4(),
-            householdId: household.id,
+            householdId: String(household.id),
             timestamp: new Date(userMessage.timestamp)
           };
           await storage.saveMessage(messageToSave, householdId);
@@ -693,8 +693,17 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
           });
         }
 
+        // Convert messages to format expected by generateChatResponse
+        const formattedMessages = messages.map(msg => ({
+          id: msg.id || uuidv4(),
+          role: msg.role,
+          content: msg.content,
+          householdId: String(household.id),
+          timestamp: new Date()
+        }));
+
         // Get response from OpenAI
-        const aiResponse = await generateChatResponse(messages, household);
+        const aiResponse = await generateChatResponse(formattedMessages, household);
       
         // Save the AI response message
         if (aiResponse) {
@@ -702,7 +711,7 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
             id: uuidv4(),
             role: "assistant", 
             content: aiResponse,
-            householdId: household.id,
+            householdId: String(household.id),
             timestamp: new Date()
           };
         
