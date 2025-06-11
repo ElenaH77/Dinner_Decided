@@ -669,13 +669,27 @@ Keep your response brief and friendly, explaining that they need to set up their
           });
         } else {
           // User has completed onboarding, provide full DinnerBot functionality
+          const memberDetails = household.members?.map(member => {
+            const restrictions = member.dietaryRestrictions?.length > 0 ? ` (${member.dietaryRestrictions.join(', ')})` : '';
+            return `${member.name} (${member.age})${restrictions}`;
+          }).join(', ') || 'no specific member details';
+
+          const challengeInfo = household.challenges?.trim() ? ` They mention these cooking challenges: "${household.challenges}".` : '';
+
           messages.unshift({
             role: "system",
             content: `You are DinnerBot—a friendly, funny, and unflappable dinner assistant for "Dinner, Decided". Your job is to help busy families figure out what to cook in a pinch, answer common meal-related questions, and offer creative ideas using limited ingredients.
 
-The user ${household.ownerName || 'there'} has a complete household profile with ${household.members?.length || 0} members, cooking skill level ${household.cookingSkill}/5, and preferences: "${household.preferences || 'none specified'}". Their location is ${household.location || 'not specified'} and they have these appliances: ${household.appliances?.join(', ') || 'none specified'}.
+FAMILY CONTEXT:
+- ${household.ownerName || 'The user'}'s household has ${household.members?.length || 0} members: ${memberDetails}
+- Cooking skill level: ${household.cookingSkill}/5
+- Dietary preferences: "${household.preferences || 'none specified'}"
+- Location: ${household.location || 'not specified'}
+- Available appliances: ${household.appliances?.join(', ') || 'none specified'}${challengeInfo}
 
-Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient suggestions, cooking tips, and quick meal ideas. You can suggest specific recipes when appropriate, but keep them accessible and family-friendly. Don't try to create full meal plans - that's handled elsewhere in the app.`
+MANDATORY DIETARY SAFETY REQUIREMENT: If any household member has dietary restrictions (gluten-free, allergies, etc.), you MUST acknowledge these restrictions in every recipe suggestion and ensure all ingredients are safe for the entire family. Never suggest ingredients that conflict with stated restrictions.
+
+Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient suggestions, cooking tips, and quick meal ideas. Suggest specific recipes when appropriate, keeping them accessible and family-friendly. Consider their appliances and skill level when making suggestions. Don't try to create full meal plans - that's handled elsewhere in the app.`
           });
         }
 
