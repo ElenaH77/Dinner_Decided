@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, Plus, RefreshCw, Trash2, PlusCircle, FileText, ListFilter, CheckSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -31,6 +31,23 @@ export default function GroceryList() {
     refetchOnMount: true, // Always refetch when component mounts
     staleTime: 10000, // Consider data stale after 10 seconds
   });
+
+  // Load checked items from localStorage on component mount
+  useEffect(() => {
+    const savedCheckedItems = localStorage.getItem('groceryListChecked');
+    if (savedCheckedItems) {
+      try {
+        setCheckedItems(JSON.parse(savedCheckedItems));
+      } catch (error) {
+        console.error('Error parsing saved checked items:', error);
+      }
+    }
+  }, []);
+
+  // Save checked items to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('groceryListChecked', JSON.stringify(checkedItems));
+  }, [checkedItems]);
 
   const handleCheckItem = (itemId: string) => {
     setCheckedItems(prev => ({
