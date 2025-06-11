@@ -198,7 +198,7 @@ export default function ProfileSimple() {
   const displayData = isEditing ? editedHousehold : (household as any);
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-gray-50 px-4 py-6 pb-24 md:pb-6">
       <div className="max-w-screen-sm mx-auto space-y-6">
         <div className="space-y-4">
           <div>
@@ -390,9 +390,9 @@ export default function ProfileSimple() {
           </CardContent>
         </Card>
 
-        {/* Next Step Button */}
+        {/* Next Step Button - Desktop */}
         {!isEditing && isProfileComplete(displayData) && (
-          <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+          <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 hidden md:block">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
                 <div className="flex items-center justify-center gap-2 text-primary">
@@ -412,6 +412,29 @@ export default function ProfileSimple() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Mobile Sticky CTA */}
+        {!isEditing && isProfileComplete(displayData) && (
+          <div className="md:hidden fixed bottom-20 left-4 right-4 z-50">
+            <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 shadow-lg">
+              <CardContent className="py-4">
+                <div className="text-center space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-primary">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="font-medium text-sm">Profile Complete!</span>
+                  </div>
+                  <Button 
+                    onClick={handleNextStep}
+                    className="bg-accent hover:bg-accent/90 text-white px-8 py-3 text-base font-medium w-full"
+                  >
+                    Plan This Week
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Incomplete Profile Guidance */}
