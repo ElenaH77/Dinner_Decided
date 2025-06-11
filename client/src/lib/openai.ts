@@ -1,9 +1,9 @@
 import { apiRequest } from "./queryClient";
 import { Message } from "@/types";
 
-export async function sendMessage(messages: Message[]): Promise<Message> {
+export async function sendMessage(messagePayload: any): Promise<Message> {
   try {
-    const response = await apiRequest("POST", "/api/chat", { messages });
+    const response = await apiRequest("POST", "/api/chat", messagePayload);
     const data = await response.json();
     return data;
   } catch (error) {
