@@ -822,16 +822,28 @@ Be supportive, practical, and encouraging. Focus on dinner solutions, ingredient
         return res.status(404).json({ message: "Household not found" });
       }
       
-      // Preserve onboardingComplete flag and other critical data
-      const updateData = {
+      // Merge update data with existing data
+      const mergedData = {
+        ...existingHousehold,
         ...req.body,
-        onboardingComplete: existingHousehold.onboardingComplete, // Always preserve this
         householdId: existingHousehold.householdId // Preserve the ID
       };
       
-      console.log('[HOUSEHOLD UPDATE] Preserving onboardingComplete:', existingHousehold.onboardingComplete);
+      // Check if profile is complete after this update
+      const hasEssentialData = mergedData.ownerName && 
+        mergedData.appliances && 
+        mergedData.appliances.length > 0;
       
-      const household = await storage.updateHousehold(updateData, householdId);
+      // Auto-complete onboarding if essential data exists
+      if (!existingHousehold.onboardingComplete && hasEssentialData) {
+        mergedData.onboardingComplete = true;
+        console.log('[HOUSEHOLD UPDATE] Auto-completing onboarding - profile has essential data');
+      } else {
+        mergedData.onboardingComplete = existingHousehold.onboardingComplete;
+        console.log('[HOUSEHOLD UPDATE] Preserving onboardingComplete:', existingHousehold.onboardingComplete);
+      }
+      
+      const household = await storage.updateHousehold(mergedData, householdId);
       res.json(household);
     } catch (error) {
       console.error('[HOUSEHOLD UPDATE] Error:', error);
