@@ -242,6 +242,7 @@ export default function ProfileSimple() {
             <div className="space-y-6">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">What should I call you?</Label>
+                <p className="text-xs text-muted-foreground">Used in DinnerBot conversations and meal plan personalization</p>
                 {isEditing ? (
                   <Input
                     value={displayData.ownerName || ""}
@@ -258,6 +259,7 @@ export default function ProfileSimple() {
               
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Household Size</Label>
+                <p className="text-xs text-muted-foreground">Tells us how to size your recipes. If you like leftovers for lunches, include that here too!</p>
                 {isEditing ? (
                   <Textarea
                     value={displayData.members?.[0]?.name || ""}
@@ -273,7 +275,7 @@ export default function ProfileSimple() {
                         }]
                       });
                     }}
-                    placeholder="e.g., 2 adults 1 child"
+                    placeholder="e.g., 2 adults 1 child, or 3 people (love leftovers)"
                     rows={2}
                   />
                 ) : (
@@ -283,6 +285,7 @@ export default function ProfileSimple() {
               
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Location (Zip Code)</Label>
+                <p className="text-xs text-muted-foreground">So we don't suggest soup when it's 90° out! Weather affects meal recommendations</p>
                 {isEditing ? (
                   <Input
                     value={displayData.location || ""}
@@ -299,6 +302,7 @@ export default function ProfileSimple() {
               
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Cooking Skill Level</Label>
+                <p className="text-xs text-muted-foreground">Affects recipe complexity, prep time, and cooking techniques we suggest</p>
                 {isEditing ? (
                   <Select
                     value={displayData.cookingSkill?.toString() || "1"}
@@ -311,10 +315,10 @@ export default function ProfileSimple() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Beginner</SelectItem>
-                      <SelectItem value="2">Intermediate</SelectItem>
-                      <SelectItem value="3">Advanced</SelectItem>
-                      <SelectItem value="4">Expert</SelectItem>
+                      <SelectItem value="1">Beginner - Simple, few ingredients</SelectItem>
+                      <SelectItem value="2">Intermediate - Comfortable with basics</SelectItem>
+                      <SelectItem value="3">Advanced - Enjoys complex recipes</SelectItem>
+                      <SelectItem value="4">Expert - Professional techniques</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
@@ -324,6 +328,7 @@ export default function ProfileSimple() {
               
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Dietary Preferences</Label>
+                <p className="text-xs text-muted-foreground">Be specific! You can mention individual family members or general preferences. This directly affects every recipe we suggest.</p>
                 {isEditing ? (
                   <Textarea
                     value={displayData.preferences || ""}
@@ -331,7 +336,7 @@ export default function ProfileSimple() {
                       ...editedHousehold,
                       preferences: e.target.value
                     })}
-                    placeholder="e.g., vegetarian, no nuts, low sodium"
+                    placeholder="e.g., Sarah is vegetarian, kids hate mushrooms, low sodium for Dad, we love spicy food"
                     rows={3}
                   />
                 ) : (
@@ -345,6 +350,7 @@ export default function ProfileSimple() {
         <Card>
           <CardHeader>
             <CardTitle>Kitchen Equipment</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">We only suggest recipes using equipment you actually have. Select everything available in your kitchen.</p>
           </CardHeader>
           <CardContent>
             {isEditing ? (
