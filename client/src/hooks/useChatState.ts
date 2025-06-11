@@ -12,9 +12,16 @@ export function useChatState() {
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Get stored messages from API
-  const { data: messages = [], isLoading: loading } = useQuery({
+  const { data: messages = [], isLoading: loading, error } = useQuery({
     queryKey: ['/api/chat/messages'],
   });
+  
+  // Debug logging
+  console.log('Chat messages query:', { messages, loading, error, messagesType: typeof messages, messagesLength: messages?.length });
+  
+  // Also log the household ID being used
+  const householdId = localStorage.getItem('dinner-decided-household-id');
+  console.log('Current household ID in browser:', householdId);
   
   // Mutation for sending messages
   const messageMutation = useMutation({
