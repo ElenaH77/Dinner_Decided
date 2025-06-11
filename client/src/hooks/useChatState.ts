@@ -99,25 +99,18 @@ export function useChatState() {
     
     addMessage(userMessage);
     
-    if (imageData) {
-      // Send image data to backend
-      try {
-        await messageMutation.mutateAsync({
+    // Send message to backend (unified format)
+    try {
+      const messagePayload = {
+        message: {
           role: "user",
           content,
-          image: imageData
-        } as any);
-      } catch (error) {
-        console.error("Error sending image message:", error);
-      }
-    } else {
-      // Regular text message - send to backend
-      try {
-        const currentMessages = Array.isArray(messages) ? [...messages, userMessage] : [userMessage];
-        await messageMutation.mutateAsync(currentMessages);
-      } catch (error) {
-        console.error("Error in handleUserMessage:", error);
-      }
+          ...(imageData && { image: imageData })
+        }
+      };
+      await messageMutation.mutateAsync(messagePayload);
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   }, [messages, addMessage, messageMutation]);
   

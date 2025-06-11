@@ -413,10 +413,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: req.body.message
           };
         } else {
-          // Object format
+          // Object format - handle both regular messages and image messages
           const messageSchema = z.object({
             role: z.enum(["user", "assistant", "system"]),
-            content: z.string()
+            content: z.string(),
+            image: z.string().optional() // Add image field for base64 image data
           });
           singleMessage = messageSchema.parse(req.body.message);
         }
@@ -521,8 +522,9 @@ Keep your response brief and friendly, explaining that they need to set up their
         };
         await storage.saveMessage(userMessage, householdId);
         
-        // Get response from OpenAI
-        const aiResponse = await generateChatResponse(formattedMessages, household);
+        // Get response from OpenAI, passing image data if present
+        const imageData = (singleMessage as any).image;
+        const aiResponse = await generateChatResponse(formattedMessages, household, imageData);
         
         // Create a response message
         const responseId = uuidv4();
