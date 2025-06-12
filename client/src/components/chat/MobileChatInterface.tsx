@@ -57,7 +57,7 @@ export default function MobileChatInterface() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] md:h-full flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 border-4 border-red-500" style={{ height: 'calc(100vh - 4rem)' }}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <h1 className="text-xl font-semibold text-gray-900">DinnerBot</h1>
