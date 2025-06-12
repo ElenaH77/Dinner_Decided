@@ -57,7 +57,7 @@ export default function MobileChatInterface() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-[calc(100vh-4rem)] md:h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <h1 className="text-xl font-semibold text-gray-900">DinnerBot</h1>
@@ -119,7 +119,7 @@ export default function MobileChatInterface() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0 md:relative md:bottom-0 fixed bottom-16 left-0 right-0 md:bottom-auto z-40">
+      <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
         {/* File Preview */}
         {previewUrl && (
           <div className="mb-3 relative">
