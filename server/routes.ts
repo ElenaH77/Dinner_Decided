@@ -258,8 +258,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[WELCOME DEBUG] Members:", household?.members);
         console.log("[WELCOME DEBUG] Preferences:", household?.preferences);
         
-        // If household exists and onboarding is complete, provide a personalized welcome
-        if (household && household.onboardingComplete) {
+        // Check if household has enough data for enhanced welcome (more flexible than just onboardingComplete flag)
+        const hasCompleteProfile = household && (
+          household.onboardingComplete || 
+          (household.members && household.members.length > 0) ||
+          (household.preferences && household.preferences.length > 5) ||
+          (household.ownerName && household.ownerName.length > 0)
+        );
+        
+        console.log("[WELCOME DEBUG] Has complete profile check:", hasCompleteProfile);
+        
+        // If household exists and has sufficient data, provide a personalized welcome
+        if (hasCompleteProfile) {
           // Extract name from various sources for personalization
           let userName = household.ownerName;
           if (!userName && household.members && household.members.length > 0) {
