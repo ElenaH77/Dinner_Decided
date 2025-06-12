@@ -59,9 +59,9 @@ export default function MobileChatInterface() {
   return (
     <div className="flex flex-col bg-gray-50 border-4 border-red-500" style={{ height: 'calc(100vh - 4rem)' }}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-        <h1 className="text-xl font-semibold text-gray-900">DinnerBot</h1>
-        <p className="text-sm text-gray-500">Enhanced with your family context</p>
+      <div className="bg-red-500 border-b border-gray-200 p-4 flex-shrink-0">
+        <h1 className="text-xl font-semibold text-white">DinnerBot - MOBILE FIX TEST</h1>
+        <p className="text-sm text-white">Enhanced with your family context</p>
       </div>
 
       {/* Messages Area */}
