@@ -65,7 +65,7 @@ export default function MobileChatInterface() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4">
         {Array.isArray(messages) && messages.length > 0 ? (
           <div className="space-y-4">
             {messages.map((message) => (
@@ -119,7 +119,7 @@ export default function MobileChatInterface() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+      <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0 md:relative md:bottom-0 fixed bottom-16 left-0 right-0 md:bottom-auto z-40">
         {/* File Preview */}
         {previewUrl && (
           <div className="mb-3 relative">

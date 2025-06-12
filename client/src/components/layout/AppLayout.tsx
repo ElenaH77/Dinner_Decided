@@ -31,7 +31,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <MobileNav activeTab={activeTab} />
       
       {/* Main Content */}
-      <main className="flex-grow overflow-y-auto">
+      <main className="flex-grow flex flex-col">
         {children}
       </main>
     </div>
