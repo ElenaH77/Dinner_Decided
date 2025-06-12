@@ -252,13 +252,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If no messages exist, check if household is already complete
       if (!messages || messages.length === 0) {
         const household = await storage.getHousehold(householdId);
+        console.log("[WELCOME DEBUG] Household data:", JSON.stringify(household, null, 2));
+        console.log("[WELCOME DEBUG] Onboarding complete:", household?.onboardingComplete);
+        console.log("[WELCOME DEBUG] Owner name:", household?.ownerName);
+        console.log("[WELCOME DEBUG] Members:", household?.members);
+        console.log("[WELCOME DEBUG] Preferences:", household?.preferences);
         
         // If household exists and onboarding is complete, provide a personalized welcome
         if (household && household.onboardingComplete) {
+          // Extract name from various sources for personalization
+          let userName = household.ownerName;
+          if (!userName && household.members && household.members.length > 0) {
+            // Try to extract name from member data
+            const firstMember = household.members[0];
+            if (firstMember && firstMember.name && !firstMember.name.includes('adults') && !firstMember.name.includes('child')) {
+              userName = firstMember.name;
+            }
+          }
+          
+          // Generate enhanced welcome with family context
+          let welcomeContent = `Hey ${userName || 'there'}! Welcome back to DinnerBot.`;
+          
+          // Add family context if available
+          if (household.members && household.members.length > 0) {
+            const familyContext = household.members[0];
+            if (familyContext && familyContext.name && familyContext.name.includes('adults')) {
+              welcomeContent += ` I remember your family setup and dietary needs.`;
+            }
+          }
+          
+          // Add dietary context
+          if (household.preferences && household.preferences.length > 10) {
+            welcomeContent += ` I have your dietary preferences on file.`;
+          }
+          
+          welcomeContent += ` I'm here to help with meal ideas, cooking tips, and recipe suggestions. What can I help you with today?`;
+          
           const personalizedWelcome = {
             id: `welcome-${Date.now()}`,
             role: "assistant",
-            content: `Hey ${household.ownerName || 'there'}! Welcome back to DinnerBot. I'm here to help with meal ideas, cooking tips, and recipe suggestions. What can I help you with today?`,
+            content: welcomeContent,
             timestamp: new Date(),
             householdId: householdId
           };
