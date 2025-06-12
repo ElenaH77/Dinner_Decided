@@ -66,15 +66,7 @@ export default function MobileChatInterface() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-          </div>
-        ) : Array.isArray(messages) && messages.length > 0 ? (
+        {Array.isArray(messages) && messages.length > 0 ? (
           <div className="space-y-4">
             {messages.map((message) => (
               <div
@@ -93,14 +85,22 @@ export default function MobileChatInterface() {
               </div>
             ))}
           </div>
+        ) : loading ? (
+          <div className="flex justify-center py-8">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
         ) : (
           <div className="text-center py-8">
             <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-3xl">🍽️</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading DinnerBot...</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to DinnerBot!</h2>
             <p className="text-gray-600 mb-4 px-4">
-              Setting up your personalized meal assistant...
+              I'm setting up your personalized meal assistant...
             </p>
           </div>
         )}
