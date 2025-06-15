@@ -11,17 +11,33 @@ export function useChatState() {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Get stored messages from API with forced refresh
+  // Get stored messages from API with proper caching for persistence
   const { data: messagesData, isLoading: loading, error } = useQuery({
     queryKey: ['/api/chat/messages'],
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes - keep chat history fresh but cached
+    gcTime: 30 * 60 * 1000, // 30 minutes - keep in memory longer
+    refetchOnMount: false, // Don't refetch every time we mount
     refetchOnWindowFocus: false,
   });
   
-  // Ensure messages is always an array
-  const messages = Array.isArray(messagesData) ? messagesData : [];
+  // Ensure messages is always an array with localStorage backup
+  let messages = Array.isArray(messagesData) ? messagesData : [];
+  
+  // If no messages from API, try localStorage backup
+  if (messages.length === 0 && !loading) {
+    const cachedMessages = localStorage.getItem('dinner_decided_chat_messages');
+    if (cachedMessages) {
+      try {
+        const parsed = JSON.parse(cachedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          messages = parsed;
+          console.log('[CHAT DEBUG] Restored', messages.length, 'messages from localStorage backup');
+        }
+      } catch (e) {
+        console.warn('[CHAT DEBUG] Failed to parse cached messages:', e);
+      }
+    }
+  }
   
   // Debug logging
   console.log('[CHAT DEBUG] Query result:', { messagesData, messages, loading, error, messagesType: typeof messagesData, messagesLength: messages?.length });
@@ -45,6 +61,9 @@ export function useChatState() {
           timestamp: response.timestamp || new Date().toISOString()
         }];
         queryClient.setQueryData(['/api/chat/messages'], updatedMessages);
+        
+        // Save to localStorage for persistence
+        localStorage.setItem('dinner_decided_chat_messages', JSON.stringify(updatedMessages));
       }
       
       // Also invalidate meal plan and grocery list as they might have changed
@@ -72,9 +91,13 @@ export function useChatState() {
       if (response && response.welcomeMessage) {
         // Set the welcome message as the only message
         queryClient.setQueryData(['/api/chat/messages'], [response.welcomeMessage]);
+        // Clear localStorage and set new message
+        localStorage.setItem('dinner_decided_chat_messages', JSON.stringify([response.welcomeMessage]));
       } else {
         // Fallback to empty messages list if no welcome message is returned
         queryClient.setQueryData(['/api/chat/messages'], []);
+        // Clear localStorage
+        localStorage.removeItem('dinner_decided_chat_messages');
       }
       
       toast({
@@ -96,6 +119,9 @@ export function useChatState() {
   const addMessage = useCallback((message: Message) => {
     const allMessages = Array.isArray(messages) ? [...messages, message] : [message];
     queryClient.setQueryData(['/api/chat/messages'], allMessages);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('dinner_decided_chat_messages', JSON.stringify(allMessages));
     return message;
   }, [messages, queryClient]);
   
