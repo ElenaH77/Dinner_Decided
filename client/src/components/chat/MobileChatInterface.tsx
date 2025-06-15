@@ -17,11 +17,19 @@ export default function MobileChatInterface() {
     if ((!input.trim() && !selectedFile) || isGenerating) return;
 
     try {
-      let imageData = null;
+      let imageData: string | undefined = undefined;
       if (selectedFile) {
         const reader = new FileReader();
-        imageData = await new Promise((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
+        imageData = await new Promise<string>((resolve, reject) => {
+          reader.onload = (e) => {
+            const result = e.target?.result;
+            if (typeof result === 'string') {
+              resolve(result);
+            } else {
+              reject(new Error('Failed to read file as data URL'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Error reading file'));
           reader.readAsDataURL(selectedFile);
         });
       }
