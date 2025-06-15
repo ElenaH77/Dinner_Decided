@@ -57,7 +57,7 @@ export default function MobileChatInterface() {
   };
 
   return (
-    <div className="flex flex-col bg-gray-50" style={{ height: 'calc(100vh - 4rem)' }}>
+    <div className="flex flex-col h-full bg-gray-50" style={{ height: 'calc(100vh - 4rem)' }}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <h1 className="text-xl font-semibold text-gray-900">DinnerBot</h1>
@@ -65,7 +65,7 @@ export default function MobileChatInterface() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 pb-4">
+      <div className="flex-1 overflow-y-auto p-4">
         {Array.isArray(messages) && messages.length > 0 ? (
           <div className="space-y-4">
             {messages.map((message) => (
@@ -116,6 +116,7 @@ export default function MobileChatInterface() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Input Area */}
